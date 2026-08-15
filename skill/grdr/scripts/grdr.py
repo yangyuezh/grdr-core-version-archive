@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Forward commands to the canonical GRDR warehouse CLI."""
+"""Forward commands to the canonical GRDR registry CLI."""
 
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ def main() -> None:
         print(
             json.dumps(
                 {
-                    "error": "grdr_warehouse_not_found",
+                    "error": "grdr_registry_not_found",
                     "expected_root": str(root),
-                    "resolution": "Set GRDR_ROOT to the canonical GRDR warehouse directory.",
+                    "resolution": "Set GRDR_ROOT to the canonical GRDR project directory.",
                 },
                 indent=2,
             ),

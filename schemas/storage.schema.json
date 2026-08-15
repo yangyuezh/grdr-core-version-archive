@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://grdr.dev/schemas/storage.schema.json",
-  "title": "GRDR warehouse storage record",
+  "title": "GRDR access and storage record",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "id", "dataset_id", "resource_id", "mode", "upstream_release", "local_snapshot", "access_pointer", "refresh", "license", "verification", "evidence"],

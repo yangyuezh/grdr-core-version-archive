@@ -27,4 +27,4 @@ Audit each domain for:
 - open, application-based, secure, physical, subscription, and commercial access;
 - non-English and historically marginalized sources.
 
-Expand continuously through official institutional catalogs, upstream provenance, repository networks, dataset citations, data papers, standards, expert nominations, and warehouse coverage failures. Use numerical targets only for workload planning, never as completion criteria.
+Expand continuously through official institutional catalogs, upstream provenance, repository networks, dataset citations, data papers, standards, expert nominations, and registry coverage failures. Use numerical targets only for workload planning, never as completion criteria.

@@ -27,9 +27,15 @@ def main() -> int:
     if f"Version `{version}`" not in readme:
         errors.append(f"README.md does not identify Version `{version}`")
 
-    skill = ROOT / "skill" / "global-research-data-warehouse" / "SKILL.md"
+    skill = ROOT / "skill" / "grdr" / "SKILL.md"
     if not skill.is_file():
         errors.append("version-controlled Skill bundle is missing")
+    elif not skill.read_text(encoding="utf-8").startswith("---\nname: grdr\n"):
+        errors.append("version-controlled Skill identity is not 'grdr'")
+
+    legacy_skill = ROOT / "skill" / "global-research-data-warehouse"
+    if legacy_skill.exists():
+        errors.append("legacy global-research-data-warehouse Skill bundle still exists")
 
     if errors:
         for error in errors:

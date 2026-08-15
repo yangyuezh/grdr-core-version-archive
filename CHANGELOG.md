@@ -2,6 +2,14 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.1.1] - 2026-08-14
+
+### Changed
+
+- Renamed the Codex Skill from the legacy `global-research-data-warehouse` identifier to `grdr`.
+- Standardized the installed folder, version-controlled Skill bundle, UI prompt, release checks, and documentation on `GRDR` and `$grdr`.
+- Reframed legacy warehouse terminology as optional later-phase access and storage architecture rather than the project or Skill identity.
+
 ## [0.1.0] - 2026-08-14
 
 ### Added

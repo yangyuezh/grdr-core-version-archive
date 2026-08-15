@@ -1,5 +1,5 @@
 ---
-name: global-research-data-warehouse
+name: grdr
 description: Operate and expand GRDR, an AI-agent-native, all-discipline global Data Source Registry, Dataset Knowledge Graph, and Agent Research Data Infrastructure. Use when Codex needs to discover, verify, register, classify, assess, connect, cite, or update authoritative and academically valuable databases; audit disciplinary coverage; trace provenance, methodology, access, or licensing; or map a scientific question to compatible data sources, variables, and unresolved data gaps.
 ---
 
@@ -90,7 +90,7 @@ Matching is a core value of GRDR, but it depends on continued registry breadth a
 
 ## Use access extensions carefully
 
-Read [references/warehouse-architecture.md](references/warehouse-architecture.md) only when adding an API adapter, federated query, or lawful snapshot. Keep source discovery and metadata separate from data retrieval.
+Read [references/access-architecture.md](references/access-architecture.md) only when adding an API adapter, federated query, or lawful snapshot. Keep source discovery and metadata separate from data retrieval.
 
 Never bypass authentication, payment, consent, ethics review, data-use agreements, rate limits, or access controls.
 

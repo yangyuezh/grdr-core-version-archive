@@ -20,4 +20,4 @@ Do not equate “not copied locally” with “not included in GRDR.”
 
 Record the source and resource IDs, authentication, operations, formats, rate limits, last test, error state, and official documentation. Keep adapters source-specific and independently testable.
 
-For the full optional architecture, read `/Users/jasper/Documents/codex/grdr/docs/WAREHOUSE_ARCHITECTURE.md`.
+For the full optional architecture, read `/Users/jasper/Documents/codex/grdr/docs/ACCESS_ARCHITECTURE.md`.

@@ -76,7 +76,7 @@ class GrdrCliTests(unittest.TestCase):
             "conceptually_required_not_found",
         )
 
-    def test_warehouse_access_layers_are_queryable(self) -> None:
+    def test_optional_access_layers_are_queryable(self) -> None:
         adapters = run_cli("list-adapters", "--status", "operational")
         storage = run_cli("list-storage", "--mode", "federated_access")
         monitors = run_cli("list-monitors", "--status", "passing")

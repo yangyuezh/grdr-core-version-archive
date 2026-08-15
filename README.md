@@ -14,7 +14,7 @@ It is not primarily a website and does not initially copy every upstream dataset
 
 Research-question matching, source combination, and data-gap diagnosis are central Agent capabilities built on top of the registry. Local snapshots and federated access are later extensions where licensing, privacy, cost, and scale permit.
 
-## Core warehouse questions
+## Core GRDR questions
 
 GRDR should help an agent determine:
 
@@ -22,8 +22,8 @@ GRDR should help an agent determine:
 2. Who produces and maintains them, what do they contain, and how are they related?
 3. How can they be accessed, queried, downloaded, licensed, versioned, and refreshed?
 4. Which data can be stored locally, which should remain federated, and which require controlled access?
-5. Where are the warehouse’s disciplinary, geographic, temporal, modality, and access gaps?
-6. For a specific scientific question, which warehouse contents are suitable and what additional data are needed?
+5. Where are the registry’s disciplinary, geographic, temporal, modality, and access gaps?
+6. For a specific scientific question, which registered sources are suitable and what additional data are needed?
 
 ## Design principles
 
@@ -80,7 +80,7 @@ grdr/
 
 ## Current phase
 
-Version `0.1.0` defines the project charter, registry ontology, evidence rules, assessment framework, Agent contract, and seed-expansion process. It also includes the first end-to-end source–dataset–resource–variable–construct chain and a registry-coverage diagnostic for structured research requests. Seed records are deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit.
+Version `0.1.1` defines the project charter, registry ontology, evidence rules, assessment framework, Agent contract, and seed-expansion process. It also includes the first end-to-end source–dataset–resource–variable–construct chain and a registry-coverage diagnostic for structured research requests. Seed records are deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skill is installed and invoked consistently as `GRDR` / `$grdr`.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 

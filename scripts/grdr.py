@@ -558,7 +558,7 @@ def parser() -> argparse.ArgumentParser:
     diagnose.add_argument("request_file")
     diagnose.set_defaults(handler=diagnose_coverage)
 
-    adapters = commands.add_parser("list-adapters", help="List warehouse access adapters")
+    adapters = commands.add_parser("list-adapters", help="List optional data-access adapters")
     adapters.add_argument("--source-id")
     adapters.add_argument("--status", choices=["operational", "degraded", "failing", "untested", "disabled", "deprecated"])
     adapters.add_argument("--storage-mode", choices=["local_snapshot", "federated_access", "controlled_access_pointer"])
