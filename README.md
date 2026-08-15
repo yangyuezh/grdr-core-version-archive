@@ -131,7 +131,7 @@ grdr/
 
 ## Current phase
 
-Version `0.3.0` defines the project charter, registry ontology, evidence rules, assessment framework, Agent contract, seed-expansion process, generated human-readable catalog, and a dedicated six-layer database-profiling workflow. Every source appears in the root README and in an independent six-layer detail directory. It also includes the first end-to-end source–dataset–resource–variable–construct chain and a registry-coverage diagnostic for structured research requests. Seed records are deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr` and `$grdr-source-profiler`.
+Version `0.3.1` defines the project charter, registry ontology, evidence rules, assessment framework, Agent contract, seed-expansion process, generated human-readable catalog, and a dedicated six-layer database-profiling workflow. Every source appears in the root README and in an independent six-layer detail directory. It also includes the first end-to-end source–dataset–resource–variable–construct chain and a registry-coverage diagnostic for structured research requests. Seed records are deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr` and `$grdr-source-profiler`.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 

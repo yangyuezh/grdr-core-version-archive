@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import unittest
@@ -125,10 +126,11 @@ class GrdrCliTests(unittest.TestCase):
         wrapper = ROOT / "skill" / "grdr-source-profiler" / "scripts" / "profile_source.py"
         completed = subprocess.run(
             [sys.executable, str(wrapper), "grdr:source:undata"],
-            cwd=ROOT,
+            cwd=ROOT.parent,
             check=True,
             capture_output=True,
             text=True,
+            env={key: value for key, value in os.environ.items() if key != "GRDR_ROOT"},
         )
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["operation"], "audit_source_depth")

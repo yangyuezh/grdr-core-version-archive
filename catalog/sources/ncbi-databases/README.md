@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:ncbi-databases"
 record_type: "source_catalog"
-registry_version: "0.3.0"
+registry_version: "0.3.1"
 verification_status: "unverified"
 canonical_url: "https://www.ncbi.nlm.nih.gov/guide/all/"
 ---

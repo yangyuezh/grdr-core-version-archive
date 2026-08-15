@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "0.3.0"
+registry_version: "0.3.1"
 verification_status: "partially_verified"
 canonical_url: "https://data.un.org/"
 ---

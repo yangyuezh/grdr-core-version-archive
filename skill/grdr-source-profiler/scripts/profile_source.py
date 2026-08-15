@@ -10,7 +10,18 @@ import sys
 from pathlib import Path
 
 
-DEFAULT_ROOT = Path("/Users/jasper/Documents/codex/grdr")
+INSTALLED_ROOT = Path("/Users/jasper/Documents/codex/grdr")
+
+
+def resolve_root() -> Path:
+    configured_root = os.environ.get("GRDR_ROOT")
+    if configured_root:
+        return Path(configured_root).expanduser().resolve()
+
+    bundled_root = Path(__file__).resolve().parents[3]
+    if (bundled_root / "scripts" / "grdr.py").is_file():
+        return bundled_root
+    return INSTALLED_ROOT
 
 
 def main() -> None:
@@ -20,7 +31,7 @@ def main() -> None:
     group.add_argument("--all", action="store_true", help="Audit every registered source")
     args = parser.parse_args()
 
-    root = Path(os.environ.get("GRDR_ROOT", str(DEFAULT_ROOT))).expanduser().resolve()
+    root = resolve_root()
     cli = root / "scripts" / "grdr.py"
     if not cli.is_file():
         print(

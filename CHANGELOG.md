@@ -2,6 +2,12 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.3.1] - 2026-08-15
+
+### Fixed
+
+- Made the `$grdr-source-profiler` wrapper discover a repository-bundled GRDR root before falling back to the local installed path, so the Skill works in GitHub Actions and other checkouts.
+
 ## [0.3.0] - 2026-08-15
 
 ### Added

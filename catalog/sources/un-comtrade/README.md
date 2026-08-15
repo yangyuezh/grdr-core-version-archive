@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:un-comtrade"
 record_type: "source_catalog"
-registry_version: "0.3.0"
+registry_version: "0.3.1"
 verification_status: "unverified"
 canonical_url: "https://comtradeplus.un.org/"
 ---
