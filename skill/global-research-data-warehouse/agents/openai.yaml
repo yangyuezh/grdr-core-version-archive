@@ -1,0 +1,4 @@
+interface:
+  display_name: "Global Research Data Registry"
+  short_description: "Discover and assess authoritative research data"
+  default_prompt: "Use $global-research-data-warehouse to find, evaluate, and connect authoritative data sources for this research question."

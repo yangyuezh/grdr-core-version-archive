@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Validate GRDR JSONL syntax, schemas when available, IDs, and references."""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+REGISTRY = ROOT / "registry"
+SCHEMAS = ROOT / "schemas"
+
+COLLECTIONS = {
+    "institutions": (REGISTRY / "institutions.jsonl", SCHEMAS / "institution.schema.json"),
+    "sources": (REGISTRY / "sources.jsonl", SCHEMAS / "source.schema.json"),
+    "datasets": (REGISTRY / "datasets.jsonl", SCHEMAS / "dataset.schema.json"),
+    "resources": (REGISTRY / "resources.jsonl", SCHEMAS / "resource.schema.json"),
+    "constructs": (REGISTRY / "constructs.jsonl", SCHEMAS / "construct.schema.json"),
+    "variables": (REGISTRY / "variables.jsonl", SCHEMAS / "variable.schema.json"),
+    "adapters": (REGISTRY / "adapters.jsonl", SCHEMAS / "adapter.schema.json"),
+    "storage": (REGISTRY / "storage.jsonl", SCHEMAS / "storage.schema.json"),
+    "monitors": (REGISTRY / "monitors.jsonl", SCHEMAS / "monitor.schema.json"),
+    "relationships": (REGISTRY / "relationships.jsonl", SCHEMAS / "relationship.schema.json"),
+}
+
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not raw.strip():
+            continue
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
+        if not isinstance(value, dict):
+            raise ValueError(f"{path}:{line_number}: record must be a JSON object")
+        records.append(value)
+    return records
+
+
+def validate_with_jsonschema(
+    collections: dict[str, list[dict[str, Any]]]
+) -> list[str]:
+    try:
+        import jsonschema
+    except ImportError:
+        return ["jsonschema is not installed; full JSON Schema validation was skipped"]
+
+    errors: list[str] = []
+    for name, records in collections.items():
+        schema_path = COLLECTIONS[name][1]
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(
+            schema,
+            format_checker=jsonschema.FormatChecker(),
+        )
+        for index, record in enumerate(records, 1):
+            for error in sorted(validator.iter_errors(record), key=lambda item: list(item.path)):
+                location = ".".join(str(part) for part in error.path) or "<record>"
+                errors.append(f"{COLLECTIONS[name][0]}:{index}:{location}: {error.message}")
+    return errors
+
+
+def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str]:
+    errors: list[str] = []
+    all_records = [record for records in collections.values() for record in records]
+    ids = [record.get("id") for record in all_records]
+    known_ids = set(ids)
+
+    if None in known_ids:
+        errors.append("one or more records are missing an id")
+    duplicate_ids = sorted({record_id for record_id in ids if ids.count(record_id) > 1})
+    for record_id in duplicate_ids:
+        errors.append(f"duplicate id: {record_id}")
+
+    institution_ids = {record["id"] for record in collections["institutions"]}
+    source_ids = {record["id"] for record in collections["sources"]}
+    dataset_ids = {record["id"] for record in collections["datasets"]}
+    resource_ids = {record["id"] for record in collections["resources"]}
+    construct_ids = {record["id"] for record in collections["constructs"]}
+    for source in collections["sources"]:
+        for maintainer_id in source.get("maintainer_ids", []):
+            if maintainer_id not in institution_ids:
+                errors.append(f"{source.get('id')}: unknown maintainer_id {maintainer_id}")
+
+    for dataset in collections["datasets"]:
+        for source_id in dataset.get("source_ids", []):
+            if source_id not in source_ids:
+                errors.append(f"{dataset.get('id')}: unknown source_id {source_id}")
+        for resource_id in dataset.get("resource_ids", []):
+            if resource_id not in resource_ids:
+                errors.append(f"{dataset.get('id')}: unknown resource_id {resource_id}")
+
+    for resource in collections["resources"]:
+        if resource.get("source_id") not in source_ids:
+            errors.append(f"{resource.get('id')}: unknown source_id {resource.get('source_id')}")
+        for dataset_id in resource.get("dataset_ids", []):
+            if dataset_id not in dataset_ids:
+                errors.append(f"{resource.get('id')}: unknown dataset_id {dataset_id}")
+
+    for variable in collections["variables"]:
+        for dataset_id in variable.get("dataset_ids", []):
+            if dataset_id not in dataset_ids:
+                errors.append(f"{variable.get('id')}: unknown dataset_id {dataset_id}")
+        for construct_id in variable.get("construct_ids", []):
+            if construct_id not in construct_ids:
+                errors.append(f"{variable.get('id')}: unknown construct_id {construct_id}")
+
+    for construct in collections["constructs"]:
+        for broader_id in construct.get("broader_construct_ids", []):
+            if broader_id not in construct_ids:
+                errors.append(f"{construct.get('id')}: unknown broader_construct_id {broader_id}")
+
+    for adapter in collections["adapters"]:
+        if adapter.get("source_id") not in source_ids:
+            errors.append(f"{adapter.get('id')}: unknown source_id {adapter.get('source_id')}")
+        for resource_id in adapter.get("resource_ids", []):
+            if resource_id not in resource_ids:
+                errors.append(f"{adapter.get('id')}: unknown resource_id {resource_id}")
+
+    for storage in collections["storage"]:
+        if storage.get("dataset_id") not in dataset_ids:
+            errors.append(f"{storage.get('id')}: unknown dataset_id {storage.get('dataset_id')}")
+        if storage.get("resource_id") not in resource_ids:
+            errors.append(f"{storage.get('id')}: unknown resource_id {storage.get('resource_id')}")
+
+    for monitor in collections["monitors"]:
+        target_id = monitor.get("target_id")
+        if target_id not in known_ids:
+            errors.append(f"{monitor.get('id')}: unknown target_id {target_id}")
+
+    for relationship in collections["relationships"]:
+        for field in ("subject_id", "object_id"):
+            referenced_id = relationship.get(field)
+            if referenced_id not in known_ids:
+                errors.append(f"{relationship.get('id')}:{field}: unknown id {referenced_id}")
+
+    return errors
+
+
+def main() -> int:
+    try:
+        collections = {
+            name: load_jsonl(path)
+            for name, (path, _schema_path) in COLLECTIONS.items()
+        }
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    schema_messages = validate_with_jsonschema(collections)
+    schema_errors = [item for item in schema_messages if not item.startswith("jsonschema is not installed")]
+    warnings = [item for item in schema_messages if item.startswith("jsonschema is not installed")]
+    integrity_errors = validate_integrity(collections)
+    errors = schema_errors + integrity_errors
+
+    for warning in warnings:
+        print(f"WARNING: {warning}")
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
+    counts = ", ".join(f"{name}={len(records)}" for name, records in collections.items())
+    print(f"GRDR registry validation passed ({counts})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

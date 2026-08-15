@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/adapter.schema.json",
+  "title": "GRDR access adapter record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "name", "source_id", "resource_ids", "adapter_type", "implementation", "operations", "supported_storage_modes", "authentication", "state", "verification", "evidence"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:adapter:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "resource_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:resource:[a-z0-9][a-z0-9-]*$"}, "minItems": 1, "uniqueItems": true},
+    "adapter_type": {"enum": ["api", "bulk_download", "catalog_harvester", "cloud", "application", "secure_enclave", "physical_archive", "other"]},
+    "implementation": {"type": "string", "minLength": 1},
+    "operations": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+    "supported_storage_modes": {"type": "array", "items": {"enum": ["local_snapshot", "federated_access", "controlled_access_pointer"]}, "minItems": 1, "uniqueItems": true},
+    "authentication": {"enum": ["none", "account", "api_key", "oauth", "application_approval", "institutional_access", "payment", "mixed", "unknown"]},
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_tested_at", "last_error"],
+      "properties": {
+        "status": {"enum": ["operational", "degraded", "failing", "untested", "disabled", "deprecated"]},
+        "last_tested_at": {"type": ["string", "null"], "format": "date-time"},
+        "last_error": {"type": ["string", "null"]}
+      }
+    },
+    "verification": {"$ref": "#/$defs/verification"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]},
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "title": {"type": "string"},
+        "publisher": {"type": ["string", "null"]},
+        "evidence_type": {"enum": ["api_documentation", "download_documentation", "access_policy", "live_test", "other"]},
+        "supports": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "retrieved_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}
