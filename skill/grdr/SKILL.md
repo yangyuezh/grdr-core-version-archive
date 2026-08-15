@@ -68,6 +68,19 @@ For each candidate:
 
 Separate institutional authority from task-specific fitness. Do not rank every field by one universal prestige score.
 
+## Keep the human catalog synchronized
+
+Treat human readability as required, even though AI agents are the primary users. Every registered source must appear in the root `README.md` and have an independent `catalog/sources/<source-slug>/README.md` page covering Institution, Source, Dataset, Resource, Variable, and Construct layers.
+
+After changing any of those registry layers, run:
+
+```bash
+python3 scripts/build_catalog.py
+python3 scripts/build_catalog.py --check
+```
+
+Generate pages only from canonical registry records. Display missing depth as unknown or not yet registered; never invent fields to make a page look complete.
+
 ## Match scientific questions
 
 When the user provides a scientific question:
@@ -111,6 +124,7 @@ Read `docs/RELEASE_PROCESS.md`. For each completed development batch:
 ```bash
 cd "${GRDR_ROOT:-/Users/jasper/Documents/codex/grdr}"
 python3 scripts/validate_registry.py
+python3 scripts/build_catalog.py --check
 python3 -m unittest discover -s tests
 ```
 

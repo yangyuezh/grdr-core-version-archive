@@ -2,6 +2,19 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.2.0] - 2026-08-15
+
+### Added
+
+- Human- and Agent-readable database catalog generated from the canonical registry.
+- Root README inventory containing every registered database, its publishing or maintaining institution, domain, verification status, and six-layer detail link.
+- One independent directory and detailed page for every database, organized as Institution → Source → Dataset → Resource → Variable → Construct.
+- Deterministic catalog generation and drift checks so new source records cannot omit their human-readable documentation.
+
+### Changed
+
+- GRDR curation rules now require the root README and six-layer catalog to remain synchronized with every source change.
+
 ## [0.1.1] - 2026-08-14
 
 ### Changed

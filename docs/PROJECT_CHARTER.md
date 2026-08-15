@@ -10,6 +10,8 @@ GRDR maps scientific questions to constructs and data requirements, discovers an
 
 The primary users are AI agents, including Codex and Claude. Researchers, data stewards, librarians, and domain experts are secondary users who audit, correct, and extend the registry.
 
+AI-first does not mean AI-only. Every registered database must remain discoverable from the root README and have a human-readable detail page organized across the Institution, Source, Dataset, Resource, Variable, and Construct layers. Missing depth must be shown explicitly rather than hidden or invented.
+
 ## Scope
 
 GRDR covers, without a fixed numerical ceiling:
@@ -76,6 +78,7 @@ Coverage volume is an operational metric, not the mission. A large collection of
 - Restricted, sensitive, or licensed data are described without bypassing access controls.
 - Updates are additive and reviewable; removals and supersessions retain historical provenance.
 - Conflicting claims coexist until adjudicated, with evidence attached to each claim.
+- Human-readable catalog pages are generated from canonical registry records and must pass synchronization checks before release.
 
 ## Versioning
 

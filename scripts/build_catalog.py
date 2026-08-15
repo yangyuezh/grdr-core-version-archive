@@ -1,0 +1,572 @@
+#!/usr/bin/env python3
+"""Build and verify the human- and agent-readable GRDR source catalog."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Iterable
+
+
+ROOT = Path(__file__).resolve().parents[1]
+REGISTRY = ROOT / "registry"
+CATALOG = ROOT / "catalog"
+SOURCE_CATALOG = CATALOG / "sources"
+ROOT_README = ROOT / "README.md"
+START_MARKER = "<!-- GRDR_SOURCE_CATALOG_START -->"
+END_MARKER = "<!-- GRDR_SOURCE_CATALOG_END -->"
+
+STATUS_LABELS = {
+    "verified": "已验证",
+    "partially_verified": "部分验证",
+    "unverified": "待验证候选",
+    "stale": "验证已过期",
+    "conflicted": "证据冲突",
+    "deprecated": "已停用",
+    "unavailable": "当前不可用",
+}
+
+
+def load_jsonl(name: str) -> list[dict[str, Any]]:
+    path = REGISTRY / f"{name}.jsonl"
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def source_slug(source_id: str) -> str:
+    return source_id.rsplit(":", 1)[-1]
+
+
+def value(item: Any) -> str:
+    if item is None or item == "" or item == []:
+        return "未知 / 尚未登记"
+    if isinstance(item, bool):
+        return "是" if item else "否"
+    if isinstance(item, list):
+        return "、".join(value(part) for part in item)
+    if isinstance(item, dict):
+        return json.dumps(item, ensure_ascii=False, sort_keys=True)
+    return str(item).replace("\n", "<br>").replace("|", "\\|")
+
+
+def link(label: str, url: str | None) -> str:
+    return f"[{label}]({url})" if url else label
+
+
+def status(record: dict[str, Any]) -> str:
+    code = record.get("verification", {}).get("status", "unverified")
+    return f"{STATUS_LABELS.get(code, code)} (`{code}`)"
+
+
+def last_verified(record: dict[str, Any]) -> str:
+    return value(record.get("verification", {}).get("last_verified_at"))
+
+
+def table(rows: Iterable[tuple[str, Any]]) -> str:
+    body = ["| 字段 | 内容 |", "|---|---|"]
+    body.extend(f"| {name} | {value(item)} |" for name, item in rows)
+    return "\n".join(body)
+
+
+def evidence_list(record: dict[str, Any]) -> str:
+    evidence = record.get("evidence", [])
+    if not evidence:
+        return "- 尚未登记证据。"
+    lines = []
+    for item in evidence:
+        publisher = item.get("publisher") or "发布者未知"
+        supports = "、".join(item.get("supports", [])) or "支持范围未注明"
+        retrieved = item.get("retrieved_at") or "检索时间未知"
+        lines.append(
+            f"- [{item['title']}]({item['url']}) — {publisher}；"
+            f"证据类型：`{item['evidence_type']}`；支持：{supports}；检索于 {retrieved}。"
+        )
+    return "\n".join(lines)
+
+
+def missing_layer(entity: str) -> str:
+    return (
+        f"> 尚未建立{entity}层记录。这表示 GRDR 还没有完成这一层的核验与展开，"
+        f"不表示该数据库不存在相关{entity}。"
+    )
+
+
+def build_context() -> dict[str, Any]:
+    collections = {
+        name: load_jsonl(name)
+        for name in (
+            "institutions",
+            "sources",
+            "datasets",
+            "resources",
+            "variables",
+            "constructs",
+        )
+    }
+    collections["institution_index"] = {
+        item["id"]: item for item in collections["institutions"]
+    }
+    return collections
+
+
+def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    datasets = [
+        item for item in context["datasets"] if source["id"] in item["source_ids"]
+    ]
+    dataset_ids = {item["id"] for item in datasets}
+    resources = [
+        item
+        for item in context["resources"]
+        if item["source_id"] == source["id"]
+        or dataset_ids.intersection(item["dataset_ids"])
+    ]
+    variables = [
+        item
+        for item in context["variables"]
+        if dataset_ids.intersection(item["dataset_ids"])
+    ]
+    construct_ids = {
+        construct_id
+        for item in variables
+        for construct_id in item["construct_ids"]
+    }
+    constructs = [
+        item for item in context["constructs"] if item["id"] in construct_ids
+    ]
+    institutions = [
+        context["institution_index"][item]
+        for item in source["maintainer_ids"]
+        if item in context["institution_index"]
+    ]
+    return {
+        "institutions": institutions,
+        "datasets": datasets,
+        "resources": resources,
+        "variables": variables,
+        "constructs": constructs,
+    }
+
+
+def render_institutions(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("机构")
+    sections = []
+    for item in records:
+        sections.append(
+            f"#### {item['name']}\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("机构主页", link(item["primary_url"], item["primary_url"])),
+                    ("机构类型", f"`{item['institution_type']}`"),
+                    ("管辖/归属", item.get("jurisdiction")),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                    ("验证说明", item.get("verification", {}).get("notes")),
+                ]
+            )
+            + "\n\n**机构证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_source(source: dict[str, Any]) -> str:
+    scope = source["scope"]
+    authority = source["authority"]
+    access = source["access"]
+    return table(
+        [
+            ("GRDR ID", f"`{source['id']}`"),
+            ("数据库名称", source["name"]),
+            ("别名", source.get("aliases", [])),
+            ("官方入口", link(source["canonical_url"], source["canonical_url"])),
+            ("数据源类型", [f"`{item}`" for item in source["source_classes"]]),
+            ("学科领域", scope["disciplines"]),
+            ("主题维度", scope["topics"]),
+            ("地理范围", f"`{scope['geographic_scope']}`"),
+            ("时间范围", scope.get("temporal_coverage_note")),
+            ("观察单位", scope["observation_units"]),
+            ("数据模态", scope["modalities"]),
+            ("权威角色", [f"`{item}`" for item in authority["roles"]]),
+            ("来源位置", f"`{authority['provenance_position']}`"),
+            ("权威与来源说明", authority.get("notes")),
+            ("开放程度", f"`{access['availability']}`"),
+            ("访问方式", [f"`{item}`" for item in access["modes"]]),
+            ("需要注册", access["registration_required"]),
+            ("机器访问", f"`{access['machine_access']}`"),
+            ("许可状态", f"`{access['license_status']}`"),
+            ("访问说明", access.get("access_notes")),
+            ("验证状态", status(source)),
+            ("最后验证", last_verified(source)),
+            ("验证说明", source["verification"].get("notes")),
+        ]
+    ) + "\n\n**数据库层证据**\n\n" + evidence_list(source)
+
+
+def render_datasets(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("数据集")
+    sections = []
+    for item in records:
+        scope = item["scope"]
+        release = item["release"]
+        methodology = item["methodology"]
+        citation = item.get("citation", {})
+        sections.append(
+            f"#### {item['name']}\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("说明", item["description"]),
+                    ("学科领域", scope["disciplines"]),
+                    ("主题维度", scope["topics"]),
+                    ("目标总体", scope["population"]),
+                    ("观察单位", scope["observation_units"]),
+                    ("地理覆盖", scope["geographic_coverage"]),
+                    ("空间分辨率", scope["spatial_resolution"]),
+                    ("时间覆盖", scope["temporal_coverage"]),
+                    ("时间分辨率", scope["temporal_resolution"]),
+                    ("数据模态", scope["modalities"]),
+                    ("当前版本", release["current_version"]),
+                    ("发布日期", release["release_date"]),
+                    ("更新频率", release["update_frequency"]),
+                    ("有修订政策", release["revision_policy_known"]),
+                    ("保留历史版本", release["historical_vintages_available"]),
+                    ("数据生成过程", methodology["data_generating_processes"]),
+                    ("协调方式", f"`{methodology['harmonization']}`"),
+                    ("模型估计", f"`{methodology['modeled_estimates']}`"),
+                    ("方法文件", link(methodology.get("methodology_url") or "未知", methodology.get("methodology_url"))),
+                    ("已知限制", methodology["limitations"]),
+                    ("建议引用", citation.get("preferred_citation")),
+                    ("DOI", citation.get("doi")),
+                    ("引用入口", link(citation.get("citation_url") or "未知", citation.get("citation_url"))),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**数据集层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_resources(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("访问资源")
+    sections = []
+    for item in records:
+        access = item["access"]
+        sections.append(
+            f"#### {item['name']}\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("资源入口", link(item["url"], item["url"])),
+                    ("资源类型", f"`{item['resource_type']}`"),
+                    ("格式", item["formats"]),
+                    ("开放程度", f"`{access['availability']}`"),
+                    ("身份验证", f"`{access['authentication']}`"),
+                    ("机器访问", f"`{access['machine_access']}`"),
+                    ("限流已知", access["rate_limit_known"]),
+                    ("许可状态", f"`{access['license_status']}`"),
+                    ("访问说明", access.get("notes")),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**资源层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_variables(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("变量")
+    sections = []
+    for item in records:
+        measurement = item["measurement"]
+        comparability = item["comparability"]
+        sections.append(
+            f"#### {item['label']} (`{item['name']}`)\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("研究角色候选", [f"`{role}`" for role in item["role_candidates"]]),
+                    ("单位", item["unit"]),
+                    ("分母", item["denominator"]),
+                    ("目标总体", item["population"]),
+                    ("观察单位", item["observation_unit"]),
+                    ("空间分辨率", item["spatial_resolution"]),
+                    ("时间分辨率", item["temporal_resolution"]),
+                    ("测量类型", f"`{measurement['type']}`"),
+                    ("客观/主观", f"`{measurement['objective_subjective']}`"),
+                    ("直接性", f"`{measurement['directness']}`"),
+                    ("定义", measurement["definition"]),
+                    ("构造说明", measurement["construction_notes"]),
+                    ("可比性", f"`{comparability['status']}`"),
+                    ("可比性说明", comparability["notes"]),
+                    ("连接键", item["join_keys"]),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**变量层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_constructs(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("理论构念")
+    sections = []
+    for item in records:
+        sections.append(
+            f"#### {item['name']}\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("别名", item.get("aliases", [])),
+                    ("定义", item["definition"]),
+                    ("学科领域", item["domains"]),
+                    ("构念类型", f"`{item['construct_type']}`"),
+                    ("范围说明", item.get("scope_notes")),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**构念层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_source_page(source: dict[str, Any], context: dict[str, Any], version: str) -> str:
+    linked = linked_records(source, context)
+    verification_code = source["verification"]["status"]
+    if verification_code == "unverified":
+        warning = (
+            "> **待验证候选。** 当前页面只反映注册表中的候选信息；机构、范围、访问与许可"
+            "尚未完成权威证据核验，不应直接作为论文数据来源结论。"
+        )
+    elif verification_code == "partially_verified":
+        warning = (
+            "> **部分验证。** 数据库身份和部分官方信息已经核对，但数据集、变量、方法、"
+            "许可或覆盖范围仍可能不完整，使用前必须检查对应层级证据。"
+        )
+    else:
+        warning = f"> **验证状态：{status(source)}。** 使用时仍应检查具体数据集和变量层证据。"
+
+    dimensions = table(
+        [
+            ("学科", source["scope"]["disciplines"]),
+            ("主题", source["scope"]["topics"]),
+            ("地理", source["scope"]["geographic_scope"]),
+            ("时间", source["scope"].get("temporal_coverage_note")),
+            ("观察单位", source["scope"]["observation_units"]),
+            ("模态", source["scope"]["modalities"]),
+            ("已登记数据集", len(linked["datasets"])),
+            ("已登记访问资源", len(linked["resources"])),
+            ("已登记变量", len(linked["variables"])),
+            ("已关联构念", len(linked["constructs"])),
+        ]
+    )
+    return f"""---
+grdr_id: {json.dumps(source['id'], ensure_ascii=False)}
+record_type: "source_catalog"
+registry_version: {json.dumps(version)}
+verification_status: {json.dumps(verification_code)}
+canonical_url: {json.dumps(source['canonical_url'])}
+---
+
+# {source['name']}
+
+<!-- Generated by scripts/build_catalog.py. Edit registry records, not this page. -->
+
+{warning}
+
+## 数据维度总览
+
+{dimensions}
+
+## 六层目录
+
+### 第1层：发布/维护机构（Institution）
+
+{render_institutions(linked['institutions'])}
+
+### 第2层：数据库/数据源（Source）
+
+{render_source(source)}
+
+### 第3层：数据集（Dataset）
+
+{render_datasets(linked['datasets'])}
+
+### 第4层：访问资源（Resource）
+
+{render_resources(linked['resources'])}
+
+### 第5层：变量（Variable）
+
+{render_variables(linked['variables'])}
+
+### 第6层：理论构念（Construct）
+
+{render_constructs(linked['constructs'])}
+
+## 机器读取与维护
+
+- 权威结构化记录：`registry/sources.jsonl` 中的 `{source['id']}`。
+- 关联记录以页面中的 GRDR ID 为准，可通过 `scripts/grdr.py` 查询。
+- 本页由 `scripts/build_catalog.py` 自动生成；不得把“尚未登记”解释成“上游不存在”。
+"""
+
+
+def render_root_block(context: dict[str, Any]) -> str:
+    rows = [
+        "当前注册表共收录 **{}** 个数据库/数据平台。每个数据库均有独立六层详情页；"
+        "“待验证候选”仅表示已经登记，不表示其覆盖与使用条件已经核验。".format(len(context["sources"])),
+        "",
+        "| 数据库 | 发布/维护机构 | 主要领域 | 验证状态 | 六层详情 |",
+        "|---|---|---|---|---|",
+    ]
+    for source in context["sources"]:
+        linked = linked_records(source, context)
+        publishers = "<br>".join(item["name"] for item in linked["institutions"])
+        disciplines = "、".join(source["scope"]["disciplines"])
+        slug = source_slug(source["id"])
+        rows.append(
+            f"| [{source['name']}]({source['canonical_url']}) | {publishers or '未知 / 尚未登记'} | "
+            f"{disciplines} | {status(source)} | [查看六层目录](catalog/sources/{slug}/README.md) |"
+        )
+    rows.extend(
+        [
+            "",
+            "完整的人机双读索引见 [GRDR数据库目录](catalog/README.md)。",
+        ]
+    )
+    return "\n".join(rows)
+
+
+def render_catalog_index(context: dict[str, Any], version: str) -> str:
+    counts: dict[str, int] = {}
+    rows = [
+        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 变量 | 构念 | 状态 |",
+        "|---|---|---:|---:|---:|---:|---|",
+    ]
+    for source in context["sources"]:
+        linked = linked_records(source, context)
+        code = source["verification"]["status"]
+        counts[code] = counts.get(code, 0) + 1
+        publishers = "<br>".join(item["name"] for item in linked["institutions"])
+        slug = source_slug(source["id"])
+        rows.append(
+            f"| [{source['name']}](sources/{slug}/README.md) | {publishers or '未知 / 尚未登记'} | "
+            f"{len(linked['datasets'])} | {len(linked['resources'])} | {len(linked['variables'])} | "
+            f"{len(linked['constructs'])} | {status(source)} |"
+        )
+    summary = "、".join(
+        f"{STATUS_LABELS.get(code, code)} {count} 个" for code, count in sorted(counts.items())
+    )
+    return f"""# GRDR 数据库目录
+
+<!-- Generated by scripts/build_catalog.py. Edit registry records, not this page. -->
+
+目录版本：`{version}`。当前共收录 **{len(context['sources'])}** 个数据库；{summary}。
+
+本目录同时面向研究人员和 AI Agent。每个数据库都按统一六层展开：
+
+1. 发布/维护机构（Institution）
+2. 数据库/数据源（Source）
+3. 数据集（Dataset）
+4. 访问资源（Resource）
+5. 变量（Variable）
+6. 理论构念（Construct）
+
+“尚未登记”表示 GRDR 还没有完成该层的核验和录入，不表示上游数据库不存在相关内容。
+
+## 数据库及六层完整度
+
+{chr(10).join(rows)}
+
+## 维护规则
+
+- 新增任何 `registry/sources.jsonl` 记录后，必须运行 `python3 scripts/build_catalog.py`。
+- 根 `README.md`、本索引和每个数据库的独立目录必须同时更新。
+- 运行 `python3 scripts/build_catalog.py --check` 检查目录是否与结构化注册表一致。
+- 生成页面只展示注册表中已有信息；未知字段必须保持“未知 / 尚未登记”。
+"""
+
+
+def replace_root_catalog(readme: str, block: str) -> str:
+    if START_MARKER not in readme or END_MARKER not in readme:
+        raise ValueError("README.md is missing GRDR catalog markers")
+    prefix, remainder = readme.split(START_MARKER, 1)
+    _old, suffix = remainder.split(END_MARKER, 1)
+    return f"{prefix}{START_MARKER}\n{block.rstrip()}\n{END_MARKER}{suffix}"
+
+
+def expected_outputs(context: dict[str, Any]) -> tuple[dict[Path, str], str]:
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    outputs = {CATALOG / "README.md": render_catalog_index(context, version)}
+    for source in context["sources"]:
+        outputs[SOURCE_CATALOG / source_slug(source["id"]) / "README.md"] = (
+            render_source_page(source, context, version)
+        )
+    root_readme = replace_root_catalog(
+        ROOT_README.read_text(encoding="utf-8"), render_root_block(context)
+    )
+    return outputs, root_readme
+
+
+def check(outputs: dict[Path, str], root_readme: str) -> int:
+    errors = []
+    for path, expected in outputs.items():
+        if not path.is_file():
+            errors.append(f"missing generated catalog file: {path.relative_to(ROOT)}")
+        elif path.read_text(encoding="utf-8") != expected:
+            errors.append(f"stale generated catalog file: {path.relative_to(ROOT)}")
+    expected_pages = {path for path in outputs if path.parent != CATALOG}
+    actual_pages = set(SOURCE_CATALOG.glob("*/README.md")) if SOURCE_CATALOG.exists() else set()
+    for path in sorted(actual_pages - expected_pages):
+        errors.append(f"unexpected source catalog page: {path.relative_to(ROOT)}")
+    if ROOT_README.read_text(encoding="utf-8") != root_readme:
+        errors.append("README.md source catalog is stale")
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    print(f"GRDR human catalog is current ({len(expected_pages)} source pages)")
+    return 0
+
+
+def write(outputs: dict[Path, str], root_readme: str) -> None:
+    for path, content in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    ROOT_README.write_text(root_readme, encoding="utf-8")
+    print(f"Built GRDR human catalog ({len(outputs) - 1} source pages)")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="Fail when generated catalog files are missing or stale")
+    args = parser.parse_args()
+    context = build_context()
+    outputs, root_readme = expected_outputs(context)
+    if args.check:
+        return check(outputs, root_readme)
+    write(outputs, root_readme)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
