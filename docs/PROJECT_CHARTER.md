@@ -36,6 +36,7 @@ GRDR consists of coordinated registry, research-data infrastructure, and Skill l
 4. **Access and ingestion layer:** CLI, SDK, MCP operations, source-specific adapters, federated queries, and versioned local snapshots where access and licensing permit.
 5. **Monitoring layer:** releases, revisions, migrations, stale records, deprecations, and provenance changes.
 6. **Matching layer:** question-to-data mapping, compatibility checks, and gap diagnosis over registered sources and datasets.
+7. **Profiling workflow:** evidence-backed decomposition of each database through Institution, Source, Dataset, Resource, Variable, and Construct layers with explicit inventory boundaries.
 
 Registry breadth and depth, evidence quality, and matching capability develop together. During the current first phase, foundation stability and broad source construction take precedence over large-scale data ingestion.
 

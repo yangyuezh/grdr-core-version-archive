@@ -2,6 +2,21 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.3.0] - 2026-08-15
+
+### Added
+
+- Dedicated `$grdr-source-profiler` Skill for evidence-backed six-layer decomposition of individual databases.
+- Six-layer source profiling protocol with explicit scope modes, integrity rules, completion conditions, and large-catalog safeguards.
+- Persistent source-profile records and schema for inventory scope, per-layer claims, enumeration boundaries, blockers, and review dates.
+- `audit-source-depth` and `audit-all-source-depth` commands to distinguish source-only registrations, dataset-depth work, variable-depth work, and six-layer chains.
+- Human catalog visibility for each database's current profiling stage and the explicit distinction between a populated chain and complete upstream inventory.
+
+### Changed
+
+- The main `$grdr` Skill now routes deep database decomposition to the dedicated profiler workflow.
+- Release checks now require both version-controlled GRDR Skills.
+
 ## [0.2.0] - 2026-08-15
 
 ### Added

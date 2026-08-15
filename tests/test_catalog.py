@@ -40,6 +40,8 @@ class HumanCatalogTests(unittest.TestCase):
             self.assertTrue(page.is_file(), source["id"])
             text = page.read_text(encoding="utf-8")
             self.assertTrue(all(heading in text for heading in headings), source["id"])
+            self.assertIn("| 当前拆解阶段 |", text, source["id"])
+            self.assertIn("| 已声明拆解范围 |", text, source["id"])
 
 
 if __name__ == "__main__":

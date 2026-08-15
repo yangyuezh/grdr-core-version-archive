@@ -22,6 +22,7 @@ ENTITY_FILES = {
     "adapter": "adapters.jsonl",
     "storage": "storage.jsonl",
     "monitor": "monitors.jsonl",
+    "source_profile": "source_profiles.jsonl",
 }
 VERIFICATION_RANK = {
     "verified": 0,
@@ -84,6 +85,149 @@ def entity_index() -> dict[str, dict[str, Any]]:
         record["id"]: record
         for filename in ENTITY_FILES.values()
         for record in load_jsonl(filename)
+    }
+
+
+def verification_counts(records: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        verification = record.get("verification")
+        if not verification:
+            continue
+        status = verification["status"]
+        counts[status] = counts.get(status, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def layer_summary(
+    number: int,
+    name: str,
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not records:
+        state = "not_started"
+    elif all(item["verification"]["status"] == "unverified" for item in records):
+        state = "registered_unverified"
+    else:
+        state = "registered_with_evidence"
+    return {
+        "layer": number,
+        "name": name,
+        "state": state,
+        "record_count": len(records),
+        "record_ids": [item["id"] for item in records],
+        "verification": verification_counts(records),
+    }
+
+
+def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
+    institutions = {item["id"]: item for item in load_jsonl("institutions.jsonl")}
+    datasets = [
+        item
+        for item in load_jsonl("datasets.jsonl")
+        if source["id"] in item["source_ids"]
+    ]
+    dataset_ids = {item["id"] for item in datasets}
+    resources = [
+        item
+        for item in load_jsonl("resources.jsonl")
+        if item["source_id"] == source["id"]
+        or dataset_ids.intersection(item["dataset_ids"])
+    ]
+    variables = [
+        item
+        for item in load_jsonl("variables.jsonl")
+        if dataset_ids.intersection(item["dataset_ids"])
+    ]
+    construct_ids = {
+        construct_id
+        for item in variables
+        for construct_id in item["construct_ids"]
+    }
+    constructs = [
+        item
+        for item in load_jsonl("constructs.jsonl")
+        if item["id"] in construct_ids
+    ]
+    maintainers = [
+        institutions[item]
+        for item in source["maintainer_ids"]
+        if item in institutions
+    ]
+    declared_profile = next(
+        (
+            item
+            for item in load_jsonl("source_profiles.jsonl")
+            if item["source_id"] == source["id"]
+        ),
+        None,
+    )
+    layers = [
+        layer_summary(1, "institution", maintainers),
+        layer_summary(2, "source", [source]),
+        layer_summary(3, "dataset", datasets),
+        layer_summary(4, "resource", resources),
+        layer_summary(5, "variable", variables),
+        layer_summary(6, "construct", constructs),
+    ]
+    populated = [item["name"] for item in layers if item["record_count"] > 0]
+    if all(item["record_count"] > 0 for item in layers):
+        stage = "six_layer_chain_present"
+    elif variables:
+        stage = "variable_depth_started"
+    elif datasets or resources:
+        stage = "dataset_depth_started"
+    else:
+        stage = "source_only"
+
+    required_actions = {
+        "institution": "Verify the publishing, maintaining, producing, and governing institutions with official mandate evidence.",
+        "source": "Verify canonical identity, scope, authority role, access modes, license, and provenance.",
+        "dataset": "Enumerate the official catalog and register prioritized datasets with methodology, coverage, release, citation, and limitations.",
+        "resource": "Register APIs, downloads, query systems, documentation, application routes, formats, authentication, and licenses.",
+        "variable": "Use official dictionaries, schemas, codebooks, or API metadata to register variables, definitions, units, populations, resolutions, and join keys.",
+        "construct": "Map variables to theoretical constructs and label direct, constructed, modeled, forecast, subjective, and proxy measurements.",
+    }
+    gaps = [
+        {
+            "layer": item["layer"],
+            "name": item["name"],
+            "state": item["state"],
+            "recommended_action": required_actions[item["name"]],
+        }
+        for item in layers
+        if item["state"] != "registered_with_evidence"
+    ]
+    if not gaps:
+        gaps.append(
+            {
+                "layer": None,
+                "name": "inventory_scope",
+                "state": "not_assessed",
+                "recommended_action": "Declare whether this is a representative, question-driven, prioritized, catalog-level, or exhaustive profile; then expand and verify the stated scope.",
+            }
+        )
+
+    return {
+        "source_id": source["id"],
+        "source_name": source["name"],
+        "canonical_url": source["canonical_url"],
+        "profile_stage": stage,
+        "populated_layers": populated,
+        "layers": layers,
+        "variable_matching_ready": bool(variables and datasets),
+        "declared_profile": declared_profile,
+        "catalog_completeness": (
+            declared_profile["inventory_claim"]
+            if declared_profile is not None
+            else "not_assessed"
+        ),
+        "gaps": gaps,
+        "warnings": [
+            "A populated layer proves only that GRDR has records at that layer; it does not prove that the upstream database has been completely inventoried.",
+            "A missing layer is a GRDR coverage gap, not evidence that the upstream database lacks that layer.",
+            "Source-level topic tags must never be treated as proof that a specific dataset or variable exists.",
+        ],
     }
 
 
@@ -443,6 +587,55 @@ def list_monitors(args: argparse.Namespace) -> None:
     emit({"operation": "list_monitors", "registry_version": REGISTRY_VERSION, "result_count": len(records), "results": records})
 
 
+def audit_source_depth(args: argparse.Namespace) -> None:
+    sources = {item["id"]: item for item in load_jsonl("sources.jsonl")}
+    source = sources.get(args.source_id)
+    if source is None:
+        emit(
+            {
+                "operation": "audit_source_depth",
+                "registry_version": REGISTRY_VERSION,
+                "error": "source_not_found",
+                "source_id": args.source_id,
+                "recommended_action": "Search for an existing source record before nominating a new institution and source.",
+            }
+        )
+        raise SystemExit(2)
+    emit(
+        {
+            "operation": "audit_source_depth",
+            "registry_version": REGISTRY_VERSION,
+            "profile": build_source_depth_profile(source),
+        }
+    )
+
+
+def audit_all_source_depth(_args: argparse.Namespace) -> None:
+    profiles = [
+        build_source_depth_profile(source)
+        for source in load_jsonl("sources.jsonl")
+    ]
+    stage_counts: dict[str, int] = {}
+    for profile in profiles:
+        stage = profile["profile_stage"]
+        stage_counts[stage] = stage_counts.get(stage, 0) + 1
+    emit(
+        {
+            "operation": "audit_all_source_depth",
+            "registry_version": REGISTRY_VERSION,
+            "source_count": len(profiles),
+            "stage_counts": dict(sorted(stage_counts.items())),
+            "variable_matching_ready_sources": sum(
+                1 for item in profiles if item["variable_matching_ready"]
+            ),
+            "profiles": profiles,
+            "warnings": [
+                "Depth stages describe registered GRDR content, not complete upstream database inventories."
+            ],
+        }
+    )
+
+
 def stats(_args: argparse.Namespace) -> None:
     collections = {
         entity_type: load_jsonl(filename)
@@ -473,13 +666,14 @@ def stats(_args: argparse.Namespace) -> None:
                         "adapter": "adapters",
                         "storage": "storage_records",
                         "monitor": "monitors",
+                        "source_profile": "source_profiles",
                     }[name]: len(records)
                     for name, records in collections.items()
                 },
                 "relationships": len(relationships),
             },
             "verification_by_entity": {
-                name: frequencies(record["verification"]["status"] for record in records)
+                name: verification_counts(records)
                 for name, records in collections.items()
             },
             "source_classes": frequencies(
@@ -557,6 +751,19 @@ def parser() -> argparse.ArgumentParser:
     diagnose = commands.add_parser("diagnose-coverage", help="Compare a structured research request with registered constructs and variables")
     diagnose.add_argument("request_file")
     diagnose.set_defaults(handler=diagnose_coverage)
+
+    source_depth = commands.add_parser(
+        "audit-source-depth",
+        help="Audit one database across the six GRDR profiling layers",
+    )
+    source_depth.add_argument("source_id")
+    source_depth.set_defaults(handler=audit_source_depth)
+
+    all_source_depth = commands.add_parser(
+        "audit-all-source-depth",
+        help="Audit six-layer profiling depth for every registered database",
+    )
+    all_source_depth.set_defaults(handler=audit_all_source_depth)
 
     adapters = commands.add_parser("list-adapters", help="List optional data-access adapters")
     adapters.add_argument("--source-id")

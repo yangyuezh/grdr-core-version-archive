@@ -68,6 +68,17 @@ For each candidate:
 
 Separate institutional authority from task-specific fitness. Do not rank every field by one universal prestige score.
 
+## Route deep database profiling
+
+Use the installed `$grdr-source-profiler` Skill when one database must be decomposed beyond source registration into Institution, Source, Dataset, Resource, Variable, and Construct layers. Audit current depth first:
+
+```bash
+python3 scripts/grdr.py audit-source-depth <source-id>
+python3 scripts/grdr.py audit-all-source-depth
+```
+
+Treat `six_layer_chain_present` as evidence that at least one chain exists, never as proof that the full upstream catalog has been inventoried.
+
 ## Keep the human catalog synchronized
 
 Treat human readability as required, even though AI agents are the primary users. Every registered source must appear in the root `README.md` and have an independent `catalog/sources/<source-slug>/README.md` page covering Institution, Source, Dataset, Resource, Variable, and Construct layers.

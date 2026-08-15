@@ -51,6 +51,10 @@ The registry must also support direct source discovery and curation without requ
 ### Registry expansion and maintenance
 
 - `nominate_source`
+- `audit_source_depth`
+- `audit_all_source_depth`
+- `declare_source_profile_scope`
+- `decompose_source_six_layers`
 - `register_institution`
 - `register_source`
 - `register_dataset`

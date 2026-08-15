@@ -106,6 +106,7 @@ def build_context() -> dict[str, Any]:
             "resources",
             "variables",
             "constructs",
+            "source_profiles",
         )
     }
     collections["institution_index"] = {
@@ -143,13 +144,36 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         for item in source["maintainer_ids"]
         if item in context["institution_index"]
     ]
+    source_profiles = [
+        item
+        for item in context["source_profiles"]
+        if item["source_id"] == source["id"]
+    ]
     return {
         "institutions": institutions,
         "datasets": datasets,
         "resources": resources,
         "variables": variables,
         "constructs": constructs,
+        "source_profiles": source_profiles,
     }
+
+
+def profile_stage(linked: dict[str, list[dict[str, Any]]]) -> str:
+    if all(linked[name] for name in ("institutions", "datasets", "resources", "variables", "constructs")):
+        return "six_layer_chain_present"
+    if linked["variables"]:
+        return "variable_depth_started"
+    if linked["datasets"] or linked["resources"]:
+        return "dataset_depth_started"
+    return "source_only"
+
+
+def declared_scope(linked: dict[str, list[dict[str, Any]]]) -> tuple[str, str]:
+    if not linked["source_profiles"]:
+        return "undeclared", "not_assessed"
+    profile = linked["source_profiles"][0]
+    return profile["scope_mode"], profile["inventory_claim"]
 
 
 def render_institutions(records: list[dict[str, Any]]) -> str:
@@ -350,6 +374,7 @@ def render_constructs(records: list[dict[str, Any]]) -> str:
 
 def render_source_page(source: dict[str, Any], context: dict[str, Any], version: str) -> str:
     linked = linked_records(source, context)
+    scope_mode, inventory_claim = declared_scope(linked)
     verification_code = source["verification"]["status"]
     if verification_code == "unverified":
         warning = (
@@ -376,6 +401,9 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("已登记访问资源", len(linked["resources"])),
             ("已登记变量", len(linked["variables"])),
             ("已关联构念", len(linked["constructs"])),
+            ("当前拆解阶段", f"`{profile_stage(linked)}`"),
+            ("已声明拆解范围", f"`{scope_mode}`"),
+            ("上游目录完整度", f"`{inventory_claim}`；存在六层链不等于完整枚举"),
         ]
     )
     return f"""---
@@ -426,6 +454,7 @@ canonical_url: {json.dumps(source['canonical_url'])}
 
 - 权威结构化记录：`registry/sources.jsonl` 中的 `{source['id']}`。
 - 关联记录以页面中的 GRDR ID 为准，可通过 `scripts/grdr.py` 查询。
+- 拆解范围记录：{value([item['id'] for item in linked['source_profiles']])}。
 - 本页由 `scripts/build_catalog.py` 自动生成；不得把“尚未登记”解释成“上游不存在”。
 """
 
@@ -435,17 +464,19 @@ def render_root_block(context: dict[str, Any]) -> str:
         "当前注册表共收录 **{}** 个数据库/数据平台。每个数据库均有独立六层详情页；"
         "“待验证候选”仅表示已经登记，不表示其覆盖与使用条件已经核验。".format(len(context["sources"])),
         "",
-        "| 数据库 | 发布/维护机构 | 主要领域 | 验证状态 | 六层详情 |",
-        "|---|---|---|---|---|",
+        "| 数据库 | 发布/维护机构 | 主要领域 | 拆解范围 | 拆解阶段 | 验证状态 | 六层详情 |",
+        "|---|---|---|---|---|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
         publishers = "<br>".join(item["name"] for item in linked["institutions"])
         disciplines = "、".join(source["scope"]["disciplines"])
         slug = source_slug(source["id"])
+        scope_mode, _inventory_claim = declared_scope(linked)
         rows.append(
             f"| [{source['name']}]({source['canonical_url']}) | {publishers or '未知 / 尚未登记'} | "
-            f"{disciplines} | {status(source)} | [查看六层目录](catalog/sources/{slug}/README.md) |"
+            f"{disciplines} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} | "
+            f"[查看六层目录](catalog/sources/{slug}/README.md) |"
         )
     rows.extend(
         [
@@ -459,8 +490,8 @@ def render_root_block(context: dict[str, Any]) -> str:
 def render_catalog_index(context: dict[str, Any], version: str) -> str:
     counts: dict[str, int] = {}
     rows = [
-        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 变量 | 构念 | 状态 |",
-        "|---|---|---:|---:|---:|---:|---|",
+        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 变量 | 构念 | 拆解范围 | 拆解阶段 | 状态 |",
+        "|---|---|---:|---:|---:|---:|---|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
@@ -468,10 +499,11 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
         counts[code] = counts.get(code, 0) + 1
         publishers = "<br>".join(item["name"] for item in linked["institutions"])
         slug = source_slug(source["id"])
+        scope_mode, _inventory_claim = declared_scope(linked)
         rows.append(
             f"| [{source['name']}](sources/{slug}/README.md) | {publishers or '未知 / 尚未登记'} | "
             f"{len(linked['datasets'])} | {len(linked['resources'])} | {len(linked['variables'])} | "
-            f"{len(linked['constructs'])} | {status(source)} |"
+            f"{len(linked['constructs'])} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
         )
     summary = "、".join(
         f"{STATUS_LABELS.get(code, code)} {count} 个" for code, count in sorted(counts.items())

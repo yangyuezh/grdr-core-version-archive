@@ -37,6 +37,14 @@ def main() -> int:
     if legacy_skill.exists():
         errors.append("legacy global-research-data-warehouse Skill bundle still exists")
 
+    profiler_skill = ROOT / "skill" / "grdr-source-profiler" / "SKILL.md"
+    if not profiler_skill.is_file():
+        errors.append("version-controlled grdr-source-profiler Skill is missing")
+    elif not profiler_skill.read_text(encoding="utf-8").startswith(
+        "---\nname: grdr-source-profiler\n"
+    ):
+        errors.append("version-controlled profiler Skill identity is not 'grdr-source-profiler'")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)

@@ -51,6 +51,8 @@ Build the first approximately 100-source pass across every coverage track. Treat
 
 Create dataset records for at least one canonical dataset within each verified source. Capture version, coverage, observation unit, methodology, access resources, citation, and provenance.
 
+Use `$grdr-source-profiler` and `docs/SOURCE_PROFILING_PROTOCOL.md` to declare whether each pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive. A single six-layer chain tests the ontology but does not establish catalog completeness.
+
 ### WP4 — Build access adapters and storage decisions
 
 For representative sources, implement and test APIs, bulk-download adapters, catalog harvesters, application instructions, or secure-access pointers. Assign `local_snapshot`, `federated_access`, or `controlled_access_pointer` deliberately.

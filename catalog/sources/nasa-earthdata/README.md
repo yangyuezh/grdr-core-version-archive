@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:nasa-earthdata"
 record_type: "source_catalog"
-registry_version: "0.2.0"
+registry_version: "0.3.0"
 verification_status: "unverified"
 canonical_url: "https://www.earthdata.nasa.gov/"
 ---
@@ -26,6 +26,9 @@ canonical_url: "https://www.earthdata.nasa.gov/"
 | 已登记访问资源 | 0 |
 | 已登记变量 | 0 |
 | 已关联构念 | 0 |
+| 当前拆解阶段 | `source_only` |
+| 已声明拆解范围 | `undeclared` |
+| 上游目录完整度 | `not_assessed`；存在六层链不等于完整枚举 |
 
 ## 六层目录
 
@@ -99,4 +102,5 @@ canonical_url: "https://www.earthdata.nasa.gov/"
 
 - 权威结构化记录：`registry/sources.jsonl` 中的 `grdr:source:nasa-earthdata`。
 - 关联记录以页面中的 GRDR ID 为准，可通过 `scripts/grdr.py` 查询。
+- 拆解范围记录：未知 / 尚未登记。
 - 本页由 `scripts/build_catalog.py` 自动生成；不得把“尚未登记”解释成“上游不存在”。

@@ -24,6 +24,7 @@ COLLECTIONS = {
     "storage": (REGISTRY / "storage.jsonl", SCHEMAS / "storage.schema.json"),
     "monitors": (REGISTRY / "monitors.jsonl", SCHEMAS / "monitor.schema.json"),
     "relationships": (REGISTRY / "relationships.jsonl", SCHEMAS / "relationship.schema.json"),
+    "source_profiles": (REGISTRY / "source_profiles.jsonl", SCHEMAS / "source_profile.schema.json"),
 }
 
 
@@ -138,6 +139,14 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
             referenced_id = relationship.get(field)
             if referenced_id not in known_ids:
                 errors.append(f"{relationship.get('id')}:{field}: unknown id {referenced_id}")
+
+    profiled_source_ids: set[str] = set()
+    for profile in collections["source_profiles"]:
+        if profile.get("source_id") not in source_ids:
+            errors.append(f"{profile.get('id')}: unknown source_id {profile.get('source_id')}")
+        if profile.get("source_id") in profiled_source_ids:
+            errors.append(f"{profile.get('id')}: duplicate current profile for {profile.get('source_id')}")
+        profiled_source_ids.add(profile.get("source_id"))
 
     return errors
 
