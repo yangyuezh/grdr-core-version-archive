@@ -2,6 +2,21 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.4.0] - 2026-08-16
+
+### Added
+
+- Dedicated `$grdr-indicator-builder` Skill connecting research questions and substantial literature corpora to evidence-linked, multi-level indicator systems.
+- Separate schemas for indicator projects, literature documents, atomic evidence units, research-indicator hierarchies, and indicator-to-GRDR-variable mappings.
+- Deterministic `audit-indicator-project` command checking evidence traceability, hierarchy integrity, leaf operationalization, variable references, mapping semantics, and human approval gates.
+- Topic-only exploratory scaffolding and formal corpus-grounded workflows without imposing an arbitrary universal paper-count threshold.
+- Explicit human responsibility for corpus-boundary approval, final indicator-framework approval, and contested proxy or definition-conflict mappings.
+
+### Changed
+
+- The main `$grdr` Skill now coordinates a dual chain: source-native six-layer database profiling and question-specific literature-grounded indicator construction, joined at leaf-level variable matching.
+- Question-specific literature, indicators, and mappings are isolated from the canonical global registry under `research_projects/<project-id>/`.
+
 ## [0.3.1] - 2026-08-15
 
 ### Fixed

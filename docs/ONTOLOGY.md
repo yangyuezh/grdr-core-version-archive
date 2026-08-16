@@ -15,6 +15,18 @@ Institution
 
 The hierarchy expresses containment, not provenance. Provenance and other semantics are represented by typed relationships.
 
+Question-specific research projects form a separate linked graph:
+
+```text
+ResearchProject
+  ├── LiteratureDocument
+  │     └── EvidenceUnit
+  └── ResearchIndicator (hierarchical)
+          └── IndicatorMapping ──> canonical GRDR Variable
+```
+
+The first graph describes durable upstream data infrastructure. The second describes how one research question derives indicators from literature and connects them to the registry. Project-specific evidence, indicators, and mappings must not be copied into canonical global records as if they were source-native facts.
+
 ## Entity definitions
 
 ### Institution
@@ -44,6 +56,18 @@ A theoretical or substantive concept that may have one or more operational measu
 ### Relationship
 
 A typed edge between registry entities, qualified by evidence, dates, and verification state.
+
+### LiteratureDocument and EvidenceUnit
+
+A literature document is a report-level item associated with a study identity, inclusion decision, access basis, full-text state, and quality appraisal. An evidence unit is an atomic, precisely located passage or element supporting a construct definition, theory relation, operationalization, finding, limitation, context, or contradiction.
+
+### ResearchIndicator
+
+A question-specific node in a domain, construct, subconstruct, indicator, or operational-requirement hierarchy. Formal nodes cite evidence units and distinguish source-reported, normalized, and Agent-synthesized provenance. Topic scaffolds are explicitly non-evidentiary.
+
+### IndicatorMapping
+
+A question-specific link from a leaf research indicator to zero or more canonical GRDR variables. It records construct, population, unit, temporal, and spatial fit plus direct, transformed, composite, proxy, conflict, or current-snapshot-not-found status.
 
 ## Required distinctions
 
@@ -133,4 +157,3 @@ Preferred evidence order depends on the claim, but normally favors official meth
 - `unavailable`: access was confirmed unavailable at the latest check.
 
 Unknown fields remain `null` or an explicit `unknown` enum. Empty values must not be interpreted as negative claims.
-

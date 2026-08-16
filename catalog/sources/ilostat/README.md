@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:ilostat"
 record_type: "source_catalog"
-registry_version: "0.3.1"
+registry_version: "0.4.0"
 verification_status: "partially_verified"
 canonical_url: "https://ilostat.ilo.org/data/"
 ---

@@ -96,13 +96,14 @@ Generate pages only from canonical registry records. Display missing depth as un
 
 When the user provides a scientific question:
 
-1. identify constructs, outcomes, exposures, mechanisms, confounders, moderators, population, unit, time, and geography;
-2. create a data-requirement matrix;
-3. retrieve candidate sources, datasets, and variables;
-4. assess construct, population, time, space, granularity, access, and joinability fit;
-5. distinguish direct measures, constructed measures, modeled estimates, forecasts, and proxies;
-6. diagnose missing objective, subjective, administrative, experimental, observational, or multimodal data;
-7. recommend additional sources without claiming unfound data already exists.
+1. use `$grdr-indicator-builder` when the constructs or indicators must be derived from a topic or literature corpus;
+2. identify constructs, outcomes, exposures, mechanisms, confounders, moderators, population, unit, time, and geography;
+3. create a data-requirement matrix from approved leaf indicators;
+4. retrieve candidate sources, datasets, and variables;
+5. assess construct, population, time, space, granularity, access, and joinability fit;
+6. distinguish direct measures, constructed measures, modeled estimates, forecasts, and proxies;
+7. diagnose missing objective, subjective, administrative, experimental, observational, or multimodal data;
+8. recommend additional sources without claiming unfound data already exists.
 
 Use:
 
@@ -111,6 +112,7 @@ python3 scripts/grdr.py diagnose-coverage /absolute/path/to/request.json
 ```
 
 Matching is a core value of GRDR, but it depends on continued registry breadth and depth.
+Keep question-specific literature, indicators, and mappings under `research_projects/<project-id>/`; do not mix them into the canonical global source registry.
 
 ## Use access extensions carefully
 

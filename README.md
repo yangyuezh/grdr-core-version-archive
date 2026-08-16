@@ -24,6 +24,30 @@ python3 scripts/grdr.py audit-all-source-depth
 python3 skill/grdr-source-profiler/scripts/profile_source.py grdr:source:world-bank-open-data
 ```
 
+## 研究指标构建器
+
+GRDR uses the dedicated `$grdr-indicator-builder` Skill to connect research questions and literature to the database registry. With a topic alone, the Agent can automatically generate an explicitly exploratory indicator scaffold. With a substantial literature corpus, it extracts section-level evidence, constructs a cited multi-level indicator hierarchy, operationalizes leaf indicators, and matches them to GRDR variables. See [the indicator-builder protocol](docs/INDICATOR_BUILDER_PROTOCOL.md).
+
+AI performs document organization, evidence extraction, coding, synthesis, operationalization, registry retrieval, and mapping proposals. Human input is concentrated at two mandatory formal-research gates—corpus boundary and final indicator framework—and at a third conditional gate for proxy candidates or definition conflicts. The Agent never infers approval from silence.
+
+Question-specific work remains separate from the canonical source registry:
+
+```text
+research_projects/<project-id>/
+├── project.json
+├── literature.jsonl
+├── evidence_units.jsonl
+├── indicators.jsonl
+└── mappings.jsonl
+```
+
+Audit a project with:
+
+```bash
+python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
+python3 skill/grdr-indicator-builder/scripts/audit_project.py research_projects/<project-id>
+```
+
 ## 已收录数据库
 
 <!-- GRDR_SOURCE_CATALOG_START -->
@@ -89,6 +113,7 @@ grdr/
 │   ├── ONTOLOGY.md
 │   ├── ASSESSMENT_FRAMEWORK.md
 │   ├── AGENT_PROTOCOL.md
+│   ├── INDICATOR_BUILDER_PROTOCOL.md
 │   └── EXPANSION_PROTOCOL.md
 ├── examples/
 │   └── population_emissions_request.json
@@ -116,22 +141,37 @@ grdr/
 │   ├── storage.schema.json
 │   ├── monitor.schema.json
 │   ├── relationship.schema.json
-│   └── research_request.schema.json
+│   ├── research_request.schema.json
+│   ├── indicator_project.schema.json
+│   ├── literature_document.schema.json
+│   ├── evidence_unit.schema.json
+│   ├── research_indicator.schema.json
+│   └── indicator_mapping.schema.json
+├── research_projects/
+│   └── <project-id>/
+│       ├── project.json
+│       ├── literature.jsonl
+│       ├── evidence_units.jsonl
+│       ├── indicators.jsonl
+│       └── mappings.jsonl
 ├── scripts/
 │   ├── build_catalog.py
+│   ├── indicator_builder.py
 │   ├── grdr.py
 │   └── validate_registry.py
 ├── skill/
 │   ├── grdr/
-│   └── grdr-source-profiler/
+│   ├── grdr-source-profiler/
+│   └── grdr-indicator-builder/
 └── tests/
     ├── test_catalog.py
-    └── test_cli.py
+    ├── test_cli.py
+    └── test_indicator_builder.py
 ```
 
 ## Current phase
 
-Version `0.3.1` defines the project charter, registry ontology, evidence rules, assessment framework, Agent contract, seed-expansion process, generated human-readable catalog, and a dedicated six-layer database-profiling workflow. Every source appears in the root README and in an independent six-layer detail directory. It also includes the first end-to-end source–dataset–resource–variable–construct chain and a registry-coverage diagnostic for structured research requests. Seed records are deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr` and `$grdr-source-profiler`.
+Version `0.4.0` adds the research-side indicator construction chain: topic-only exploratory scaffolding, literature-grounded evidence extraction, multi-level indicator schemas, human approval gates, leaf-level GRDR variable mappings, and deterministic project auditing. It retains the dedicated six-layer database profiler, human catalog, first end-to-end source–dataset–resource–variable–construct chain, and registry-coverage diagnostic. Seed records remain deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -154,6 +194,7 @@ python3 scripts/grdr.py list-monitors --status passing
 python3 scripts/grdr.py diagnose-coverage examples/population_emissions_request.json
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
 python3 scripts/grdr.py audit-all-source-depth
+python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
 python3 scripts/validate_registry.py
 python3 scripts/build_catalog.py --check
 python3 scripts/check_release.py

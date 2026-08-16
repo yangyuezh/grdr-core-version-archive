@@ -6,9 +6,9 @@ GRDR enables an AI agent to move from a scientific question to an auditable data
 
 ```text
 scientific question
-  → concepts, mechanisms, population, and unit of analysis
-  → candidate empirical structure
-  → data-requirement matrix
+  → topic scaffold or literature-grounded evidence extraction
+  → multi-level indicator hierarchy
+  → human-approved leaf-level operational requirements
   → registry and knowledge-graph retrieval
   → source authority and task-fit assessment
   → temporal, spatial, level, definition, and identifier compatibility
@@ -42,6 +42,12 @@ The registry must also support direct source discovery and curation without requ
 
 ### Research-design support
 
+- `build_topic_scaffold`
+- `declare_corpus_protocol`
+- `extract_literature_evidence`
+- `synthesize_indicator_hierarchy`
+- `audit_indicator_evidence`
+- `map_indicators_to_data`
 - `build_data_requirements`
 - `diagnose_data_gaps`
 - `recommend_measurements`
@@ -88,6 +94,8 @@ Progressively resolve:
 - privacy, licensing, compute, registration, and language constraints.
 
 Use `schemas/research_request.schema.json` for structured requests.
+
+For literature-grounded indicator construction, use the five research-project schemas and [the indicator-builder protocol](INDICATOR_BUILDER_PROTOCOL.md). Topic-only output is exploratory. Formal evidence work requires human approval of the corpus boundary; formal mapping requires approval of the indicator framework; proxy candidates and definition conflicts require explicit review.
 
 ## Separate authority from task fit
 
@@ -140,6 +148,9 @@ Return:
 - Do not merge sources solely on labels when identity or provenance differs.
 - Do not bypass authentication, payment, consent, ethics review, or data-use agreements.
 - Do not equate a catalog record with row-level access.
+- Do not present a topic scaffold as a literature-validated indicator system.
+- Do not use a reference-list entry as substantive evidence unless the cited document itself was ingested and analyzed.
+- Do not approve an Agent-selected formal corpus or Agent-generated final indicator framework on the human's behalf.
 
 ## Delivery interfaces
 

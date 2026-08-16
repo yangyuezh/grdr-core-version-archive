@@ -636,6 +636,17 @@ def audit_all_source_depth(_args: argparse.Namespace) -> None:
     )
 
 
+def audit_indicator_project(args: argparse.Namespace) -> None:
+    """Audit a question-specific literature and indicator project."""
+
+    from indicator_builder import audit_project
+
+    result = audit_project(args.project_dir, ROOT)
+    emit(result)
+    if result["errors"]:
+        raise SystemExit(2)
+
+
 def stats(_args: argparse.Namespace) -> None:
     collections = {
         entity_type: load_jsonl(filename)
@@ -764,6 +775,13 @@ def parser() -> argparse.ArgumentParser:
         help="Audit six-layer profiling depth for every registered database",
     )
     all_source_depth.set_defaults(handler=audit_all_source_depth)
+
+    indicator_project = commands.add_parser(
+        "audit-indicator-project",
+        help="Audit literature evidence, indicator hierarchy, human gates, and variable mappings",
+    )
+    indicator_project.add_argument("project_dir")
+    indicator_project.set_defaults(handler=audit_indicator_project)
 
     adapters = commands.add_parser("list-adapters", help="List optional data-access adapters")
     adapters.add_argument("--source-id")

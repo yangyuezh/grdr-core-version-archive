@@ -10,6 +10,7 @@ It combines:
 - a Dataset Knowledge Graph;
 - Agent Research Data Infrastructure;
 - question-to-data matching and data-gap diagnosis;
+- literature-grounded, multi-level research-indicator construction;
 - continuous, evidence-backed snowball expansion.
 
 GRDR is not primarily a website and is not, at the current stage, a system that copies every upstream dataset into one physical warehouse. Global scale, licensing, privacy, access controls, and update costs make authoritative metadata, access paths, variable mappings, relationships, and provenance the correct foundation.
@@ -18,14 +19,15 @@ GRDR is not primarily a website and is not, at the current stage, a system that 
 
 GRDR must enable an AI agent to:
 
-1. translate a scientific question into constructs, variables, populations, units, and data dimensions;
-2. discover and assess the most suitable authoritative data-source combination;
-3. determine whether sources can be connected across time, space, observational levels, definitions, and identifiers;
-4. diagnose missing variables, measurements, mechanisms, and design dimensions;
-5. recommend additional objective, subjective, administrative, experimental, observational, or multimodal data;
-6. continuously extend the registry through verifiable snowball discovery.
+1. turn a scientific question into an exploratory indicator scaffold or, when a substantial literature corpus is supplied, an evidence-linked multi-level indicator system;
+2. translate approved leaf indicators into variables, populations, units, and data dimensions;
+3. discover and assess the most suitable authoritative data-source combination;
+4. determine whether sources can be connected across time, space, observational levels, definitions, and identifiers;
+5. diagnose missing variables, measurements, mechanisms, and design dimensions;
+6. recommend additional objective, subjective, administrative, experimental, observational, or multimodal data;
+7. continuously extend the registry through verifiable snowball discovery.
 
-Matching and research-design reasoning are central capabilities, but they operate on top of a broad and well-curated source registry. They do not replace registry expansion.
+Indicator construction, matching, and research-design reasoning are central capabilities, but they operate with a broad and well-curated source registry. They do not replace registry expansion.
 
 ## Current phase
 

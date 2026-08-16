@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:noaa-ncei"
 record_type: "source_catalog"
-registry_version: "0.3.1"
+registry_version: "0.4.0"
 verification_status: "unverified"
 canonical_url: "https://www.ncei.noaa.gov/"
 ---

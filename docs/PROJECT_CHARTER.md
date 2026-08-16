@@ -37,6 +37,7 @@ GRDR consists of coordinated registry, research-data infrastructure, and Skill l
 5. **Monitoring layer:** releases, revisions, migrations, stale records, deprecations, and provenance changes.
 6. **Matching layer:** question-to-data mapping, compatibility checks, and gap diagnosis over registered sources and datasets.
 7. **Profiling workflow:** evidence-backed decomposition of each database through Institution, Source, Dataset, Resource, Variable, and Construct layers with explicit inventory boundaries.
+8. **Research indicator workflow:** topic scaffolding or literature-grounded construction of multi-level indicators, auditable evidence links, operational requirements, human validity gates, and leaf-level variable matching.
 
 Registry breadth and depth, evidence quality, and matching capability develop together. During the current first phase, foundation stability and broad source construction take precedence over large-scale data ingestion.
 
@@ -53,7 +54,9 @@ An agent operating GRDR should:
 7. preserve upstream vintages, retrieval dates, transformations, and historical provenance;
 8. detect stale records, revisions, migrations, replacements, and access changes;
 9. express uncertainty and leave unsupported fields unknown;
-10. use question-to-data matching as a core Agent capability grounded in registered evidence.
+10. use question-to-data matching as a core Agent capability grounded in registered evidence;
+11. keep question-specific literature and indicators separate from canonical source-native metadata;
+12. automate evidence extraction, coding, synthesis, and matching while reserving corpus, framework, and contested-proxy approvals for humans.
 
 When matching a scientific question, additionally distinguish constructs from measurements, evaluate task fit separately from authority, test compatibility, and label direct measures, constructed measures, proxies, estimates, forecasts, and missing coverage.
 

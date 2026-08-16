@@ -45,6 +45,14 @@ def main() -> int:
     ):
         errors.append("version-controlled profiler Skill identity is not 'grdr-source-profiler'")
 
+    indicator_skill = ROOT / "skill" / "grdr-indicator-builder" / "SKILL.md"
+    if not indicator_skill.is_file():
+        errors.append("version-controlled grdr-indicator-builder Skill is missing")
+    elif not indicator_skill.read_text(encoding="utf-8").startswith(
+        "---\nname: grdr-indicator-builder\n"
+    ):
+        errors.append("version-controlled indicator Skill identity is not 'grdr-indicator-builder'")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)

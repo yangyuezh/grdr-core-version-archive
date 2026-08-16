@@ -9,6 +9,8 @@ description: "Decompose and deeply profile a database for GRDR across six linked
 
 Treat this Skill as the deep-curation workflow for one database. Use `$grdr` for the broader registry, coverage expansion, and research-question matching.
 
+Do not construct question-specific indicator hierarchies from a research topic or literature corpus. That is the responsibility of `$grdr-indicator-builder`. This Skill supplies source-native datasets, variables, definitions, and constructs to the downstream matcher.
+
 Never interpret a missing GRDR record as proof that the upstream database lacks a dataset, resource, variable, or construct. Never interpret one six-layer example as a complete upstream inventory.
 
 ## Locate GRDR
