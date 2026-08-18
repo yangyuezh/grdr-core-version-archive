@@ -26,9 +26,11 @@ research_projects/<project-id>/
   evidence_units.jsonl
   indicators.jsonl
   mappings.jsonl
+  workflow.json
+  data_gaps.jsonl
 ```
 
-Follow the five schemas in GRDR's `schemas/` directory.
+Follow the five research-content schemas plus the workflow and data-gap schemas in GRDR's `schemas/` directory. The last two files coordinate resumable execution; they do not add content layers to the indicator hierarchy.
 
 ## Choose the evidence stage
 
@@ -124,7 +126,20 @@ python3 scripts/audit_project.py /absolute/path/to/research_projects/<project-id
 
 Do not report `formal_evidence_ready` or `mapping_ready` unless the audit returns that exact state with no errors.
 
-The deterministic audit applies to a persisted five-file project. For an in-memory exploratory response where the user did not request files, report `audit not run`, `formal_evidence_ready: false`, and `mapping_ready: false`; do not imply that an audit succeeded.
+The deterministic evidence audit applies to the five persisted research-content files; the resumable GRDR orchestrator additionally requires `workflow.json` and `data_gaps.jsonl`. For an in-memory exploratory response where the user did not request files, report `audit not run`, `formal_evidence_ready: false`, and `mapping_ready: false`; do not imply that an audit succeeded.
+
+For persisted orchestration, use the main GRDR CLI:
+
+```bash
+python3 scripts/grdr.py start-research-project <spec.json>
+python3 scripts/grdr.py research-project-status <project-id>
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py expand-from-data-gaps <project-id>
+python3 scripts/grdr.py rerun-matching <project-id>
+```
+
+The Agent owns these automatic operations. It may invoke `approve-human-gate` only to record an approval the human has explicitly given with a reviewer identity and notes; it must never infer or manufacture that decision.
 
 ## Divide AI and human work
 

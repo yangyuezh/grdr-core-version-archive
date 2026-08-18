@@ -2,6 +2,27 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.6.0] - 2026-08-18
+
+### Added
+
+- Seven persisted research-project operations: `start-research-project`, `research-project-status`, `approve-human-gate`, `resume-research-project`, `match-indicators`, `expand-from-data-gaps`, and `rerun-matching`.
+- Workflow-state and data-gap schemas, deterministic orchestration logic, lifecycle history, exact-construct matching, independent fit dimensions, and bounded candidate-source expansion.
+- First real exploratory closed-loop project covering population, final energy consumption, income per capita, industrial structure, and carbon dioxide emissions excluding LULUCF.
+- Human-readable project report and regression tests covering the full exploratory cycle and explicit named-human approval recording.
+
+### Changed
+
+- Research projects now preserve two coordinator artifacts—`workflow.json` and `data_gaps.jsonl`—alongside the five evidence and indicator artifacts.
+- A current-snapshot miss now becomes an auditable expansion record and can be rechecked after registry deepening without being misreported as external nonexistence.
+- The main GRDR and indicator-builder Skills now document the executable closed loop and the boundary between automated Agent work and human decisions.
+
+### Results
+
+- The first test matched 3 of 5 leaf requirements directly: CO2 emissions excluding LULUCF, population size, and final energy consumption.
+- Income per capita and industrial structure remained explicit current-snapshot gaps; UNdata National Accounts Main Aggregates was identified as a profiling lead, not asserted as a verified variable match.
+- The actual project remains an exploratory topic scaffold with the indicator-framework gate pending; no human approval was inferred or self-issued.
+
 ## [0.5.0] - 2026-08-18
 
 ### Added

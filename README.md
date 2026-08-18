@@ -2,7 +2,7 @@
 
 GRDR is AI-agent-native, all-discipline infrastructure for global data-source registration, discovery, assessment, connection, and research design.
 
-**Current status:** foundation plus the first catalog-level source profile. The repository provides the evidence model, ontology, schemas, initial registry, Agent commands, all 36 UNdata datamarts, and deep Energy/GHG multidimensional examples. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
+**Current status:** foundation, the first catalog-level source profile, and the first executable research-question closed loop. The repository provides the evidence model, ontology, schemas, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG multidimensional examples, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
 
 It is not primarily a website and does not initially copy every upstream dataset. It combines:
 
@@ -38,7 +38,9 @@ research_projects/<project-id>/
 ├── literature.jsonl
 ├── evidence_units.jsonl
 ├── indicators.jsonl
-└── mappings.jsonl
+├── mappings.jsonl
+├── workflow.json
+└── data_gaps.jsonl
 ```
 
 Audit a project with:
@@ -47,6 +49,25 @@ Audit a project with:
 python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
 python3 skill/grdr-indicator-builder/scripts/audit_project.py research_projects/<project-id>
 ```
+
+## 研究项目闭环
+
+The seven project commands turn an AI-generated topic scaffold into a persisted, resumable matching cycle. The Agent may automate scaffolding, direct matching, gap diagnosis, candidate-source retrieval, and rematching. `approve-human-gate` only records an approval explicitly supplied by a named human reviewer; the Agent must never call it on the reviewer's behalf.
+
+```bash
+python3 scripts/grdr.py start-research-project examples/population_energy_income_industry_co2_project.json
+python3 scripts/grdr.py research-project-status population-energy-income-industry-co2
+python3 scripts/grdr.py resume-research-project population-energy-income-industry-co2
+python3 scripts/grdr.py match-indicators population-energy-income-industry-co2
+python3 scripts/grdr.py expand-from-data-gaps population-energy-income-industry-co2
+python3 scripts/grdr.py rerun-matching population-energy-income-industry-co2
+
+# Only after an actual human decision:
+python3 scripts/grdr.py approve-human-gate <project-id> indicator_framework \
+  --reviewer "<name>" --notes "<explicit decision and scope>"
+```
+
+The first persisted test project is [population, energy, income, industrial structure, and CO2 emissions](research_projects/population-energy-income-industry-co2/README.md). It is intentionally marked `topic_scaffold`: three of five leaf requirements have direct registered-variable matches, while income per capita and industrial structure remain current-snapshot registry gaps that now drive bounded source-deepening work.
 
 ## 已收录数据库
 
@@ -148,18 +169,23 @@ grdr/
 │   ├── literature_document.schema.json
 │   ├── evidence_unit.schema.json
 │   ├── research_indicator.schema.json
-│   └── indicator_mapping.schema.json
+│   ├── indicator_mapping.schema.json
+│   ├── research_workflow.schema.json
+│   └── data_gap.schema.json
 ├── research_projects/
 │   └── <project-id>/
 │       ├── project.json
 │       ├── literature.jsonl
 │       ├── evidence_units.jsonl
 │       ├── indicators.jsonl
-│       └── mappings.jsonl
+│       ├── mappings.jsonl
+│       ├── workflow.json
+│       └── data_gaps.jsonl
 ├── scripts/
 │   ├── build_catalog.py
 │   ├── curate_undata.py
 │   ├── indicator_builder.py
+│   ├── research_project.py
 │   ├── grdr.py
 │   └── validate_registry.py
 ├── skill/
@@ -174,7 +200,7 @@ grdr/
 
 ## Current phase
 
-Version `0.5.0` completes the first catalog-level source pass on UNdata: 36 official datamarts, six glossaries, provider institutions, access and license resources, and deep Energy/GHG SDMX chains. It also hardens the reusable profiler by dividing layer 5 into source-native data elements and research-matchable variables. Catalog completeness and deep-variable completeness remain separate claims. The next batch is the first real research-question closed loop and the seven project orchestration commands. The target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
+Version `0.6.0` completes the first real research-question closed loop and implements all seven project orchestration commands. The persisted exploratory test matches population, final energy consumption, and CO2 emissions to registered variables, converts income-per-capita and industrial-structure misses into auditable profiling leads, and preserves the unapproved human gate. This builds on the `0.5.0` catalog-level UNdata pass—36 datamarts, six glossaries, and deep Energy/GHG chains—without confusing catalog completeness with deep-variable completeness. The target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -200,6 +226,7 @@ python3 scripts/grdr.py diagnose-coverage examples/population_emissions_request.
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
 python3 scripts/grdr.py audit-all-source-depth
 python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
+python3 scripts/grdr.py research-project-status research_projects/<project-id>
 python3 scripts/validate_registry.py
 python3 scripts/build_catalog.py --check
 python3 scripts/check_release.py

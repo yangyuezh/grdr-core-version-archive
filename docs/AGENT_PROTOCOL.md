@@ -82,6 +82,25 @@ The registry must also support direct source discovery and curation without requ
 
 The current CLI implements a subset. These operation names define the intended capability surface for CLI, SDK, and MCP delivery.
 
+## Executable research-project lifecycle
+
+The persisted CLI closed loop is:
+
+```text
+start-research-project
+  → research-project-status
+  → resume-research-project
+  → match-indicators
+  → expand-from-data-gaps
+  → deepen or discover candidate sources
+  → resume-research-project
+  → rerun-matching
+```
+
+`approve-human-gate` is a separate decision-recording operation, not an automatic workflow step. Invoke it only after a human explicitly supplies the reviewer identity, decision, and notes. Topic scaffolds may be matched exploratorily while their formal-readiness fields remain false; corpus-grounded projects cannot enter formal matching until their indicator framework is approved.
+
+`match-indicators` writes the first mapping attempt. Later attempts must use `rerun-matching`, which replaces the current mapping snapshot while retaining attempt counts and history. `expand-from-data-gaps` turns only `not_found_registry_snapshot` outcomes into candidate deep-profiling records. Candidate ranking is a search lead and never proof that a compatible upstream variable exists.
+
 ## Research request contract
 
 Progressively resolve:
@@ -95,7 +114,7 @@ Progressively resolve:
 
 Use `schemas/research_request.schema.json` for structured requests.
 
-For literature-grounded indicator construction, use the five research-project schemas and [the indicator-builder protocol](INDICATOR_BUILDER_PROTOCOL.md). Topic-only output is exploratory. Formal evidence work requires human approval of the corpus boundary; formal mapping requires approval of the indicator framework; proxy candidates and definition conflicts require explicit review.
+For literature-grounded indicator construction, use the five evidence/indicator schemas plus the workflow and data-gap schemas, and follow [the indicator-builder protocol](INDICATOR_BUILDER_PROTOCOL.md). Topic-only output is exploratory. Formal evidence work requires human approval of the corpus boundary; formal mapping requires approval of the indicator framework; proxy candidates and definition conflicts require explicit review.
 
 ## Separate authority from task fit
 

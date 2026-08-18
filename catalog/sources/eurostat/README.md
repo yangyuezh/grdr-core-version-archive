@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:eurostat"
 record_type: "source_catalog"
-registry_version: "0.5.0"
+registry_version: "0.6.0"
 verification_status: "partially_verified"
 canonical_url: "https://ec.europa.eu/eurostat/"
 ---

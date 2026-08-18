@@ -1,0 +1,121 @@
+{
+  "project_id": "population-energy-income-industry-co2",
+  "title": "Population, energy, income, industrial structure, and carbon emissions",
+  "research_question": "Across countries over time, how are population size, final energy consumption, income per capita, and industrial structure associated with carbon dioxide emissions excluding LULUCF?",
+  "analysis_methods": [
+    "theory_deduction"
+  ],
+  "model": "Codex",
+  "indicators": [
+    {
+      "key": "cross-national-carbon-drivers",
+      "parent_key": null,
+      "name": "Cross-national drivers of carbon emissions",
+      "node_type": "domain",
+      "definition": "A provisional domain organizing outcome, exposure, and structural covariate requirements for a country-period empirical design.",
+      "synonyms": []
+    },
+    {
+      "key": "co2-emissions-excluding-lulucf",
+      "parent_key": "cross-national-carbon-drivers",
+      "name": "Carbon dioxide emissions excluding LULUCF",
+      "node_type": "operational_requirement",
+      "definition": "Country- or Party-level annual anthropogenic carbon dioxide emissions excluding land use, land-use change and forestry.",
+      "synonyms": [
+        "CO2 emissions excluding LULUCF"
+      ],
+      "operational_spec": {
+        "unit": "Gigagrams (Gg) CO2 equivalent",
+        "denominator": null,
+        "population": "Reporting countries or Parties",
+        "observation_unit": "party-year",
+        "spatial_scope": "Country or area",
+        "temporal_scope": "Annual",
+        "direction": "higher_more",
+        "proxy_allowed": false
+      }
+    },
+    {
+      "key": "population-size",
+      "parent_key": "cross-national-carbon-drivers",
+      "name": "Population size",
+      "node_type": "operational_requirement",
+      "definition": "Total resident population for each country and year.",
+      "synonyms": [
+        "total population"
+      ],
+      "operational_spec": {
+        "unit": "persons",
+        "denominator": null,
+        "population": "All residents",
+        "observation_unit": "economy-year",
+        "spatial_scope": "Country or territory",
+        "temporal_scope": "Annual",
+        "direction": "higher_more",
+        "proxy_allowed": false
+      }
+    },
+    {
+      "key": "final-energy-consumption",
+      "parent_key": "cross-national-carbon-drivers",
+      "name": "Final energy consumption",
+      "node_type": "operational_requirement",
+      "definition": "Final energy consumption by reporting country, energy commodity, and year, retaining source units and multipliers.",
+      "synonyms": [
+        "energy use"
+      ],
+      "operational_spec": {
+        "unit": "Commodity-specific unit with UNIT_MULT multiplier",
+        "denominator": null,
+        "population": "Countries and reported energy commodities",
+        "observation_unit": "country-commodity-year",
+        "spatial_scope": "Country or area",
+        "temporal_scope": "Annual",
+        "direction": "higher_more",
+        "proxy_allowed": false
+      }
+    },
+    {
+      "key": "income-per-capita",
+      "parent_key": "cross-national-carbon-drivers",
+      "name": "Income per capita",
+      "node_type": "operational_requirement",
+      "definition": "A comparable annual measure of national income or output per resident.",
+      "synonyms": [
+        "GDP per capita",
+        "GNI per capita"
+      ],
+      "operational_spec": {
+        "unit": "constant currency per person",
+        "denominator": "resident population",
+        "population": "National economy and residents",
+        "observation_unit": "economy-year",
+        "spatial_scope": "Country or territory",
+        "temporal_scope": "Annual",
+        "direction": "non_monotonic",
+        "proxy_allowed": false
+      }
+    },
+    {
+      "key": "industrial-structure",
+      "parent_key": "cross-national-carbon-drivers",
+      "name": "Industrial structure",
+      "node_type": "operational_requirement",
+      "definition": "The composition of national economic activity, operationalized by industrial value added shares or sectoral shares in GDP.",
+      "synonyms": [
+        "industry share of GDP",
+        "manufacturing share of GDP"
+      ],
+      "operational_spec": {
+        "unit": "percent of GDP",
+        "denominator": "gross domestic product",
+        "population": "National economy",
+        "observation_unit": "economy-year",
+        "spatial_scope": "Country or territory",
+        "temporal_scope": "Annual",
+        "direction": "unknown",
+        "proxy_allowed": false
+      }
+    }
+  ]
+}

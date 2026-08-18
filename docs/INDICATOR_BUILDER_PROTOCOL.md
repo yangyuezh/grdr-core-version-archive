@@ -42,7 +42,9 @@ research_projects/<project-id>/
 ├── literature.jsonl
 ├── evidence_units.jsonl
 ├── indicators.jsonl
-└── mappings.jsonl
+├── mappings.jsonl
+├── workflow.json
+└── data_gaps.jsonl
 ```
 
 - `project.json`：问题、方法、语料协议、证据阶段和人工闸门。
@@ -50,6 +52,10 @@ research_projects/<project-id>/
 - `evidence_units.jsonl`：来自具体章节和精确位置的原子证据。
 - `indicators.jsonl`：领域—构念—子构念—指标—操作要求的层级图。
 - `mappings.jsonl`：叶级指标与 GRDR 全局变量的兼容性判断。
+- `workflow.json`：当前步骤、运行次数、下一步和完整操作历史。
+- `data_gaps.jsonl`：当前快照未匹配指标的需求、候选库/数据集和扩展动作。
+
+前五个文件是研究证据与指标体系的规范内容；后两个文件是可恢复运行的协调状态，不改变研究内容层级。
 
 ## 4. 正式流程
 
@@ -98,6 +104,21 @@ Agent 仅把叶级指标与 GRDR 变量匹配，并比较构念、总体、单�
 ### 4.7 人工闸门三：争议映射
 
 只有出现 `proxy_candidate` 或 `definition_conflict` 时才需要人工确认。明确的直接匹配、可复现转换、组合构造和“当前快照未找到”可由 Agent 自动记录，除非具体研究方案要求更严格复核。
+
+### 4.8 可执行闭环
+
+```bash
+python3 scripts/grdr.py start-research-project <spec.json>
+python3 scripts/grdr.py research-project-status <project-id>
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py expand-from-data-gaps <project-id>
+# 用数据库拆解器深化候选库后：
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py rerun-matching <project-id>
+```
+
+`approve-human-gate` 不属于 AI 可以自行完成的自动步骤。只有研究者明确给出批准意见后，Agent 才能记录 reviewer、时间和 notes。首次匹配使用 `match-indicators`，后续注册表扩展后的复查使用 `rerun-matching`；两者不能混用以覆盖运行历史。
 
 ## 5. AI 与人工责任
 

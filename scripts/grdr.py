@@ -685,6 +685,84 @@ def audit_indicator_project(args: argparse.Namespace) -> None:
         raise SystemExit(2)
 
 
+def run_research_operation(operation: str, callback: Any) -> None:
+    try:
+        emit(callback())
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        emit(
+            {
+                "operation": operation,
+                "registry_version": REGISTRY_VERSION,
+                "error": type(exc).__name__,
+                "message": str(exc),
+            }
+        )
+        raise SystemExit(2) from exc
+
+
+def start_research_project_command(args: argparse.Namespace) -> None:
+    from research_project import start_research_project
+
+    run_research_operation(
+        "start_research_project",
+        lambda: start_research_project(args.spec_file, args.project_dir),
+    )
+
+
+def research_project_status_command(args: argparse.Namespace) -> None:
+    from research_project import research_project_status
+
+    run_research_operation(
+        "research_project_status",
+        lambda: research_project_status(args.project_dir),
+    )
+
+
+def approve_human_gate_command(args: argparse.Namespace) -> None:
+    from research_project import approve_human_gate
+
+    run_research_operation(
+        "approve_human_gate",
+        lambda: approve_human_gate(args.project_dir, args.gate, args.reviewer, args.notes),
+    )
+
+
+def resume_research_project_command(args: argparse.Namespace) -> None:
+    from research_project import resume_research_project
+
+    run_research_operation(
+        "resume_research_project",
+        lambda: resume_research_project(args.project_dir),
+    )
+
+
+def match_indicators_command(args: argparse.Namespace) -> None:
+    from research_project import perform_matching
+
+    run_research_operation(
+        "match_indicators",
+        lambda: perform_matching(args.project_dir),
+    )
+
+
+def expand_from_data_gaps_command(args: argparse.Namespace) -> None:
+    from research_project import expand_from_data_gaps
+
+    run_research_operation(
+        "expand_from_data_gaps",
+        lambda: expand_from_data_gaps(args.project_dir),
+    )
+
+
+def rerun_matching_command(args: argparse.Namespace) -> None:
+    from research_project import perform_matching
+
+    run_research_operation(
+        "rerun_matching",
+        lambda: perform_matching(args.project_dir, rerun=True),
+    )
+
+
 def stats(_args: argparse.Namespace) -> None:
     collections = {
         entity_type: load_jsonl(filename)
@@ -825,6 +903,59 @@ def parser() -> argparse.ArgumentParser:
     )
     indicator_project.add_argument("project_dir")
     indicator_project.set_defaults(handler=audit_indicator_project)
+
+    start_project = commands.add_parser(
+        "start-research-project",
+        help="Create a persisted exploratory project from an AI-generated question and indicator specification",
+    )
+    start_project.add_argument("spec_file")
+    start_project.add_argument("--project-dir")
+    start_project.set_defaults(handler=start_research_project_command)
+
+    project_status = commands.add_parser(
+        "research-project-status",
+        help="Report workflow, audit, gates, mappings, and data gaps for a research project",
+    )
+    project_status.add_argument("project_dir")
+    project_status.set_defaults(handler=research_project_status_command)
+
+    approve_gate = commands.add_parser(
+        "approve-human-gate",
+        help="Record an explicit named human approval; never invoke without the reviewer's instruction",
+    )
+    approve_gate.add_argument("project_dir")
+    approve_gate.add_argument("gate", choices=["corpus_boundary", "indicator_framework", "contested_mappings"])
+    approve_gate.add_argument("--reviewer", required=True)
+    approve_gate.add_argument("--notes", required=True)
+    approve_gate.set_defaults(handler=approve_human_gate_command)
+
+    resume_project = commands.add_parser(
+        "resume-research-project",
+        help="Advance a valid project to its next executable or human-gated step",
+    )
+    resume_project.add_argument("project_dir")
+    resume_project.set_defaults(handler=resume_research_project_command)
+
+    match_project = commands.add_parser(
+        "match-indicators",
+        help="Match every leaf indicator to exact registered constructs and variables",
+    )
+    match_project.add_argument("project_dir")
+    match_project.set_defaults(handler=match_indicators_command)
+
+    expand_gaps = commands.add_parser(
+        "expand-from-data-gaps",
+        help="Turn current-snapshot not-found mappings into bounded source-profiling leads",
+    )
+    expand_gaps.add_argument("project_dir")
+    expand_gaps.set_defaults(handler=expand_from_data_gaps_command)
+
+    rerun_project = commands.add_parser(
+        "rerun-matching",
+        help="Replace project mappings after registry expansion and retain attempt history",
+    )
+    rerun_project.add_argument("project_dir")
+    rerun_project.set_defaults(handler=rerun_matching_command)
 
     adapters = commands.add_parser("list-adapters", help="List optional data-access adapters")
     adapters.add_argument("--source-id")

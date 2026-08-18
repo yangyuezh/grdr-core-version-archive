@@ -114,6 +114,21 @@ python3 scripts/grdr.py diagnose-coverage /absolute/path/to/request.json
 Matching is a core value of GRDR, but it depends on continued registry breadth and depth.
 Keep question-specific literature, indicators, and mappings under `research_projects/<project-id>/`; do not mix them into the canonical global source registry.
 
+For a persisted topic-scaffold project, use the executable lifecycle:
+
+```bash
+python3 scripts/grdr.py start-research-project <spec.json>
+python3 scripts/grdr.py research-project-status <project-id>
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py expand-from-data-gaps <project-id>
+# After candidate sources have been deepened or new sources registered:
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py rerun-matching <project-id>
+```
+
+The Agent may run every command above automatically. `approve-human-gate` is different: call it only after the human explicitly provides the reviewer identity and approval notes. Never use it to convert an Agent-generated topic scaffold into a formal, literature-grounded result. Preserve `workflow.json` and `data_gaps.jsonl` with the five research-content files.
+
 ## Use access extensions carefully
 
 Read [references/access-architecture.md](references/access-architecture.md) only when adding an API adapter, federated query, or lawful snapshot. Keep source discovery and metadata separate from data retrieval.

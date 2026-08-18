@@ -53,6 +53,27 @@ def main() -> int:
     ):
         errors.append("version-controlled indicator Skill identity is not 'grdr-indicator-builder'")
 
+    for required_path in [
+        ROOT / "schemas" / "research_workflow.schema.json",
+        ROOT / "schemas" / "data_gap.schema.json",
+        ROOT / "scripts" / "research_project.py",
+    ]:
+        if not required_path.is_file():
+            errors.append(f"required research workflow file is missing: {required_path.relative_to(ROOT)}")
+
+    cli = (ROOT / "scripts" / "grdr.py").read_text(encoding="utf-8")
+    for command in [
+        "start-research-project",
+        "research-project-status",
+        "approve-human-gate",
+        "resume-research-project",
+        "match-indicators",
+        "expand-from-data-gaps",
+        "rerun-matching",
+    ]:
+        if f'"{command}"' not in cli:
+            errors.append(f"GRDR CLI is missing required command: {command}")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)

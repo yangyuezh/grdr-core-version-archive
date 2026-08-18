@@ -10,7 +10,11 @@ Each project uses:
 ├── literature.jsonl
 ├── evidence_units.jsonl
 ├── indicators.jsonl
-└── mappings.jsonl
+├── mappings.jsonl
+├── workflow.json
+└── data_gaps.jsonl
 ```
 
-Follow `docs/INDICATOR_BUILDER_PROTOCOL.md` and the five indicator-project schemas. Do not commit copyrighted full texts, credentials, sensitive research material, or restricted data.
+The first five files preserve the research definition, literature, evidence, hierarchy, and mappings. `workflow.json` records resumable execution state and history; `data_gaps.jsonl` turns current-registry misses into bounded deep-profiling or source-discovery tasks.
+
+Follow `docs/INDICATOR_BUILDER_PROTOCOL.md` and the seven research-project schemas. A project-level `README.md` may summarize the machine records for human review. Do not commit copyrighted full texts, credentials, sensitive research material, or restricted data.

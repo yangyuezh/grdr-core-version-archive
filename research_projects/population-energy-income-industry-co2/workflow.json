@@ -1,0 +1,53 @@
+{
+  "created_at": "2026-08-18T10:06:08.235363+00:00",
+  "current_step": "source_expansion",
+  "gap_expansion_round": 2,
+  "history": [
+    {
+      "operation": "start-research-project",
+      "summary": "Created topic scaffold with 6 indicator nodes.",
+      "timestamp": "2026-08-18T10:06:08.235363+00:00"
+    },
+    {
+      "operation": "resume-research-project",
+      "summary": "Project is ready for exploratory variable matching.",
+      "timestamp": "2026-08-18T10:06:21.710313+00:00"
+    },
+    {
+      "operation": "match-indicators",
+      "summary": "Matched 5 leaf indicators: {\"direct_match\": 3, \"not_found_registry_snapshot\": 2}.",
+      "timestamp": "2026-08-18T10:06:21.745150+00:00"
+    },
+    {
+      "operation": "expand-from-data-gaps",
+      "summary": "Created 2 bounded data-gap expansion records.",
+      "timestamp": "2026-08-18T10:06:35.308214+00:00"
+    },
+    {
+      "operation": "resume-research-project",
+      "summary": "Gap expansion records exist; project is ready for rematching after registry updates.",
+      "timestamp": "2026-08-18T10:08:48.604020+00:00"
+    },
+    {
+      "operation": "rerun-matching",
+      "summary": "Matched 5 leaf indicators: {\"direct_match\": 3, \"not_found_registry_snapshot\": 2}.",
+      "timestamp": "2026-08-18T10:08:48.638725+00:00"
+    },
+    {
+      "operation": "expand-from-data-gaps",
+      "summary": "Created 2 bounded data-gap expansion records.",
+      "timestamp": "2026-08-18T10:08:48.679567+00:00"
+    }
+  ],
+  "last_operation": "expand-from-data-gaps",
+  "matching_attempt": 2,
+  "next_actions": [
+    "deepen-candidate-sources",
+    "resume-research-project",
+    "rerun-matching"
+  ],
+  "project_id": "grdr:research-project:population-energy-income-industry-co2",
+  "schema_version": "0.1.0",
+  "updated_at": "2026-08-18T10:08:48.679567+00:00",
+  "workflow_status": "expansion_planned"
+}
