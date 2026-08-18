@@ -1,6 +1,6 @@
 ---
 name: grdr-source-profiler
-description: "Decompose and deeply profile a database for GRDR across six linked layers: institution, source, dataset, resource, variable, and construct. Use when Codex receives a database name, URL, catalog, or GRDR source ID and needs to verify its publisher and authority, inventory datasets and access routes, extract variable metadata, map measurements to research constructs, assess profiling depth, or write evidence-backed records and human catalog pages into GRDR."
+description: "Decompose and deeply profile a database for GRDR across six linked layers: institution, source, dataset, resource, data element and variable, and construct. Use when Codex receives a database name, URL, catalog, or GRDR source ID and needs to verify its publisher and authority, inventory datasets and access routes, recover source-native structures, extract variable metadata, map measurements to research constructs, assess profiling depth, or write evidence-backed records and human catalog pages into GRDR."
 ---
 
 # GRDR Source Profiler
@@ -21,19 +21,19 @@ Use `${GRDR_ROOT}` when set. Otherwise use:
 /Users/jasper/Documents/codex/grdr
 ```
 
-Read `docs/SOURCE_PROFILING_PROTOCOL.md`, the relevant six entity schemas, and [references/six-layer-standard.md](references/six-layer-standard.md) before writing records.
+Read `docs/SOURCE_PROFILING_PROTOCOL.md`; the Institution, Source, Dataset, Resource, DataElement, Variable, Construct, Relationship, and SourceProfile schemas; [references/six-layer-standard.md](references/six-layer-standard.md); and [references/multidimensional-data.md](references/multidimensional-data.md) before writing records. The seven content entity types occupy six layers because DataElement and Variable are both inside layer 5; Relationship and SourceProfile are supporting records.
 
 ## Resolve the input
 
 When given a GRDR source ID, audit it first:
 
 ```bash
-python3 scripts/profile_source.py grdr:source:undata
+python3 scripts/grdr.py audit-source-depth grdr:source:undata
 ```
 
 When given a name or URL:
 
-1. search `sources.jsonl` and canonical aliases first;
+1. search `registry/sources.jsonl` and canonical aliases first;
 2. resolve redirects, mirrors, predecessor systems, and official ownership;
 3. reuse the existing ID when identity matches;
 4. nominate new Institution and Source records only when no matching source exists.
@@ -71,9 +71,23 @@ Enumerate the declared scope from official catalogs or documentation. Record met
 
 Register concrete APIs, files, downloads, query tools, documentation, cloud collections, secure environments, application routes, and physical access. Record format, authentication, machine access, rate limits, and license.
 
-### 5. Variable
+### 5. Data element and variable
 
-Use official dictionaries, codebooks, schemas, questionnaires, or reproducible API metadata. Record definition, unit, denominator, population, observation unit, resolutions, measurement class, comparability, and join keys.
+First restore the source-native structure as `DataElement` records: dimensions, measures, identifiers, time dimensions, attributes, weights, flags, units, code lists, ordering, and attachment levels. Then construct research-matchable `Variable` records by linking a measure to the required dimension selections.
+
+For SDMX sources, enumerate dataflows and inspect the referenced DSD before registering variables. Use the bundled inspector when helpful:
+
+```bash
+python3 skill/grdr-source-profiler/scripts/inspect_sdmx.py list-dataflows https://data.un.org/ws/rest
+python3 skill/grdr-source-profiler/scripts/inspect_sdmx.py describe-structure https://data.un.org/ws/rest UNSD DSD_ENERGY 1.2
+python3 skill/grdr-source-profiler/scripts/inspect_sdmx.py probe-data https://data.un.org/ws/rest DF_UNData_UNFCC A.EN_ATM_PFCE.DNK.Gg_CO2 --start-period 2000 --end-period 2000
+```
+
+For DCAT, JSON Schema, relational catalogs, codebooks, or questionnaires, preserve their equivalent native hierarchy and identifiers. Record definition, unit, denominator, population, observation unit, resolutions, measurement class, comparability, and join keys.
+
+If the measure element is unresolved or no dimension selection gives the candidate its research meaning, stop at 5A and do not create a 5B Variable. For multidimensional profiles, populate `source_profile.layer_5_details` with separate 5A/5B counts, claims, and boundaries.
+
+Test metadata/structure and observation data independently. Store successful structure evidence on DataElements and Resource/Adapter records; store data-query failures or degradation on the Resource/Adapter/Monitor and in source-profile blockers. Never let a working DSD imply that observations are retrievable.
 
 Do not infer variables from source- or dataset-level topic tags.
 
@@ -104,6 +118,7 @@ Return:
 - added and updated record IDs;
 - evidence and verification changes;
 - dataset and variable inventory boundaries;
+- data-structure coverage and the exact transformation from native elements to research-matchable variables;
 - access, license, or technical blockers;
 - unresolved unknowns and the next bounded profiling pass;
 - GRDR version and GitHub release status.

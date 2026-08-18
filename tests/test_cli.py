@@ -42,6 +42,7 @@ class GrdrCliTests(unittest.TestCase):
         payload = run_cli("stats")
         self.assertGreaterEqual(payload["counts"]["sources"], 1)
         self.assertGreaterEqual(payload["counts"]["datasets"], 1)
+        self.assertGreaterEqual(payload["counts"]["data_elements"], 1)
         self.assertGreaterEqual(payload["counts"]["variables"], 1)
         self.assertEqual(payload["counts"]["source_profiles"], 2)
 
@@ -100,13 +101,16 @@ class GrdrCliTests(unittest.TestCase):
         world_bank = run_cli(
             "audit-source-depth", "grdr:source:world-bank-open-data"
         )["profile"]
-        self.assertEqual(undata["profile_stage"], "source_only")
-        self.assertFalse(undata["variable_matching_ready"])
+        self.assertEqual(undata["profile_stage"], "six_layer_chain_present")
+        self.assertTrue(undata["variable_matching_ready"])
+        self.assertEqual(undata["data_element_count"], 16)
+        self.assertEqual(undata["variable_count"], 13)
         self.assertEqual(world_bank["profile_stage"], "six_layer_chain_present")
         self.assertTrue(world_bank["variable_matching_ready"])
         self.assertEqual(world_bank["catalog_completeness"], "representative_only")
         self.assertEqual(world_bank["declared_profile"]["scope_mode"], "representative_chain")
-        self.assertEqual(undata["declared_profile"]["scope_mode"], "identity_only")
+        self.assertEqual(undata["declared_profile"]["scope_mode"], "catalog_level")
+        self.assertEqual(undata["catalog_completeness"], "catalog_scope_complete")
 
     def test_all_source_depth_audit_covers_every_registered_source(self) -> None:
         payload = run_cli("audit-all-source-depth")
@@ -120,7 +124,7 @@ class GrdrCliTests(unittest.TestCase):
             ]
         )
         self.assertEqual(payload["source_count"], source_count)
-        self.assertEqual(payload["variable_matching_ready_sources"], 1)
+        self.assertEqual(payload["variable_matching_ready_sources"], 2)
 
     def test_source_profiler_skill_wrapper_calls_canonical_audit(self) -> None:
         wrapper = ROOT / "skill" / "grdr-source-profiler" / "scripts" / "profile_source.py"
@@ -134,7 +138,19 @@ class GrdrCliTests(unittest.TestCase):
         )
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["operation"], "audit_source_depth")
-        self.assertEqual(payload["profile"]["profile_stage"], "source_only")
+        self.assertEqual(payload["profile"]["profile_stage"], "six_layer_chain_present")
+
+    def test_data_element_is_queryable_with_linked_dataset_and_resource(self) -> None:
+        payload = run_cli("get-data-element", "grdr:data-element:undata-energy-transaction")
+        self.assertEqual(payload["data_element"]["source_native"]["native_id"], "TRANSACTION")
+        self.assertEqual(payload["data_element"]["codelist"]["code_count"], 216)
+        self.assertEqual(payload["datasets"][0]["id"], "grdr:dataset:undata-energy-statistics")
+
+    def test_undata_variables_preserve_dimension_selections(self) -> None:
+        payload = run_cli("get-variable", "grdr:variable:undata-energy-ga")
+        native = payload["variable"]["source_native"]
+        self.assertEqual(native["measure_element_id"], "grdr:data-element:undata-energy-obs-value")
+        self.assertEqual(native["dimension_selections"][0]["code"], "GA")
 
 
 if __name__ == "__main__":

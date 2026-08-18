@@ -18,6 +18,7 @@ COLLECTIONS = {
     "sources": (REGISTRY / "sources.jsonl", SCHEMAS / "source.schema.json"),
     "datasets": (REGISTRY / "datasets.jsonl", SCHEMAS / "dataset.schema.json"),
     "resources": (REGISTRY / "resources.jsonl", SCHEMAS / "resource.schema.json"),
+    "data_elements": (REGISTRY / "data_elements.jsonl", SCHEMAS / "data_element.schema.json"),
     "constructs": (REGISTRY / "constructs.jsonl", SCHEMAS / "construct.schema.json"),
     "variables": (REGISTRY / "variables.jsonl", SCHEMAS / "variable.schema.json"),
     "adapters": (REGISTRY / "adapters.jsonl", SCHEMAS / "adapter.schema.json"),
@@ -82,6 +83,7 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
     source_ids = {record["id"] for record in collections["sources"]}
     dataset_ids = {record["id"] for record in collections["datasets"]}
     resource_ids = {record["id"] for record in collections["resources"]}
+    data_element_ids = {record["id"] for record in collections["data_elements"]}
     construct_ids = {record["id"] for record in collections["constructs"]}
     for source in collections["sources"]:
         for maintainer_id in source.get("maintainer_ids", []):
@@ -110,6 +112,22 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
         for construct_id in variable.get("construct_ids", []):
             if construct_id not in construct_ids:
                 errors.append(f"{variable.get('id')}: unknown construct_id {construct_id}")
+        source_native = variable.get("source_native") or {}
+        measure_element_id = source_native.get("measure_element_id")
+        if measure_element_id and measure_element_id not in data_element_ids:
+            errors.append(f"{variable.get('id')}: unknown measure_element_id {measure_element_id}")
+        for selection in source_native.get("dimension_selections", []):
+            element_id = selection.get("element_id")
+            if element_id not in data_element_ids:
+                errors.append(f"{variable.get('id')}: unknown dimension element_id {element_id}")
+
+    for element in collections["data_elements"]:
+        for dataset_id in element.get("dataset_ids", []):
+            if dataset_id not in dataset_ids:
+                errors.append(f"{element.get('id')}: unknown dataset_id {dataset_id}")
+        for resource_id in element.get("resource_ids", []):
+            if resource_id not in resource_ids:
+                errors.append(f"{element.get('id')}: unknown resource_id {resource_id}")
 
     for construct in collections["constructs"]:
         for broader_id in construct.get("broader_construct_ids", []):

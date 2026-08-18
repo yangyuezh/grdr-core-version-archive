@@ -43,6 +43,15 @@ class HumanCatalogTests(unittest.TestCase):
             self.assertIn("| 当前拆解阶段 |", text, source["id"])
             self.assertIn("| 已声明拆解范围 |", text, source["id"])
 
+    def test_undata_human_page_exposes_catalog_and_multidimensional_depth(self) -> None:
+        page = ROOT / "catalog" / "sources" / "undata" / "README.md"
+        text = page.read_text(encoding="utf-8")
+        self.assertIn("36 datamarts", text)
+        self.assertIn("#### Energy Statistics Database", text)
+        self.assertIn("#### 5A 数据结构元素", text)
+        self.assertIn("Energy transaction (`TRANSACTION`)", text)
+        self.assertIn("Total energy supply (`GA`)", text)
+
 
 if __name__ == "__main__":
     unittest.main()

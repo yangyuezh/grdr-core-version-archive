@@ -8,7 +8,7 @@
 | Source | canonical database identity | disciplines, topics, geography, time, units, modalities, authority, provenance, access, license | official homepage, catalog, access and license documentation |
 | Dataset | versionable collection | population, unit, spatial and temporal coverage, release, methodology, limitations, citation | official catalog record, methodology, data paper |
 | Resource | concrete access object | URL, type, format, authentication, machine access, rate limits, license | API, download, application, or access documentation |
-| Variable | recorded or computable field | definition, unit, denominator, population, resolutions, measurement, comparability, join keys | dictionary, codebook, questionnaire, schema, API metadata |
+| Data element & variable | source-native component and research-matchable operational variable | native hierarchy, dimension/measure/attribute type, code lists, definition, unit, denominator, population, resolutions, measurement, comparability, join keys | data structure, dictionary, codebook, questionnaire, schema, API metadata |
 | Construct | research concept | definition, domains, type, boundaries, directness | standard, controlled vocabulary, official or peer-reviewed definition |
 
 ## Scope modes
@@ -30,6 +30,8 @@
 6. A populated layer does not prove full catalog completeness.
 7. Unknown means not established, not absent.
 8. Restricted and commercial sources remain eligible but access controls must be preserved.
+9. A multidimensional observation value without its dimension selections is not a research variable.
+10. Data elements are a 5A substructure of layer 5; they do not create a seventh GRDR layer.
 
 ## Evidence promotion
 

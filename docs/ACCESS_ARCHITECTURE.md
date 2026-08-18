@@ -12,7 +12,7 @@ The architecture contains seven layers:
 2. **Source registry** — databases, portals, repositories, programs, and collections.
 3. **Dataset catalog** — versioned collections, methodology, coverage, and citations.
 4. **Access catalog** — APIs, bulk files, query systems, application routes, secure enclaves, and commercial access.
-5. **Variable and semantic index** — fields, indicators, constructs, units, definitions, classifications, and join keys.
+5. **Data-structure, variable, and semantic index** — source-native dimensions, measures, attributes, fields, indicators, constructs, units, definitions, classifications, and join keys.
 6. **Adapters and storage** — retrieval code plus local snapshots, caches, indexes, or federated queries where permitted.
 7. **Monitoring and provenance** — revisions, upstream producers, transformations, migrations, licenses, and historical versions.
 
@@ -25,7 +25,7 @@ The Skill tells an AI agent how to operate GRDR. Its core operations are:
 - inspect registry coverage;
 - discover and nominate new sources;
 - verify and promote records;
-- register datasets, resources, variables, and relationships;
+- register datasets, resources, data elements, variables, and relationships;
 - build or run access adapters;
 - ingest or refresh permitted data;
 - detect changes and stale records;

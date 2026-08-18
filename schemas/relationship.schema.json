@@ -8,7 +8,7 @@
   "properties": {
     "schema_version": {"const": "0.1.0"},
     "id": {"type": "string", "pattern": "^grdr:relationship:[a-z0-9][a-z0-9-]*$"},
-    "subject_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|resource|variable|construct|adapter|storage|monitor):"},
+    "subject_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|resource|data-element|variable|construct|adapter|storage|monitor):"},
     "predicate": {
       "enum": [
         "produced_by",
@@ -34,7 +34,7 @@
         "monitored_by"
       ]
     },
-    "object_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|resource|variable|construct|adapter|storage|monitor):"},
+    "object_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|resource|data-element|variable|construct|adapter|storage|monitor):"},
     "qualifiers": {"type": "object"},
     "verification": {
       "type": "object",

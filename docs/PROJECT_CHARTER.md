@@ -10,7 +10,7 @@ GRDR maps scientific questions to constructs and data requirements, discovers an
 
 The primary users are AI agents, including Codex and Claude. Researchers, data stewards, librarians, and domain experts are secondary users who audit, correct, and extend the registry.
 
-AI-first does not mean AI-only. Every registered database must remain discoverable from the root README and have a human-readable detail page organized across the Institution, Source, Dataset, Resource, Variable, and Construct layers. Missing depth must be shown explicitly rather than hidden or invented.
+AI-first does not mean AI-only. Every registered database must remain discoverable from the root README and have a human-readable detail page organized across the Institution, Source, Dataset, Resource, DataElement & Variable, and Construct layers. Missing depth must be shown explicitly rather than hidden or invented.
 
 ## Scope
 
@@ -30,13 +30,13 @@ Eligible source classes include official statistics, scientific observations, ad
 
 GRDR consists of coordinated registry, research-data infrastructure, and Skill layers:
 
-1. **Registry:** machine-readable records for institutions, sources, datasets, resources, variables, constructs, and evidence.
+1. **Registry:** machine-readable records for institutions, sources, datasets, resources, source-native data elements, research-matchable variables, constructs, and evidence.
 2. **Knowledge graph:** typed relationships among producers, publishers, mirrors, derived datasets, measures, proxies, and joinable resources.
 3. **Assessment engine:** separate evaluations for intrinsic source quality and task-specific fitness.
 4. **Access and ingestion layer:** CLI, SDK, MCP operations, source-specific adapters, federated queries, and versioned local snapshots where access and licensing permit.
 5. **Monitoring layer:** releases, revisions, migrations, stale records, deprecations, and provenance changes.
 6. **Matching layer:** question-to-data mapping, compatibility checks, and gap diagnosis over registered sources and datasets.
-7. **Profiling workflow:** evidence-backed decomposition of each database through Institution, Source, Dataset, Resource, Variable, and Construct layers with explicit inventory boundaries.
+7. **Profiling workflow:** evidence-backed decomposition of each database through Institution, Source, Dataset, Resource, DataElement & Variable, and Construct layers with explicit inventory boundaries.
 8. **Research indicator workflow:** topic scaffolding or literature-grounded construction of multi-level indicators, auditable evidence links, operational requirements, human validity gates, and leaf-level variable matching.
 
 Registry breadth and depth, evidence quality, and matching capability develop together. During the current first phase, foundation stability and broad source construction take precedence over large-scale data ingestion.

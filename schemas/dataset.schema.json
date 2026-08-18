@@ -22,6 +22,20 @@
     "id": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"},
     "name": {"type": "string", "minLength": 1},
     "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "source_native": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["catalog_id", "catalog_url", "provider_name", "provider_url", "lifecycle_status", "last_upstream_update", "next_upstream_update"],
+      "properties": {
+        "catalog_id": {"type": "string", "minLength": 1},
+        "catalog_url": {"type": "string", "format": "uri"},
+        "provider_name": {"type": ["string", "null"]},
+        "provider_url": {"type": ["string", "null"], "format": "uri"},
+        "lifecycle_status": {"enum": ["active", "archived", "deprecated", "stale", "unknown"]},
+        "last_upstream_update": {"type": ["string", "null"]},
+        "next_upstream_update": {"type": ["string", "null"]}
+      }
+    },
     "source_ids": {
       "type": "array",
       "items": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},

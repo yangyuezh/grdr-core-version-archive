@@ -40,6 +40,18 @@
         "construct": {"$ref": "#/$defs/layer_state"}
       }
     },
+    "layer_5_details": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["data_element_claim", "variable_claim", "registered_data_element_count", "registered_variable_count", "notes"],
+      "properties": {
+        "data_element_claim": {"$ref": "#/$defs/layer_state"},
+        "variable_claim": {"$ref": "#/$defs/layer_state"},
+        "registered_data_element_count": {"type": "integer", "minimum": 0},
+        "registered_variable_count": {"type": "integer", "minimum": 0},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
     "enumeration": {
       "type": "object",
       "additionalProperties": false,

@@ -9,6 +9,8 @@ Institution
   └── Source
         └── Dataset
               └── Resource
+              └── Layer 5
+                    ├── DataElement
                     └── Variable
                           └── Construct
 ```
@@ -39,15 +41,19 @@ A recognizable data service, portal, repository, program, collection, or databas
 
 ### Dataset
 
-A versionable collection of observations produced under a defined methodology and scope. Dataset records are planned after the foundation source registry stabilizes.
+A versionable collection of observations produced under a defined methodology and scope.
 
 ### Resource
 
 A concrete access object such as an API endpoint, downloadable file, table, database view, cloud bucket, query service, or application procedure.
 
+### DataElement
+
+A source-native structural component such as a dimension, primary measure, identifier, time dimension, attribute, unit, weight, status flag, or code-list-backed field. DataElements preserve the upstream schema before GRDR constructs research-matchable variables. They are the 5A substructure of layer 5, not a seventh content layer.
+
 ### Variable
 
-A recorded or computable field with a definition, unit, population, observation unit, coverage, and measurement method.
+A research-matchable recorded or computable field with a definition, unit, population, observation unit, coverage, and measurement method. In a multidimensional system, a Variable links a measure DataElement to the dimension selections that give the observation its research meaning.
 
 ### Construct
 
@@ -76,6 +82,7 @@ GRDR must preserve these distinctions:
 - producer versus publisher;
 - source versus dataset;
 - dataset versus access resource;
+- source-native data element versus research-matchable variable;
 - variable versus theoretical construct;
 - direct measure versus proxy;
 - reported value versus modeled estimate versus forecast;

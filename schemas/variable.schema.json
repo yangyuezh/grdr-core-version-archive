@@ -11,6 +11,32 @@
     "name": {"type": "string", "minLength": 1},
     "label": {"type": "string", "minLength": 1},
     "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "source_native": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["system", "dataflow_id", "data_structure_id", "measure_element_id", "dimension_selections"],
+      "properties": {
+        "system": {"type": "string", "minLength": 1},
+        "dataflow_id": {"type": ["string", "null"]},
+        "data_structure_id": {"type": ["string", "null"]},
+        "measure_element_id": {"type": "string", "pattern": "^grdr:data-element:[a-z0-9][a-z0-9-]*$"},
+        "dimension_selections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["element_id", "code", "label"],
+            "properties": {
+              "element_id": {"type": "string", "pattern": "^grdr:data-element:[a-z0-9][a-z0-9-]*$"},
+              "code": {"type": "string", "minLength": 1},
+              "label": {"type": "string", "minLength": 1}
+            }
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
     "dataset_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"}, "minItems": 1, "uniqueItems": true},
     "construct_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:construct:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
     "role_candidates": {"type": "array", "items": {"enum": ["outcome", "exposure", "control", "confounder", "mediator", "moderator", "instrument", "selection", "validation", "context"]}, "uniqueItems": true},

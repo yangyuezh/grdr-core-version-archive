@@ -70,7 +70,7 @@ Separate institutional authority from task-specific fitness. Do not rank every f
 
 ## Route deep database profiling
 
-Use the installed `$grdr-source-profiler` Skill when one database must be decomposed beyond source registration into Institution, Source, Dataset, Resource, Variable, and Construct layers. Audit current depth first:
+Use the installed `$grdr-source-profiler` Skill when one database must be decomposed beyond source registration into Institution, Source, Dataset, Resource, DataElement & Variable, and Construct layers. DataElement and Variable are 5A and 5B inside the same fifth layer, not separate seventh-layer content. Audit current depth first:
 
 ```bash
 python3 scripts/grdr.py audit-source-depth <source-id>
@@ -81,7 +81,7 @@ Treat `six_layer_chain_present` as evidence that at least one chain exists, neve
 
 ## Keep the human catalog synchronized
 
-Treat human readability as required, even though AI agents are the primary users. Every registered source must appear in the root `README.md` and have an independent `catalog/sources/<source-slug>/README.md` page covering Institution, Source, Dataset, Resource, Variable, and Construct layers.
+Treat human readability as required, even though AI agents are the primary users. Every registered source must appear in the root `README.md` and have an independent `catalog/sources/<source-slug>/README.md` page covering Institution, Source, Dataset, Resource, DataElement & Variable, and Construct layers.
 
 After changing any of those registry layers, run:
 

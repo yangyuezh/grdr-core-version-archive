@@ -104,8 +104,10 @@ def build_context() -> dict[str, Any]:
             "sources",
             "datasets",
             "resources",
+            "data_elements",
             "variables",
             "constructs",
+            "relationships",
             "source_profiles",
         )
     }
@@ -131,6 +133,11 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         for item in context["variables"]
         if dataset_ids.intersection(item["dataset_ids"])
     ]
+    data_elements = [
+        item
+        for item in context["data_elements"]
+        if dataset_ids.intersection(item["dataset_ids"])
+    ]
     construct_ids = {
         construct_id
         for item in variables
@@ -139,11 +146,15 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
     constructs = [
         item for item in context["constructs"] if item["id"] in construct_ids
     ]
-    institutions = [
-        context["institution_index"][item]
-        for item in source["maintainer_ids"]
-        if item in context["institution_index"]
-    ]
+    institution_ids = set(source["maintainer_ids"])
+    institution_ids.update(
+        edge["object_id"]
+        for edge in context["relationships"]
+        if edge["subject_id"] in {source["id"], *dataset_ids}
+        and edge["object_id"] in context["institution_index"]
+        and edge["predicate"] in {"produced_by", "published_by", "maintained_by", "governed_by"}
+    )
+    institutions = [context["institution_index"][item] for item in sorted(institution_ids)]
     source_profiles = [
         item
         for item in context["source_profiles"]
@@ -153,6 +164,7 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         "institutions": institutions,
         "datasets": datasets,
         "resources": resources,
+        "data_elements": data_elements,
         "variables": variables,
         "constructs": constructs,
         "source_profiles": source_profiles,
@@ -164,6 +176,8 @@ def profile_stage(linked: dict[str, list[dict[str, Any]]]) -> str:
         return "six_layer_chain_present"
     if linked["variables"]:
         return "variable_depth_started"
+    if linked["data_elements"]:
+        return "data_structure_depth_started"
     if linked["datasets"] or linked["resources"]:
         return "dataset_depth_started"
     return "source_only"
@@ -242,11 +256,18 @@ def render_datasets(records: list[dict[str, Any]]) -> str:
         release = item["release"]
         methodology = item["methodology"]
         citation = item.get("citation", {})
+        native = item.get("source_native") or {}
         sections.append(
             f"#### {item['name']}\n\n"
             + table(
                 [
                     ("GRDR ID", f"`{item['id']}`"),
+                    ("上游目录ID", native.get("catalog_id")),
+                    ("上游目录入口", link(native.get("catalog_url") or "未知", native.get("catalog_url"))),
+                    ("原始提供机构", native.get("provider_name")),
+                    ("生命周期", f"`{native.get('lifecycle_status')}`" if native else None),
+                    ("上游最近更新", native.get("last_upstream_update")),
+                    ("上游计划更新", native.get("next_upstream_update")),
                     ("说明", item["description"]),
                     ("学科领域", scope["disciplines"]),
                     ("主题维度", scope["topics"]),
@@ -317,11 +338,16 @@ def render_variables(records: list[dict[str, Any]]) -> str:
     for item in records:
         measurement = item["measurement"]
         comparability = item["comparability"]
+        native = item.get("source_native") or {}
         sections.append(
             f"#### {item['label']} (`{item['name']}`)\n\n"
             + table(
                 [
                     ("GRDR ID", f"`{item['id']}`"),
+                    ("上游系统", native.get("system")),
+                    ("Dataflow ID", native.get("dataflow_id")),
+                    ("数据结构ID", native.get("data_structure_id")),
+                    ("维度选择", native.get("dimension_selections", [])),
                     ("研究角色候选", [f"`{role}`" for role in item["role_candidates"]]),
                     ("单位", item["unit"]),
                     ("分母", item["denominator"]),
@@ -342,6 +368,43 @@ def render_variables(records: list[dict[str, Any]]) -> str:
                 ]
             )
             + "\n\n**变量层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
+def render_data_elements(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("数据结构元素")
+    sections = []
+    for item in records:
+        native = item["source_native"]
+        codelist = item.get("codelist") or {}
+        sections.append(
+            f"#### {item['label']} (`{item['name']}`)\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("元素类型", f"`{item['element_type']}`"),
+                    ("上游系统", native["system"]),
+                    ("Dataflow ID", native.get("dataflow_id")),
+                    ("数据结构ID", native.get("data_structure_id")),
+                    ("上游元素ID", native["native_id"]),
+                    ("位置", native.get("position")),
+                    ("附着层级", native.get("attachment_level")),
+                    ("定义", item.get("definition")),
+                    ("单位", item.get("unit")),
+                    ("数据类型", item["representation"].get("data_type")),
+                    ("取值说明", item["representation"].get("allowed_values_note")),
+                    ("代码表", codelist.get("id")),
+                    ("代码数量", codelist.get("code_count")),
+                    ("代码表入口", link(codelist.get("url") or "未知", codelist.get("url"))),
+                    ("结构角色", [f"`{role}`" for role in item["roles"]]),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**数据元素证据**\n\n"
             + evidence_list(item)
         )
     return "\n\n".join(sections)
@@ -399,6 +462,7 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("模态", source["scope"]["modalities"]),
             ("已登记数据集", len(linked["datasets"])),
             ("已登记访问资源", len(linked["resources"])),
+            ("已登记数据元素", len(linked["data_elements"])),
             ("已登记变量", len(linked["variables"])),
             ("已关联构念", len(linked["constructs"])),
             ("当前拆解阶段", f"`{profile_stage(linked)}`"),
@@ -406,6 +470,27 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("上游目录完整度", f"`{inventory_claim}`；存在六层链不等于完整枚举"),
         ]
     )
+    if linked["source_profiles"]:
+        profile = linked["source_profiles"][0]
+        enumeration = profile["enumeration"]
+        layer_5 = profile.get("layer_5_details")
+        blockers = [f"{item['layer']} / {item['type']}: {item['notes']}" for item in profile["blockers"]]
+        profile_details = table(
+            [
+                ("范围说明", profile["scope_statement"]),
+                ("清单声明", f"`{profile['inventory_claim']}`"),
+                ("各层声明", profile["layer_claims"]),
+                ("第5层 5A/5B 边界", layer_5),
+                ("枚举方法", enumeration["method"]),
+                ("上游项目数", enumeration["upstream_item_count"]),
+                ("快照边界", enumeration["snapshot_boundary"]),
+                ("枚举说明", enumeration["notes"]),
+                ("已知阻塞", blockers),
+                ("最后复核", profile["last_reviewed_at"]),
+            ]
+        )
+    else:
+        profile_details = missing_layer("拆解范围声明")
     return f"""---
 grdr_id: {json.dumps(source['id'], ensure_ascii=False)}
 record_type: "source_catalog"
@@ -423,6 +508,10 @@ canonical_url: {json.dumps(source['canonical_url'])}
 ## 数据维度总览
 
 {dimensions}
+
+## 拆解范围与清单边界
+
+{profile_details}
 
 ## 六层目录
 
@@ -443,6 +532,12 @@ canonical_url: {json.dumps(source['canonical_url'])}
 {render_resources(linked['resources'])}
 
 ### 第5层：变量（Variable）
+
+#### 5A 数据结构元素（维度、测度、标识符、属性）
+
+{render_data_elements(linked['data_elements'])}
+
+#### 5B 可研究匹配变量
 
 {render_variables(linked['variables'])}
 
@@ -490,8 +585,8 @@ def render_root_block(context: dict[str, Any]) -> str:
 def render_catalog_index(context: dict[str, Any], version: str) -> str:
     counts: dict[str, int] = {}
     rows = [
-        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 变量 | 构念 | 拆解范围 | 拆解阶段 | 状态 |",
-        "|---|---|---:|---:|---:|---:|---|---|---|",
+        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 数据元素 | 变量 | 构念 | 拆解范围 | 拆解阶段 | 状态 |",
+        "|---|---|---:|---:|---:|---:|---:|---|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
@@ -502,7 +597,7 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
         scope_mode, _inventory_claim = declared_scope(linked)
         rows.append(
             f"| [{source['name']}](sources/{slug}/README.md) | {publishers or '未知 / 尚未登记'} | "
-            f"{len(linked['datasets'])} | {len(linked['resources'])} | {len(linked['variables'])} | "
+            f"{len(linked['datasets'])} | {len(linked['resources'])} | {len(linked['data_elements'])} | {len(linked['variables'])} | "
             f"{len(linked['constructs'])} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
         )
     summary = "、".join(
@@ -520,7 +615,7 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
 2. 数据库/数据源（Source）
 3. 数据集（Dataset）
 4. 访问资源（Resource）
-5. 变量（Variable）
+5. 数据结构元素与变量（Data Element & Variable）
 6. 理论构念（Construct）
 
 “尚未登记”表示 GRDR 还没有完成该层的核验和录入，不表示上游数据库不存在相关内容。

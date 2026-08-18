@@ -2,7 +2,7 @@
 
 GRDR is AI-agent-native, all-discipline infrastructure for global data-source registration, discovery, assessment, connection, and research design.
 
-**Current status:** foundation and first-pass source construction. The repository provides the evidence model, ontology, schemas, initial registry, and Agent commands. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
+**Current status:** foundation plus the first catalog-level source profile. The repository provides the evidence model, ontology, schemas, initial registry, Agent commands, all 36 UNdata datamarts, and deep Energy/GHG multidimensional examples. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
 
 It is not primarily a website and does not initially copy every upstream dataset. It combines:
 
@@ -16,7 +16,7 @@ Research-question matching, source combination, and data-gap diagnosis are centr
 
 ## 数据库六层拆解
 
-GRDR uses the dedicated `$grdr-source-profiler` Skill to deepen a registered database from a source-level entry into Institution → Source → Dataset → Resource → Variable → Construct records. The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated six-layer chain is never reported as a complete upstream inventory. See [the source profiling protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
+GRDR uses the dedicated `$grdr-source-profiler` Skill to deepen a registered database from a source-level entry into Institution → Source → Dataset → Resource → Data Element & Variable → Construct records. Layer 5 first preserves source-native dimensions, measures, identifiers, attributes, and code lists, then forms research-matchable variables from a measure plus its required dimension selections. The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated six-layer chain is never reported as a complete upstream inventory. See [the source profiling protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
 
 ```bash
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
@@ -55,25 +55,25 @@ python3 skill/grdr-indicator-builder/scripts/audit_project.py research_projects/
 
 | 数据库 | 发布/维护机构 | 主要领域 | 拆解范围 | 拆解阶段 | 验证状态 | 六层详情 |
 |---|---|---|---|---|---|---|
-| [UNdata](https://data.un.org/) | United Nations Statistics Division | multidisciplinary | `identity_only` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/undata/README.md) |
-| [World Bank Open Data](https://data.worldbank.org/) | World Bank | multidisciplinary | `representative_chain` | `six_layer_chain_present` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/world-bank-open-data/README.md) |
-| [IMF Data](https://data.imf.org/) | International Monetary Fund | economics、finance | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/imf-data/README.md) |
-| [OECD Data Explorer](https://data-explorer.oecd.org/) | Organisation for Economic Co-operation and Development | multidisciplinary | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/oecd-data-explorer/README.md) |
+| [CERN Open Data Portal](https://opendata.cern.ch/) | European Organization for Nuclear Research | particle physics | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/cern-open-data/README.md) |
+| [Copernicus Climate Data Store](https://cds.climate.copernicus.eu/) | Copernicus Climate Change Service | climate science、earth science | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/copernicus-climate-data-store/README.md) |
 | [Eurostat Database](https://ec.europa.eu/eurostat/) | Eurostat | multidisciplinary | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/eurostat/README.md) |
-| [ILOSTAT](https://ilostat.ilo.org/data/) | International Labour Organization | labour economics、social science | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/ilostat/README.md) |
-| [WHO Data](https://data.who.int/) | World Health Organization | medicine、public health | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/who-data/README.md) |
 | [FAOSTAT](https://www.fao.org/faostat/) | Food and Agriculture Organization of the United Nations | agriculture、food science、environmental science、economics | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/faostat/README.md) |
-| [UNESCO UIS Data Browser](https://databrowser.uis.unesco.org/) | UNESCO Institute for Statistics | education、science studies、culture | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/unesco-uis-data/README.md) |
-| [UN Comtrade](https://comtradeplus.un.org/) | United Nations Statistics Division | economics、international trade | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/un-comtrade/README.md) |
+| [GBIF](https://www.gbif.org/) | Global Biodiversity Information Facility | biodiversity science、ecology、conservation biology | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/gbif/README.md) |
+| [ICPSR Data Archive](https://www.icpsr.umich.edu/) | Inter-university Consortium for Political and Social Research | social science、public health | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/icpsr/README.md) |
+| [ILOSTAT](https://ilostat.ilo.org/data/) | International Labour Organization | labour economics、social science | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/ilostat/README.md) |
+| [IMF Data](https://data.imf.org/) | International Monetary Fund | economics、finance | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/imf-data/README.md) |
 | [NASA Earthdata](https://www.earthdata.nasa.gov/) | NASA Earth Science Data and Information System | earth science、climate science、environmental science | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/nasa-earthdata/README.md) |
 | [NCBI Databases](https://www.ncbi.nlm.nih.gov/guide/all/) | National Center for Biotechnology Information | biology、genomics、medicine、bioinformatics | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/ncbi-databases/README.md) |
-| [RCSB Protein Data Bank](https://www.rcsb.org/) | Research Collaboratory for Structural Bioinformatics Protein Data Bank | structural biology、biochemistry、bioinformatics | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/rcsb-pdb/README.md) |
-| [GBIF](https://www.gbif.org/) | Global Biodiversity Information Facility | biodiversity science、ecology、conservation biology | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/gbif/README.md) |
-| [Copernicus Climate Data Store](https://cds.climate.copernicus.eu/) | Copernicus Climate Change Service | climate science、earth science | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/copernicus-climate-data-store/README.md) |
-| [OpenAlex](https://openalex.org/) | OurResearch | multidisciplinary、science studies | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/openalex/README.md) |
-| [ICPSR Data Archive](https://www.icpsr.umich.edu/) | Inter-university Consortium for Political and Social Research | social science、public health | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/icpsr/README.md) |
-| [CERN Open Data Portal](https://opendata.cern.ch/) | European Organization for Nuclear Research | particle physics | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/cern-open-data/README.md) |
 | [NOAA National Centers for Environmental Information Data Access](https://www.ncei.noaa.gov/) | NOAA National Centers for Environmental Information | climate science、oceanography、geophysics、meteorology | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/noaa-ncei/README.md) |
+| [OECD Data Explorer](https://data-explorer.oecd.org/) | Organisation for Economic Co-operation and Development | multidisciplinary | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/oecd-data-explorer/README.md) |
+| [OpenAlex](https://openalex.org/) | OurResearch | multidisciplinary、science studies | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/openalex/README.md) |
+| [RCSB Protein Data Bank](https://www.rcsb.org/) | Research Collaboratory for Structural Bioinformatics Protein Data Bank | structural biology、biochemistry、bioinformatics | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/rcsb-pdb/README.md) |
+| [UN Comtrade](https://comtradeplus.un.org/) | United Nations Statistics Division | economics、international trade | `undeclared` | `source_only` | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/un-comtrade/README.md) |
+| [UNdata](https://data.un.org/) | Food and Agriculture Organization of the United Nations<br>International Labour Organization<br>International Monetary Fund<br>International Telecommunications Union<br>Organisation for Economic Co-operation and Development<br>United Nations Population Division<br>World Tourism Organization<br>Joint United Nations Programme on HIV/AIDS<br>United Nations Development Programme<br>UNESCO Institute for Statistics<br>United Nations Framework Convention on Climate Change<br>United Nations High Commissioner for Refugees<br>United Nations Children's Fund<br>United Nations Industrial Development Organization<br>United Nations Office on Drugs and Crime<br>United Nations Statistics Division<br>World Health Organization<br>World Meteorological Organization<br>World Bank | multidisciplinary | `catalog_level` | `six_layer_chain_present` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/undata/README.md) |
+| [UNESCO UIS Data Browser](https://databrowser.uis.unesco.org/) | UNESCO Institute for Statistics | education、science studies、culture | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/unesco-uis-data/README.md) |
+| [WHO Data](https://data.who.int/) | World Health Organization | medicine、public health | `undeclared` | `source_only` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/who-data/README.md) |
+| [World Bank Open Data](https://data.worldbank.org/) | World Bank | multidisciplinary | `representative_chain` | `six_layer_chain_present` | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/world-bank-open-data/README.md) |
 
 完整的人机双读索引见 [GRDR数据库目录](catalog/README.md)。
 <!-- GRDR_SOURCE_CATALOG_END -->
@@ -122,6 +122,7 @@ grdr/
 │   ├── sources.jsonl
 │   ├── datasets.jsonl
 │   ├── resources.jsonl
+│   ├── data_elements.jsonl
 │   ├── source_profiles.jsonl
 │   ├── constructs.jsonl
 │   ├── variables.jsonl
@@ -134,6 +135,7 @@ grdr/
 │   ├── source.schema.json
 │   ├── dataset.schema.json
 │   ├── resource.schema.json
+│   ├── data_element.schema.json
 │   ├── source_profile.schema.json
 │   ├── variable.schema.json
 │   ├── construct.schema.json
@@ -156,6 +158,7 @@ grdr/
 │       └── mappings.jsonl
 ├── scripts/
 │   ├── build_catalog.py
+│   ├── curate_undata.py
 │   ├── indicator_builder.py
 │   ├── grdr.py
 │   └── validate_registry.py
@@ -171,7 +174,7 @@ grdr/
 
 ## Current phase
 
-Version `0.4.0` adds the research-side indicator construction chain: topic-only exploratory scaffolding, literature-grounded evidence extraction, multi-level indicator schemas, human approval gates, leaf-level GRDR variable mappings, and deterministic project auditing. It retains the dedicated six-layer database profiler, human catalog, first end-to-end source–dataset–resource–variable–construct chain, and registry-coverage diagnostic. Seed records remain deliberately small and evidence-conscious; the target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
+Version `0.5.0` completes the first catalog-level source pass on UNdata: 36 official datamarts, six glossaries, provider institutions, access and license resources, and deep Energy/GHG SDMX chains. It also hardens the reusable profiler by dividing layer 5 into source-native data elements and research-matchable variables. Catalog completeness and deep-variable completeness remain separate claims. The next batch is the first real research-question closed loop and the seven project orchestration commands. The target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -187,6 +190,8 @@ python3 scripts/grdr.py search-datasets --topic population
 python3 scripts/grdr.py search-variables --construct population
 python3 scripts/grdr.py get-source grdr:source:undata
 python3 scripts/grdr.py get-dataset grdr:dataset:world-development-indicators
+python3 scripts/grdr.py get-data-element grdr:data-element:undata-energy-transaction
+python3 scripts/grdr.py get-variable grdr:variable:undata-energy-ga
 python3 scripts/grdr.py trace-provenance grdr:variable:wdi-sp-pop-totl
 python3 scripts/grdr.py list-adapters --status operational
 python3 scripts/grdr.py list-storage --mode federated_access

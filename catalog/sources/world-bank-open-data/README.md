@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:world-bank-open-data"
 record_type: "source_catalog"
-registry_version: "0.4.0"
+registry_version: "0.5.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.worldbank.org/"
 ---
@@ -24,11 +24,27 @@ canonical_url: "https://data.worldbank.org/"
 | 模态 | tabular |
 | 已登记数据集 | 1 |
 | 已登记访问资源 | 2 |
+| 已登记数据元素 | 0 |
 | 已登记变量 | 1 |
 | 已关联构念 | 1 |
 | 当前拆解阶段 | `six_layer_chain_present` |
 | 已声明拆解范围 | `representative_chain` |
 | 上游目录完整度 | `representative_only`；存在六层链不等于完整枚举 |
+
+## 拆解范围与清单边界
+
+| 字段 | 内容 |
+|---|---|
+| 范围说明 | Representative six-layer chain limited to World Development Indicators, its official catalog and API resources, the SP.POP.TOTL variable, and the Population size construct. |
+| 清单声明 | `representative_only` |
+| 各层声明 | {"construct": "representative_only", "dataset": "representative_only", "institution": "in_progress", "resource": "representative_only", "source": "representative_only", "variable": "representative_only"} |
+| 第5层 5A/5B 边界 | 未知 / 尚未登记 |
+| 枚举方法 | Manual representative-chain selection from the official WDI catalog, documentation, and Indicators API metadata. |
+| 上游项目数 | 未知 / 尚未登记 |
+| 快照边界 | 2026-08-14 |
+| 枚举说明 | This profile does not enumerate the full World Bank Data catalog or all WDI indicators. |
+| 已知阻塞 | 未知 / 尚未登记 |
+| 最后复核 | 2026-08-15T00:00:00Z |
 
 ## 六层目录
 
@@ -42,13 +58,13 @@ canonical_url: "https://data.worldbank.org/"
 | 机构主页 | [https://www.worldbank.org/](https://www.worldbank.org/) |
 | 机构类型 | `intergovernmental_organization` |
 | 管辖/归属 | International |
-| 验证状态 | 待验证候选 (`unverified`) |
-| 最后验证 | 未知 / 尚未登记 |
-| 验证说明 | Bootstrap nomination; official mandate and catalog evidence pending. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
 
 **机构证据**
 
-- 尚未登记证据。
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
 
 ### 第2层：数据库/数据源（Source）
 
@@ -90,6 +106,12 @@ canonical_url: "https://data.worldbank.org/"
 | 字段 | 内容 |
 |---|---|
 | GRDR ID | `grdr:dataset:world-development-indicators` |
+| 上游目录ID | 未知 / 尚未登记 |
+| 上游目录入口 | 未知 |
+| 原始提供机构 | 未知 / 尚未登记 |
+| 生命周期 | 未知 / 尚未登记 |
+| 上游最近更新 | 未知 / 尚未登记 |
+| 上游计划更新 | 未知 / 尚未登记 |
 | 说明 | A World Bank compilation of cross-country development indicators assembled from national and international producers and disseminated with indicator-level metadata. |
 | 学科领域 | multidisciplinary、development studies |
 | 主题维度 | economic development、population、education、health、poverty、trade、environment |
@@ -125,6 +147,27 @@ canonical_url: "https://data.worldbank.org/"
 
 ### 第4层：访问资源（Resource）
 
+#### World Development Indicators Data Catalog Record
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:wdi-data-catalog` |
+| 资源入口 | [https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) |
+| 资源类型 | `catalog` |
+| 格式 | HTML、CSV archive、Excel archive |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | The official catalog record provides metadata and bulk resources; individual resource behavior and release files require separate checks. |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-14T00:00:00Z |
+
+**资源层证据**
+
+- [World Development Indicators - World Bank Data Catalog](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) — World Bank；证据类型：`official_catalog`；支持：catalog、formats、public_classification、license；检索于 2026-08-14T00:00:00Z。
+
 #### World Bank Indicators API v2
 
 | 字段 | 内容 |
@@ -148,34 +191,23 @@ canonical_url: "https://data.worldbank.org/"
 - [API Basic Call Structures](https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures) — World Bank；证据类型：`api_documentation`；支持：query_structure、formats；检索于 2026-08-14T00:00:00Z。
 - [Summary Terms of Use](https://data.worldbank.org/summary-terms-of-use) — World Bank；证据类型：`license`；支持：api_terms、third_party_exceptions；检索于 2026-08-14T00:00:00Z。
 
-#### World Development Indicators Data Catalog Record
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:wdi-data-catalog` |
-| 资源入口 | [https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) |
-| 资源类型 | `catalog` |
-| 格式 | HTML、CSV archive、Excel archive |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | The official catalog record provides metadata and bulk resources; individual resource behavior and release files require separate checks. |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-14T00:00:00Z |
-
-**资源层证据**
-
-- [World Development Indicators - World Bank Data Catalog](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) — World Bank；证据类型：`official_catalog`；支持：catalog、formats、public_classification、license；检索于 2026-08-14T00:00:00Z。
-
 ### 第5层：变量（Variable）
+
+#### 5A 数据结构元素（维度、测度、标识符、属性）
+
+> 尚未建立数据结构元素层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关数据结构元素。
+
+#### 5B 可研究匹配变量
 
 #### Population, total (`SP.POP.TOTL`)
 
 | 字段 | 内容 |
 |---|---|
 | GRDR ID | `grdr:variable:wdi-sp-pop-totl` |
+| 上游系统 | 未知 / 尚未登记 |
+| Dataflow ID | 未知 / 尚未登记 |
+| 数据结构ID | 未知 / 尚未登记 |
+| 维度选择 | 未知 / 尚未登记 |
 | 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
 | 单位 | persons |
 | 分母 | 未知 / 尚未登记 |

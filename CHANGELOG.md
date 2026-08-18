@@ -2,6 +2,23 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [0.5.0] - 2026-08-18
+
+### Added
+
+- First catalog-level database profile: all 36 UNdata datamarts plus a separate record of the six official glossaries at the 2026-08-18 snapshot boundary.
+- Deep Energy Statistics and Greenhouse Gas Inventory chains with 16 SDMX data elements, 13 research-matchable variables, and 13 evidence-linked constructs.
+- `DataElement` schema and `get-data-element` command for dimensions, measures, identifiers, time dimensions, attributes, units, code lists, flags, and conversion metadata inside layer 5.
+- UNdata SDMX adapter, health record, deterministic catalog curator, and reusable generic SDMX inspector bundled with `$grdr-source-profiler`.
+- Upstream-provider institution relationships and human-readable profiling-scope, enumeration, completeness, and blocker details on every database page.
+
+### Changed
+
+- Layer 5 is now explicitly divided into 5A source-native data-structure elements and 5B research-matchable variables without adding a seventh GRDR layer.
+- `$grdr-source-profiler` now requires multidimensional structure recovery before variable construction and tests metadata access separately from observation access.
+- UNdata access is recorded as degraded rather than unavailable: official dataflow and data-structure endpoints work, while documented observation queries timed out or returned HTTP 500 across dated live probes.
+- UNdata catalog completeness is bounded to the official datamart identity catalog; resource, variable, and construct depth remains explicitly representative.
+
 ## [0.4.0] - 2026-08-16
 
 ### Added

@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:who-data"
 record_type: "source_catalog"
-registry_version: "0.4.0"
+registry_version: "0.5.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.who.int/"
 ---
@@ -24,11 +24,16 @@ canonical_url: "https://data.who.int/"
 | 模态 | tabular |
 | 已登记数据集 | 0 |
 | 已登记访问资源 | 0 |
+| 已登记数据元素 | 0 |
 | 已登记变量 | 0 |
 | 已关联构念 | 0 |
 | 当前拆解阶段 | `source_only` |
 | 已声明拆解范围 | `undeclared` |
 | 上游目录完整度 | `not_assessed`；存在六层链不等于完整枚举 |
+
+## 拆解范围与清单边界
+
+> 尚未建立拆解范围声明层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关拆解范围声明。
 
 ## 六层目录
 
@@ -42,13 +47,13 @@ canonical_url: "https://data.who.int/"
 | 机构主页 | [https://www.who.int/](https://www.who.int/) |
 | 机构类型 | `intergovernmental_organization` |
 | 管辖/归属 | United Nations |
-| 验证状态 | 待验证候选 (`unverified`) |
-| 最后验证 | 未知 / 尚未登记 |
-| 验证说明 | Bootstrap nomination; official mandate and catalog evidence pending. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
 
 **机构证据**
 
-- 尚未登记证据。
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
 
 ### 第2层：数据库/数据源（Source）
 
@@ -92,6 +97,12 @@ canonical_url: "https://data.who.int/"
 > 尚未建立访问资源层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关访问资源。
 
 ### 第5层：变量（Variable）
+
+#### 5A 数据结构元素（维度、测度、标识符、属性）
+
+> 尚未建立数据结构元素层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关数据结构元素。
+
+#### 5B 可研究匹配变量
 
 > 尚未建立变量层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关变量。
 

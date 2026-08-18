@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "0.4.0"
+registry_version: "0.5.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.un.org/"
 ---
@@ -17,22 +17,278 @@ canonical_url: "https://data.un.org/"
 | 字段 | 内容 |
 |---|---|
 | 学科 | multidisciplinary |
-| 主题 | population、economy、education、health、labour、trade、environment |
+| 主题 | population、economy、education、health、labour、trade、environment、energy、climate、industry、tourism、ICT、crime |
 | 地理 | global |
 | 时间 | 未知 / 尚未登记 |
 | 观察单位 | country-year、region-year |
 | 模态 | tabular |
-| 已登记数据集 | 0 |
-| 已登记访问资源 | 0 |
-| 已登记变量 | 0 |
-| 已关联构念 | 0 |
-| 当前拆解阶段 | `source_only` |
-| 已声明拆解范围 | `identity_only` |
-| 上游目录完整度 | `identity_only`；存在六层链不等于完整枚举 |
+| 已登记数据集 | 36 |
+| 已登记访问资源 | 9 |
+| 已登记数据元素 | 16 |
+| 已登记变量 | 13 |
+| 已关联构念 | 13 |
+| 当前拆解阶段 | `six_layer_chain_present` |
+| 已声明拆解范围 | `catalog_level` |
+| 上游目录完整度 | `catalog_scope_complete`；存在六层链不等于完整枚举 |
+
+## 拆解范围与清单边界
+
+| 字段 | 内容 |
+|---|---|
+| 范围说明 | Catalog-level enumeration covers all 36 datamarts and separately records the six glossaries listed on the official UNdata catalog on 2026-08-18. Energy Statistics and Greenhouse Gas Inventory Data are additionally profiled through resources, SDMX data structures, data elements, research-matchable variables, and constructs. Other datamarts remain catalog-identity records. |
+| 清单声明 | `catalog_scope_complete` |
+| 各层声明 | {"construct": "representative_only", "dataset": "scope_complete", "institution": "scope_complete", "resource": "representative_only", "source": "scope_complete", "variable": "representative_only"} |
+| 第5层 5A/5B 边界 | {"data_element_claim": "representative_only", "notes": "5A and 5B cover the Energy Statistics and Greenhouse Gas Inventory SDMX structures only; they do not enumerate the other 34 datamarts.", "registered_data_element_count": 16, "registered_variable_count": 13, "variable_claim": "representative_only"} |
+| 枚举方法 | Parsed all ordered DataMart blocks on the official UNdata Sources page and verified the dataset/glossary boundary. |
+| 上游项目数 | 36 |
+| 快照边界 | 2026-08-18 |
+| 枚举说明 | 36 datamarts are represented as Dataset records; six glossaries are recorded as a separate catalog resource. The live SDMX dataflow endpoint exposed 15 dataflows, so API coverage must not be equated with catalog coverage. |
+| 已知阻塞 | resource / technical: Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational.、variable / scale: Thirty-four datamarts still require structure/codebook and variable-level profiling; catalog identity is not variable completeness. |
+| 最后复核 | 2026-08-18T00:00:00Z |
 
 ## 六层目录
 
 ### 第1层：发布/维护机构（Institution）
+
+#### Food and Agriculture Organization of the United Nations
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:fao` |
+| 机构主页 | [https://www.fao.org/](https://www.fao.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | United Nations |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### International Labour Organization
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:ilo` |
+| 机构主页 | [https://www.ilo.org/](https://www.ilo.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | United Nations |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### International Monetary Fund
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:imf` |
+| 机构主页 | [https://www.imf.org/](https://www.imf.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### International Telecommunications Union
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:itu` |
+| 机构主页 | [http://www.itu.int/ITU-D/ict/](http://www.itu.int/ITU-D/ict/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### Organisation for Economic Co-operation and Development
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:oecd` |
+| 机构主页 | [https://www.oecd.org/](https://www.oecd.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Population Division
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:un-population-division` |
+| 机构主页 | [http://www.un.org/en/development/desa/population/index.shtml](http://www.un.org/en/development/desa/population/index.shtml) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### World Tourism Organization
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:un-tourism` |
+| 机构主页 | [http://www.unwto.org/](http://www.unwto.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### Joint United Nations Programme on HIV/AIDS
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unaids` |
+| 机构主页 | [http://www.unaids.org](http://www.unaids.org) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Development Programme
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:undp` |
+| 机构主页 | [http://hdr.undp.org/en](http://hdr.undp.org/en) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### UNESCO Institute for Statistics
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unesco-uis` |
+| 机构主页 | [https://uis.unesco.org/](https://uis.unesco.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | United Nations |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Framework Convention on Climate Change
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unfccc` |
+| 机构主页 | [http://unfccc.int/](http://unfccc.int/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations High Commissioner for Refugees
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unhcr` |
+| 机构主页 | [http://www.unhcr.org](http://www.unhcr.org) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Children's Fund
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unicef` |
+| 机构主页 | [http://www.unicef.org/](http://www.unicef.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Industrial Development Organization
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unido` |
+| 机构主页 | [http://www.unido.org/](http://www.unido.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Office on Drugs and Crime
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:unodc` |
+| 机构主页 | [https://www.unodc.org/](https://www.unodc.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
 
 #### United Nations Statistics Division
 
@@ -42,13 +298,62 @@ canonical_url: "https://data.un.org/"
 | 机构主页 | [https://unstats.un.org/](https://unstats.un.org/) |
 | 机构类型 | `intergovernmental_organization` |
 | 管辖/归属 | United Nations |
-| 验证状态 | 部分验证 (`partially_verified`) |
-| 最后验证 | 2026-08-14T00:00:00Z |
-| 验证说明 | Identity and maintenance role for UNdata checked against the official UNdata About page; full institutional mandate review remains pending. |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Identity, UNdata maintenance role, and official statistical mandate checked on UNSD official pages. |
 
 **机构证据**
 
-- [About UNdata](https://data.un.org/Host.aspx?Content=About) — United Nations Statistics Division；证据类型：`official_homepage`；支持：institution_identity、maintenance_role；检索于 2026-08-14T00:00:00Z。
+- [About UNdata](https://data.un.org/Host.aspx?Content=About) — United Nations Statistics Division；证据类型：`official_homepage`；支持：institution_identity、maintenance_role；检索于 2026-08-18T00:00:00Z。
+- [About the United Nations Statistics Division](https://unstats.un.org/home/about/) — United Nations Statistics Division；证据类型：`official_mandate`；支持：global_statistical_information、standards、coordination、dissemination；检索于 2026-08-18T00:00:00Z。
+
+#### World Health Organization
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:who` |
+| 机构主页 | [https://www.who.int/](https://www.who.int/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | United Nations |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### World Meteorological Organization
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:wmo` |
+| 机构主页 | [http://www.wmo.int/datastat/wmodata_en.html](http://www.wmo.int/datastat/wmodata_en.html) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International / United Nations system |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
+
+#### World Bank
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:institution:world-bank` |
+| 机构主页 | [https://www.worldbank.org/](https://www.worldbank.org/) |
+| 机构类型 | `intergovernmental_organization` |
+| 管辖/归属 | International |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Institution identity and its upstream provider role in UNdata are verified from the official catalog; the full institutional mandate remains outside this profiling pass. |
+
+**机构证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：institution_identity、dataset_provider_role；检索于 2026-08-18T00:00:00Z。
 
 ### 第2层：数据库/数据源（Source）
 
@@ -60,7 +365,7 @@ canonical_url: "https://data.un.org/"
 | 官方入口 | [https://data.un.org/](https://data.un.org/) |
 | 数据源类型 | `official_statistics` |
 | 学科领域 | multidisciplinary |
-| 主题维度 | population、economy、education、health、labour、trade、environment |
+| 主题维度 | population、economy、education、health、labour、trade、environment、energy、climate、industry、tourism、ICT、crime |
 | 地理范围 | `global` |
 | 时间范围 | 未知 / 尚未登记 |
 | 观察单位 | country-year、region-year |
@@ -72,32 +377,2762 @@ canonical_url: "https://data.un.org/"
 | 访问方式 | `browser_query`、`bulk_download`、`api` |
 | 需要注册 | 否 |
 | 机器访问 | `documented` |
-| 许可状态 | `custom_or_mixed` |
-| 访问说明 | The official site documents CSV downloads and an SDMX-based API; availability varies by datamart. |
+| 许可状态 | `documented_open` |
+| 访问说明 | UNdata permits copying and distribution with attribution. Browser, CSV, and SDMX access vary by datamart; not every datamart is API-enabled. |
 | 验证状态 | 部分验证 (`partially_verified`) |
-| 最后验证 | 2026-08-14T00:00:00Z |
-| 验证说明 | Official About and API pages checked; dataset-level coverage, licensing, and endpoint behavior still require separate verification. |
+| 最后验证 | 2026-08-18T00:00:00Z |
+| 验证说明 | Identity, maintainer, catalog boundary, access documentation, license terms, and selected SDMX structures checked. Underlying quality and methods remain the responsibility of each named provider. |
 
 **数据库层证据**
 
-- [About UNdata](https://data.un.org/Host.aspx?Content=About) — United Nations Statistics Division；证据类型：`official_homepage`；支持：identity、maintainer、scope、provenance_position；检索于 2026-08-14T00:00:00Z。
-- [UNdata API Manual](https://data.un.org/Host.aspx?Content=API) — United Nations Statistics Division；证据类型：`api_documentation`；支持：machine_access、formats、api_scope；检索于 2026-08-14T00:00:00Z。
+- [About UNdata](https://data.un.org/Host.aspx?Content=About) — United Nations Statistics Division；证据类型：`official_homepage`；支持：identity、maintainer、scope、provenance_position；检索于 2026-08-18T00:00:00Z。
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：36_datamarts、6_glossaries、providers、update_metadata；检索于 2026-08-18T00:00:00Z。
+- [UNdata API Manual](https://data.un.org/Host.aspx?Content=API) — United Nations Statistics Division；证据类型：`api_documentation`；支持：machine_access、formats、api_scope；检索于 2026-08-18T00:00:00Z。
+- [UNdata Terms of Use](https://data.un.org/Host.aspx?Content=UNdataUse) — United Nations Statistics Division；证据类型：`license`；支持：free_access、copying、distribution、attribution、provider_responsibility；检索于 2026-08-18T00:00:00Z。
 
 ### 第3层：数据集（Dataset）
 
-> 尚未建立数据集层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关数据集。
+#### Commodity Trade Statistics Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-commodity-trade-statistics-database` |
+| 上游目录ID | ComTrade |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#ComTrade](https://data.un.org/DataMartInfo.aspx#ComTrade) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2025/07/10 |
+| 上游计划更新 | 2025/10/01 |
+| 说明 | The United Nations Commodity Trade Statistics Database (UN Comtrade) stores more than 1 billion trade data records from 1962. Over 140 reporter countries provide the United Nations Statistics Division with their annual international trade statistics detailed by commodities and partner countries. These data are subsequently transformed into the United Nations Statistics Division standard format with consistent coding and valuation using the UN/OECD CoprA internal processing system. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-07-10 |
+| 更新频率 | UNdata catalog lists next update as 2025/10/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#ComTrade](https://data.un.org/DataMartInfo.aspx#ComTrade) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Demographic Statistics Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-demographic-statistics-database` |
+| 上游目录ID | POP |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#POP](https://data.un.org/DataMartInfo.aspx#POP) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `active` |
+| 上游最近更新 | 2026/08/10 |
+| 上游计划更新 | 2027/02/15 |
+| 说明 | The United Nations Statistics Division collects, compiles and disseminates official demographic and social statistics on a wide range of topics. Data have been collected since 1948 through a set of questionnaires dispatched annually to over 230 national statistical offices and have been published in the Demographic Yearbook collection. The Demographic Yearbook disseminates statistics on population size and composition, births, deaths, marriage and divorce, as well as respective rates, on an annual basis. The Demographic Yearbook census datasets cover a wide range of additional topics including economic activity, educational attainment, household characteristics, housing characteristics, ethnicity, language, foreign-born and foreign population. The available Population and Housing Censuses' datasets reported to UNSD for the censuses conducted worldwide since 1995, are now available in UNdata. This latest update includes several datasets on international travel and migration inflows and outflows, and on incoming and departing international migrants by several characteristics, as reported by the national authorities to the UN Statistics Division for the reference years 2010 to the present as available. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2026-08-10 |
+| 更新频率 | UNdata catalog lists next update as 2027/02/15. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#POP](https://data.un.org/DataMartInfo.aspx#POP) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Energy Statistics Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-energy-statistics` |
+| 上游目录ID | EDATA |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#EDATA](https://data.un.org/DataMartInfo.aspx#EDATA) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `active` |
+| 上游最近更新 | 2025/12/15 |
+| 上游计划更新 | 2027/01/15 |
+| 说明 | The Energy Statistics Database contains comprehensive energy statistics on the production, trade, conversion and final consumption of primary and secondary; conventional and non-conventional; and new and renewable sources of energy. The Energy Statistics dataset, covering the period from 1990 onwards, is available at UNdata. For data prior to 1990, please refer to http://unstats.un.org/unsd/energy/edbase.htm . For details on how the energy statistics are compiled, please refer to https://unstats.un.org/unsd/energystats/questionnaire/documents/Energy-Questionnaire-Guidelines.pdf Download the country notes |
+| 学科领域 | energy statistics、environmental science、economics |
+| 主题维度 | energy production、energy trade、energy conversion、final energy consumption |
+| 目标总体 | Countries and areas represented in the UNdata Energy Statistics SDMX structure. |
+| 观察单位 | country-commodity-transaction-year |
+| 地理覆盖 | 251 reference-area codes in the checked SDMX codelist; actual series availability varies. |
+| 空间分辨率 | Country or area |
+| 时间覆盖 | 1990 onward according to the UNdata catalog; series-specific availability varies. |
+| 时间分辨率 | Annual in the profiled dataflow |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-12-15 |
+| 更新频率 | UNdata catalog lists next update as 2027/01/15. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | official statistics、national reporting、international compilation |
+| 协调方式 | `within_source` |
+| 模型估计 | `unknown` |
+| 方法文件 | [https://unstats.un.org/unsd/energystats/questionnaire/documents/Energy-Questionnaire-Guidelines.pdf](https://unstats.un.org/unsd/energystats/questionnaire/documents/Energy-Questionnaire-Guidelines.pdf) |
+| 已知限制 | Coverage varies by country, commodity, transaction, and year.、Observation units vary by commodity and must be read from UNIT_MEASURE and UNIT_MULT.、The checked SDMX structure endpoint worked, but documented observation queries timed out or returned HTTP 500 across live probes on 2026-08-18. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#EDATA](https://data.un.org/DataMartInfo.aspx#EDATA) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Environment Statistics Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-environment-statistics-database` |
+| 上游目录ID | ENV |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#ENV](https://data.un.org/DataMartInfo.aspx#ENV) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2023/06/20 |
+| 上游计划更新 | 2025/06/20 |
+| 说明 | The Environment Statistics Database contains selected water and waste statistics by country. Statistics on water and waste are based on official statistics supplied by national statistical offices and/or ministries of environment (or equivalent institutions) in countries in response to the biennial UNSD/UNEP Questionnaire on Environment Statistics. They were complemented by data on EU and OECD member and partner countries from Eurostat and OECD. With the following two exceptions, every country’s data are sourced from UNSD. All data are sourced from Eurostat for the following countries: Albania, Austria, Belgium, Bosnia and Herzegovina, Bulgaria, Croatia, Cyprus, Czechia, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Iceland, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, North Macedonia, Norway, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland, Turkey, and the United Kingdom of Great Britain and Northern Ireland. All data are sourced from OECD for the following countries: Australia, Canada, Chile, Israel, Japan, Mexico, New Zealand, Republic of Korea, and the United States of America. Choice of preferred data source between Eurostat and OECD is made in an attempt to have as much data availability as possible for the user and to capture as much data as possible for all UN member states. Data are often sparse for some variables. The statistics selected here are those of relatively good quality and geographic coverage. The online database currently covers the years 1990 to 2021. For information on definitions, data quality and other important metadata, please check UNSD Environmental Indicator tables. UNSD Environmental Indicator tables . |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2023-06-20 |
+| 更新频率 | UNdata catalog lists next update as 2025/06/20. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#ENV](https://data.un.org/DataMartInfo.aspx#ENV) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### FAOSTAT
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-faostat` |
+| 上游目录ID | FAO |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#FAO](https://data.un.org/DataMartInfo.aspx#FAO) |
+| 原始提供机构 | Food and Agriculture Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2024/01/22 |
+| 上游计划更新 | 2024/12/20 |
+| 说明 | FAOSTAT provides access to over 3 million time-series and cross sectional data relating to food and agriculture. FAOSTAT contains data for 200 countries and more than 200 primary products and inputs in its core data set. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2024-01-22 |
+| 更新频率 | UNdata catalog lists next update as 2024/12/20. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#FAO](https://data.un.org/DataMartInfo.aspx#FAO) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Gender Info
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-gender-info` |
+| 上游目录ID | GenderStat |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#GenderStat](https://data.un.org/DataMartInfo.aspx#GenderStat) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `deprecated` |
+| 上游最近更新 | 2008/03/21 |
+| 上游计划更新 | Not applicable |
+| 说明 | Gender Info 2007 is a global database of gender statistics and indicators on a wide range of policy areas, including: population, families, health, education, work, and political participation. It can be used by governments, international organizations, advocacy groups, researchers and others in need of statistics for planning, analysis, advocacy and awareness-raising. Users will find in Gender Info an easy-to-use tool to shed light on gender issues through customizable tables, graphs and maps. It is an initiative of the United Nations Statistics Division, produced in collaboration with the United Nations Children’s Fund (UNICEF) and the United Nations Population Fund (UNFPA). This database is no longer updated. Please visit http://unstats.un.org/unsd/gender/data.html for other Gender Statistics. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2008-03-21 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#GenderStat](https://data.un.org/DataMartInfo.aspx#GenderStat) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Greenhouse Gas Inventory Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-greenhouse-gas-inventory` |
+| 上游目录ID | GHG |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#GHG](https://data.un.org/DataMartInfo.aspx#GHG) |
+| 原始提供机构 | United Nations Framework Convention on Climate Change |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2023/11/22 |
+| 上游计划更新 | 2024/12/01 |
+| 说明 | The Greenhouse Gas (GHG) Inventory Data contains the most recently submitted information, covering the period from 1990 to the latest available year, to the extent the data have been provided. The GHG data contain information on anthropogenic emissions by sources and removals by sinks of the following GHGs (carbon dioxide (CO2), methane (CH4), nitrous oxide (N2O), hydrofluorocarbons (HFCs), perfluorocarbons (PFCs), unspecified mix of HFCs and PFCs, sulphur hexafluoride (SF6) and nitrogen triflouride (NF3)) that are not controlled by the Montreal Protocol. GHG emission inventories are developed by Parties to the Convention using scientific and methodological guidance from the Intergovernmental Panel on Climate Change (IPCC), such as 2006 IPCC Guidelines for National Greenhouse Gas Inventories, Revised Guidelines for National Greenhouse Gas Inventories (1996), IPCC Good Practice Guidance and Uncertainty Management in National Greenhouse Gas Inventories (2000), IPCC Good Practice Guidance on Land Use, Land-use Change and Forestry (2003) and 2013 Supplement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories: Wetlands. |
+| 学科领域 | climate science、environmental science、public policy |
+| 主题维度 | greenhouse gas emissions、carbon dioxide、methane、nitrous oxide、fluorinated gases |
+| 目标总体 | Parties and areas represented in the UNdata UNFCCC SDMX structure. |
+| 观察单位 | party-gas-year |
+| 地理覆盖 | 43 reference-area codes in the checked SDMX codelist; actual series availability varies. |
+| 空间分辨率 | Party or area |
+| 时间覆盖 | 1990 to the latest submitted year, subject to reporting availability. |
+| 时间分辨率 | Annual in the profiled dataflow |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2023-11-22 |
+| 更新频率 | UNdata catalog lists next update as 2024/12/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | national greenhouse gas inventories、international compilation、modelled estimates |
+| 协调方式 | `within_source` |
+| 模型估计 | `some` |
+| 方法文件 | [https://www.ipcc-nggip.iges.or.jp/public/2006gl/](https://www.ipcc-nggip.iges.or.jp/public/2006gl/) |
+| 已知限制 | The UNdata catalog republishes the most recently submitted inventory information; reporting years and completeness vary by Party.、The profiled indicators exclude land use, land-use change and forestry (LULUCF).、The checked SDMX structure endpoint worked, but documented observation queries timed out or returned HTTP 500 across live probes on 2026-08-18. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#GHG](https://data.un.org/DataMartInfo.aspx#GHG) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Homicide Statistics
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-homicide-statistics` |
+| 上游目录ID | 33 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#33](https://data.un.org/DataMartInfo.aspx#33) |
+| 原始提供机构 | United Nations Office on Drugs and Crime |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2025/05/15 |
+| 上游计划更新 | 2026/05/15 |
+| 说明 | UNODC Homicide Statistics provide users with a reference for the largest number of countries and the longest time series on homicide data possible. A variety of national and international sources on homicide have been considered to compile UNODC Homicide Statistics and, in order to present accurate and comparable statistics, data have been selected which conform as much as possible to the definition of intentional homicide used by UNODC for statistical purpose: ‘‘unlawful death purposefully inflicted on a person by another person”. All existing data sources on intentional homicides, both at national and international level, stem from either criminal justice or public health systems. In the former case, data are generated by law enforcement or criminal justice authorities in the process of recording and investigating a crime event while, in the latter, data are produced by health authorities certifying the cause of death of an individual. Public health data on homicides were derived from databases on deaths by cause disseminated by WHO, both at central level and through some of its regional offices. Data included in the dataset correspond to the original value provided by the source of origin, since no statistical procedure or modelling was used to change collected values or to create new or revised figures. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-05-15 |
+| 更新频率 | UNdata catalog lists next update as 2026/05/15. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#33](https://data.un.org/DataMartInfo.aspx#33) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Human Development Indices: A statistical update 2025
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-human-development-indices-a-statistical-update-2025` |
+| 上游目录ID | 32 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#32](https://data.un.org/DataMartInfo.aspx#32) |
+| 原始提供机构 | United Nations Development Programme |
+| 生命周期 | `active` |
+| 上游最近更新 | 2025/07/18 |
+| 上游计划更新 | 2026/12/01 |
+| 说明 | The Human Development Report is a reliable source and an alternative perspective on critical issues for human development worldwide. Featuring the Human Development Index, every report presents agenda-setting data and analysis and calls international attention to issues and policy options that put people at the center of strategies to meet the challenges of development today - economic, social, political, and cultural. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-07-18 |
+| 更新频率 | UNdata catalog lists next update as 2026/12/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#32](https://data.un.org/DataMartInfo.aspx#32) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Indicators on Women and Men
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-indicators-on-women-and-men` |
+| 上游目录ID | 16 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#16](https://data.un.org/DataMartInfo.aspx#16) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `deprecated` |
+| 上游最近更新 | 2013/07/11 |
+| 上游计划更新 | Not applicable |
+| 说明 | The Indicators on Women and Men provides the latest statistics and indicators on women and men in six specific fields of concern: population, women and men in families, health, education, work and political decision making. The statistics and indicators refer to the latest year for which sex-disaggregated data are available. The data have been compiled from official national sources as well as international sources. These indicators are no longer updated. Please visit http://unstats.un.org/unsd/gender/data.html for other Gender Statistics. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2013-07-11 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#16](https://data.un.org/DataMartInfo.aspx#16) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### INDSTAT
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-indstat` |
+| 上游目录ID | UNIDO |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#UNIDO](https://data.un.org/DataMartInfo.aspx#UNIDO) |
+| 原始提供机构 | United Nations Industrial Development Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2014/07/23 |
+| 上游计划更新 | To be confirmed |
+| 说明 | INDSTAT4-Rev.3 contains time series data on five selected data items for the period covering 2007 - 2011. The data are arranged at the 3- and 4-digit level of ISIC (Revision 3) pertaining to the manufacturing sector, which comprises 151 manufacturing categories. Download country notes and footnotes in Excel format |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2014-07-23 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#UNIDO](https://data.un.org/DataMartInfo.aspx#UNIDO) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Industrial Commodity Statistics Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-industrial-commodity-statistics-database` |
+| 上游目录ID | ICS |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#ICS](https://data.un.org/DataMartInfo.aspx#ICS) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2019/01/28 |
+| 上游计划更新 | To be confirmed |
+| 说明 | The United Nations Industrial Commodity Statistics Database provides annual statistics on the production of major industrial commodities by country. Data are provided in terms of physical quantities as well as monetary value. The online database covers the years 1995 to 2016. Additional historical data is available on request, based on a different product list, for the years 1950-2003. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2019-01-28 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#ICS](https://data.un.org/DataMartInfo.aspx#ICS) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### International Financial Statistics
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-international-financial-statistics` |
+| 上游目录ID | IFS |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#IFS](https://data.un.org/DataMartInfo.aspx#IFS) |
+| 原始提供机构 | International Monetary Fund |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2010/05/14 |
+| 上游计划更新 | To be confirmed |
+| 说明 | International Financial Statistics (IFS) is a standard source of international statistics on all aspects of international and domestic finance. It reports, for most countries of the world, current data needed in the analysis of problems of international payments and of inflation and deflation, i.e., data on exchange rates, international liquidity, international banking, money and banking, interest rates, prices, production, international transactions, government accounts, and national accounts. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2010-05-14 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#IFS](https://data.un.org/DataMartInfo.aspx#IFS) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Key Indicators of the Labour Market, 7th Edition
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-key-indicators-of-the-labour-market-7th-edition` |
+| 上游目录ID | 30 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#30](https://data.un.org/DataMartInfo.aspx#30) |
+| 原始提供机构 | International Labour Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2011/10/25 |
+| 上游计划更新 | Not applicable |
+| 说明 | The Key Indicator of the Labour Market (KILM) is a multi-functional research tool of the ILO. The first KILM was released in 1999. It has since become a flagship product of the International Labour Office (ILO) and is used on a daily basis by researchers and policy-makers around the world in their search for comprehensive labour market information. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2011-10-25 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#30](https://data.un.org/DataMartInfo.aspx#30) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### LABORSTA
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-laborsta` |
+| 上游目录ID | LABORSTA |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#LABORSTA](https://data.un.org/DataMartInfo.aspx#LABORSTA) |
+| 原始提供机构 | International Labour Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2010/01/27 |
+| 上游计划更新 | Not applicable |
+| 说明 | The LABORSTA is an International Labour Office database operated by the ILO Department of Statistics which has data and metadata on labour statistics for over 200 countries or territories. The databases cover household income and expenditure statistics, economically active population, employment, unemployment, employment (or labour force) by detailed occupational group and sex, obtained from population censuses or labour force surveys, comparable employment and unemployment estimates, public sector employment, hours of work, wages, labour cost, consumer prices, October inquiry results, occupational injuries and strikes and lockouts (data since 1969), statistical sources and methods. Since December 2013, 90% of the information in LABORSTA have been migrated to ILOSTAT ( www.ilo.org/ilostat ), ILO's new Statistical Information System. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2010-01-27 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#LABORSTA](https://data.un.org/DataMartInfo.aspx#LABORSTA) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Millennium Development Goals Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-millennium-development-goals-database` |
+| 上游目录ID | MDG |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#MDG](https://data.un.org/DataMartInfo.aspx#MDG) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `archived` |
+| 上游最近更新 | 2016/02/24 |
+| 上游计划更新 | Not applicable |
+| 说明 | The Millennium Development Goals (MDG) database presents official data for more than 60 indicators to measure progress towards the Millennium Development Goals. The data and analyses are the product of the work of the Inter-agency and Expert Group (IAEG), coordinated by the United Nations Statistics Division. The MDG database was updated for the last time on the 6 July 2015, with some indicators updated in September of the same year as MDG reporting came to an end. The database is currently archived and available on the UNdata API but is removed from UNdata search and the datamart explorer. The complete MDG dataset in csv is available here |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2016-02-24 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#MDG](https://data.un.org/DataMartInfo.aspx#MDG) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### National Accounts Estimates of Main Aggregates
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-national-accounts-estimates-of-main-aggregates` |
+| 上游目录ID | SNAAMA |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#SNAAMA](https://data.un.org/DataMartInfo.aspx#SNAAMA) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `active` |
+| 上游最近更新 | 2026/03/04 |
+| 上游计划更新 | 2027/03/05 |
+| 说明 | The Economic Statistics Branch of the United Nations Statistics Division (UNSD) maintains and annually updates the National Accounts Main Aggregates database. It consists of a complete and consistent set of time series, from 1970 onwards, of the main National Accounts aggregates of all UN Members States and other territories in the world for which National Accounts information is available. Its contents are based on the official data reported to UNSD through the annual National Accounts Questionnaire, supplemented with data estimates for any years and countries with incomplete or inconsistent information. Estimates are done when no official data are available. The final aggregates are provided in national currency and in United States dollars. The main aggregates in the database include Gross Domestic Product (GDP) by type of expenditure and Gross Value Added by kind of economic activity, both at current and at constant market prices. It also contains Gross National Income (GNI) at current prices and analytical indicators and ratios that reflect economic structure and trends of countries and areas. These analytical indicators are: annual per capita GDP and GNI (calculated using actual population or annual population estimates from the UN Population Division); annual growth rates of GDP; annual shares in total GDP and total Gross Value added of their respective components; and price trends as defined by the implicit price deflators of GDP. The National Accounts Main Aggregates database is the product of a global cooperation effort between UNSD, international statistical agencies, and the national statistical services of more than 200 countries and territories. It has been prepared in response to a request by the Statistical Commission during its first session in 1947, and is in agreement with the resolution 48/223 C of the UN General Assembly, which mandates the Committee on Contributions to prepare the Scale of Assessment for UN Member States on the basis of the most recent reliable and verifiable available data on national accounts of as many countries and areas as possible, and that these data be published and disseminated regularly. Download the footnotes in Excel format |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2026-03-04 |
+| 更新频率 | UNdata catalog lists next update as 2027/03/05. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#SNAAMA](https://data.un.org/DataMartInfo.aspx#SNAAMA) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### National Accounts Official Country Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-national-accounts-official-country-data` |
+| 上游目录ID | SNA |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#SNA](https://data.un.org/DataMartInfo.aspx#SNA) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `active` |
+| 上游最近更新 | 2025/10/14 |
+| 上游计划更新 | 2026/10/01 |
+| 说明 | The Economic Statistics Branch of the United Nations Statistics Division (UNSD) maintains and updates the National Accounts Official Country Data database. This work is carried out in accordance with the recommendation of the Statistical Commission at its first session 1 that the Statistics Division of the United Nations should publish regularly the most recent available data on national accounts for as many countries and areas as possible. The database contains detailed official national accounts statistics in national currencies as provided by the National Statistical Offices 2 . Data are available for most of the countries or areas of the world and form a valuable source of information on their economies. The database contains data as far back as 1946, up to the year t-1, with data for most countries available from the 1970s. The database covers not only national accounts main aggregates such as gross domestic product, national income, saving, value added by industry and household and government consumption expenditure and its relationships; but also detailed statistics for institutional sectors (including the rest of the world), comprising the production account, the generation of income account, the allocation of primary income account, the secondary distribution of income account, the use of disposable income account, the capital account and the financial account, if they are compiled by countries. The statistics for each country or area are presented according to the uniform table headings and classifications as recommended in the United Nations System of National Accounts 1993 (1993 SNA). A summary of the 1993 SNA conceptual framework, classifications and definitions are included in the yearly publication “National Accounts Statistics, Main Aggregates and Detailed Tables”. A PDF version of the 2024 yearbook with detailed national accounts statistics of 207 countries or areas for the years 2013 to 2024 can be accessed free-of-charge from http://unstats.un.org/unsd/nationalaccount/pubsDB.asp?pType=3 . Former editions of the yearbook (in pdf and print versions) are also available. Details on the publication can be found at http://unstats.un.org/unsd/nationalaccount/madt.asp . Requests for customized data downloads can be addressed to sna@un.org . |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-10-14 |
+| 更新频率 | UNdata catalog lists next update as 2026/10/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#SNA](https://data.un.org/DataMartInfo.aspx#SNA) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### OECD Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-oecd-data` |
+| 上游目录ID | 18 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#18](https://data.un.org/DataMartInfo.aspx#18) |
+| 原始提供机构 | Organisation for Economic Co-operation and Development |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2009/10/20 |
+| 上游计划更新 | To be confirmed |
+| 说明 | DEFINITIONS OFFICIAL DEVELOPMENT ASSISTANCE (ODA) Grants or loans to countries and territories on the DAC List of ODA Recipients (developing countries) and to multilateral agencies which are: (a) undertaken by the official sector; (b) with promotion of economic development and welfare as the main objective; (c) at concessional financial terms (if a loan, having a grant element of at least 25 per cent). In addition to financial flows, technical co-operation is included in aid. Grants, loans and credits for military purposes are excluded. Transfer payments to private individuals (e.g. pensions, reparations or insurance payouts) are in general not counted. GRANT ELEMENT Reflects the financial terms of a commitment: interest rate, maturity and grace period (interval to first repayment of capital). It measures the concessionality of a loan, expressed as the percentage by which the present value of the expected stream of repayments falls short of the repayments that would have been generated at a given reference rate of interest. The reference rate is 10% in DAC statistics. This rate was selected as a proxy for the marginal efficiency of the domestic investment, i.e. as an indication of the opportunity cost to the donor of making the funds available. Thus, the grant element is nil for a loan carrying an interest rate of 10 percent; it is 100 per cent for a grant; and it lies between these two limits for a soft loan. If the face value of a loan is multiplied by its grant element, the result is referred to as the grant equivalent of that loan. (cf. Concessionality Level) (Note: the grant element concept is not applied to the market-based lending operations of the multilateral development banks.) ODA RECEIPTS Total ODA receipts to recipient countries includes bilateral ODA provided directly by a donor country and multilateral ODA, channeled via an international organisation active in development (e.g. World Bank, UNDP). In tables showing total receipts of recipient countries, the outflows of multilateral agencies to those countries is shown, not the contributions which the agencies received from donors MULTILATERAL OUTFLOWS Aid activities financed from multilateral development institutions' regular budgets. Projects executed by multilateral organizations on behalf of donor countries are classified as bilateral flows, since it is the donor country that effectively controls the use of the funds. DEBT REORGANISATION (also Restructuring) Any action officially agreed between creditor and debtor that alters the terms previously established for repayment. This may include forgiveness (extinction of the loan), or rescheduling which can be implemented either by revising the repayment schedule or extending a new refinancing loan. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2009-10-20 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#18](https://data.un.org/DataMartInfo.aspx#18) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### Sustainable Development Goals Indicators
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-sustainable-development-goals-indicators` |
+| 上游目录ID | SDGs |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#SDGs](https://data.un.org/DataMartInfo.aspx#SDGs) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2017/10/30 |
+| 上游计划更新 | To be confirmed |
+| 说明 | The Sustainable Development Goals (SDG) database presents data for the global SDG indicators that were compiled through the UN System in preparation for the Secretary-Generals annual report on “Progress towards the Sustainable Development Goals”. The data series respond to the revised global indicator framework that was agreed by the UN Statistical Commission at its forty-eighth session in March 2017. The database contains SDG indicator series and additional indicator series. The list of SDG indicators is subject to refinement by the UN Statistical Commission. The SDG database was updated on the 20 June 2018. For technical reasons, the database is not currently available in UNdata. Please refer to the SDG database website while further work is done to make it available again in UNdata. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2017-10-30 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#SDGs](https://data.un.org/DataMartInfo.aspx#SDGs) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### The State of the World’s Children
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-the-state-of-the-worlds-children` |
+| 上游目录ID | SOWC |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#SOWC](https://data.un.org/DataMartInfo.aspx#SOWC) |
+| 原始提供机构 | United Nations Children's Fund |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2013/06/19 |
+| 上游计划更新 | To be confirmed |
+| 说明 | Economic and social statistics on the countries and territories of the world, with particular reference to children’s well-being. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2013-06-19 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#SOWC](https://data.un.org/DataMartInfo.aspx#SOWC) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### UIS Data Centre
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-uis-data-centre` |
+| 上游目录ID | UNESCO |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#UNESCO](https://data.un.org/DataMartInfo.aspx#UNESCO) |
+| 原始提供机构 | UNESCO Institute for Statistics |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2016/10/24 |
+| 上游计划更新 | To be confirmed |
+| 说明 | The UNESCO Institute for Statistics (UIS) provides UNdata with a subset of the more than 1,000 indicators which may be found in the UIS Data Centre. The UIS Data Centre contains indicators and raw data on education, literacy, science, culture and communication. The UIS collects these data from more than 200 countries and international organizations. The UIS is the primary data source of education, literacy and science data for leading publications and databases, such as: Education For All Global Monitoring Report World Development Indicators Human Development Report State of the World’s Children and many others. The Data Centre provides free access to: The Institute’s databases and survey instruments Country profiles Tools to build your own statistical tables Related documentation and metadata. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2016-10-24 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#UNESCO](https://data.un.org/DataMartInfo.aspx#UNESCO) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### UNAIDS Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-unaids-data` |
+| 上游目录ID | UNAIDS |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#UNAIDS](https://data.un.org/DataMartInfo.aspx#UNAIDS) |
+| 原始提供机构 | Joint United Nations Programme on HIV/AIDS |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2015/10/21 |
+| 上游计划更新 | To be confirmed |
+| 说明 | UNAIDS was mandated by the UN General Assembly to monitor progress on global AIDS response in the 2001 General Assembly Special Session on HIV and AIDS, and reaffirmed in the 2011 High Level Meeting. The Global AIDS Response Progress Reporting data consists of 30 indicators, divided by 10 global targets, which are reported by participating countries on their national response to HIV/AIDS. Data used to be reported every second year from 2004 until 2012, However, starting 2013, data are collected every year to enable effective monitoring towards Millennium Development Goals of 2015. Collected data are published as part of the Global Report on AIDS. In 2015, 177 out of 193 UN member states submitted their reports. This dataset also includes epidemiological estimates generated using Spectrum software, a suite of easy-to-use policy models which provide policymakers with an analytical tool to support the decision making process. Download the UNAIDS List of Indicators and Definitions |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2015-10-21 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#UNAIDS](https://data.un.org/DataMartInfo.aspx#UNAIDS) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### UNHCR Statistical Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-unhcr-statistical-database` |
+| 上游目录ID | UNHCR |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#UNHCR](https://data.un.org/DataMartInfo.aspx#UNHCR) |
+| 原始提供机构 | United Nations High Commissioner for Refugees |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2025/08/29 |
+| 上游计划更新 | 2026/07/31 |
+| 说明 | UNHCR seeks to contribute to informed decision-making and public debate by providing accurate, relevant and up-to-date statistics. The Refugee Data Finder ( https://www.unhcr.org/refugee-statistics ) contains information about forcibly displaced populations spanning more than 70 years of statistical activities. It covers displaced populations such as refugees, asylum-seekers and internally displaced people, including their demographics. Stateless people are also included, most of who have never been displaced. The database also reflects the different types of solutions for displaced populations such as repatriation or resettlement. For methodological explanations, data limitations and coverage, visit the Methodology page. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2025-08-29 |
+| 更新频率 | UNdata catalog lists next update as 2026/07/31. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#UNHCR](https://data.un.org/DataMartInfo.aspx#UNHCR) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### United Nations Statistical Yearbook
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-united-nations-statistical-yearbook` |
+| 上游目录ID | KI |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#KI](https://data.un.org/DataMartInfo.aspx#KI) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | N/A |
+| 上游计划更新 | Not applicable |
+| 说明 | The Statistical Yearbook provides in a single volume a comprehensive compilation of internationally available statistics on social and economic conditions and activities, at world, regional and national levels, for an appropriate historical period. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 未知 / 尚未登记 |
+| 更新频率 | UNdata catalog lists next update as Not applicable. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#KI](https://data.un.org/DataMartInfo.aspx#KI) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### WHO Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-who-data` |
+| 上游目录ID | WHO |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#WHO](https://data.un.org/DataMartInfo.aspx#WHO) |
+| 原始提供机构 | World Health Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2014/07/31 |
+| 上游计划更新 | To be confirmed |
+| 说明 | World Health Statistics presents the most recent health statistics for WHO’s Member States. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2014-07-31 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#WHO](https://data.un.org/DataMartInfo.aspx#WHO) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Contraceptive Use
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-contraceptive-use` |
+| 上游目录ID | 29 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#29](https://data.un.org/DataMartInfo.aspx#29) |
+| 原始提供机构 | United Nations Population Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2014/07/30 |
+| 上游计划更新 | To be confirmed |
+| 说明 | World Contraceptive Use, prepared by the United Nations Population Division, provides a comparable and up-to-date set of national data on contraceptive prevalence for almost all countries and areas of the world. It also provides estimates of unmet need for family planning. Metadata: Contraceptive prevalence Unmet need for family planning Citation: United Nations, Department of Economic and Social Affairs, Population Division (2014). World Contraceptive Use 2014 (POP/DB/CP/Rev2014). |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2014-07-30 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#29](https://data.un.org/DataMartInfo.aspx#29) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Development Indicators
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-development-indicators` |
+| 上游目录ID | WDI |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#WDI](https://data.un.org/DataMartInfo.aspx#WDI) |
+| 原始提供机构 | The World Bank |
+| 生命周期 | `active` |
+| 上游最近更新 | 2026/02/25 |
+| 上游计划更新 | 2027/02/25 |
+| 说明 | Published by the World Bank, the World Development Indicators (WDI) database provides global development data, featuring over 1,500 indicators spanning multiple decades and covering more than 200 countries and territories. These indicators encompass a wide range of topics, including economic growth, education, health, poverty, trade, energy, infrastructure, governance, and environmental sustainability. Data are sourced from 50 data partners, ensuring consistency, reliability, and comparability. The WDI database is accessible through interactive online tools, API services, and downloadable datasets, allowing for detailed analysis and visualization. Whether for research, policy planning, or economic analysis, the WDI empowers policymakers, researchers, businesses, and analysts to understand global trends and make informed, data-driven decisions. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2026-02-25 |
+| 更新频率 | UNdata catalog lists next update as 2027/02/25. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#WDI](https://data.un.org/DataMartInfo.aspx#WDI) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Fertility Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-fertility-data` |
+| 上游目录ID | 22 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#22](https://data.un.org/DataMartInfo.aspx#22) |
+| 原始提供机构 | United Nations Population Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2013/03/31 |
+| 上游计划更新 | To be confirmed |
+| 说明 | World Fertility Data 2012 provides a comparable and up-to-date set of national data on fertility and the timing of childbearing for all countries and areas of the world. The indicators presented are direct estimates from country data. To the extent that data are available, data are presented for five reference dates: 1970, 1985, 1995, 2005 and the most recent data available. Metadata: Age-specific fertility rates, Total fertility and Mean age at childbearing Annual number of live births and Crude birth rate Children ever born Citation: United Nations, Department of Economic and Social Affairs, Population Division (2013). World Fertility Data 2012 (POP/DB/Fert/Rev2012). |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2013-03-31 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#22](https://data.un.org/DataMartInfo.aspx#22) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Marriage Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-marriage-data` |
+| 上游目录ID | 25 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#25](https://data.un.org/DataMartInfo.aspx#25) |
+| 原始提供机构 | United Nations Population Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2013/03/31 |
+| 上游计划更新 | To be confirmed |
+| 说明 | World Marriage Data 2012 provides a comparable and up-to-date set of data on the marital status of the population for all countries and areas of the world. Data are presented for the closest date available around five reference dates: the years closest to 1970, 1985, 1995, 2005 and the most recent data available. Metadata: Marital status of men and women Currently married men and women Ever married men and women Singulate mean age at marriage Citation: United Nations, Department of Economic and Social Affairs, Population Division (2013). World Marriage Data 2012 (POP/DB/Marr/Rev2012). |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2013-03-31 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#25](https://data.un.org/DataMartInfo.aspx#25) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Meteorological Organization Standard Normals
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-meteorological-organization-standard-normals` |
+| 上游目录ID | CLINO |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#CLINO](https://data.un.org/DataMartInfo.aspx#CLINO) |
+| 原始提供机构 | World Meteorological Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2010/07/14 |
+| 上游计划更新 | To be confirmed |
+| 说明 | WMO data provide the basis for better understanding the climatology of severe weather and extreme events such as tropical cyclones, El Niño, floods, heat waves, cold waves, droughts and other natural hazards, contributing to saving both lives and property, and improving our understanding and monitoring of the climate system and environment. WMO has drawn attention to issues of major concern, such as ozone layer depletion, global warming, climate change and diminishing water resources. WMO enhances the application of meteorological and hydrological information for the security and well-being of society. Such information is crucial for addressing major challenges such as food security, water resources management, reduction of pollution, decision-making related to the health sector, transport, tourism among others. WMO provides guidelines to use procedures for analysing climate data for climate change purposes as well as for other applications. This includes, inter-alia, analysis of extremes in a changing climate, the role of climatological normals in a changing climate and climate data homogenisation . Description of processes, methodologies and practices in climatology are provided within a mandatory publication representing the WMO guide to climatological practices . WMO defines climatological standard normals as "averages of climatological data computed for the following consecutive periods of 30 years: January 1, 1901 to December 31, 1930, January 1, 1931 to December 31, 1960, etc." (WMO, 1984).The latest global standard normals period is 1961-1990. The next standard normals periode is January 1991 – December 2020. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2010-07-14 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#CLINO](https://data.un.org/DataMartInfo.aspx#CLINO) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Population Prospects: The 2024 Revision
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-population-prospects-the-2024-revision` |
+| 上游目录ID | PopDiv |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#PopDiv](https://data.un.org/DataMartInfo.aspx#PopDiv) |
+| 原始提供机构 | United Nations Population Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2024/10/16 |
+| 上游计划更新 | 2025/10/16 |
+| 说明 | The 2024 Revision of World Population Prospects represents the latest global set of demographic estimates and projections prepared by the Population Division of the Department of Economic and Social Affairs of the United Nations Secretariat. It displays key demographic indicators for selected periods or dates from 1950 to 2100, for the world, development groups, regions, subregions, and countries or areas with more than 1,000 inhabitants in 2023. For countries or areas with fewer than 1,000 inhabitants in 2023, only figures related to population size and growth are provided. The estimates and projections contained in this revision cover a 150-year time horizon, which can be subdivided into estimates (1950-2023) and projections (2024-2100). A sample set of summary indicators are provided as part of UNData. More detailed data by age and sex are available from the Population Division’s website. See also Data Sources for additional metadata and description of the empirical information used to derive estimates for each locations. Citation: United Nations, Department of Economic and Social Affairs, Population Division (2024). World Population Prospects 2024: Online Edition/a>. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2024-10-16 |
+| 更新频率 | UNdata catalog lists next update as 2025/10/16. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#PopDiv](https://data.un.org/DataMartInfo.aspx#PopDiv) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Statistics Pocketbook
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-statistics-pocketbook` |
+| 上游目录ID | WorldStat |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#WorldStat](https://data.un.org/DataMartInfo.aspx#WorldStat) |
+| 原始提供机构 | United Nations Statistics Division |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2018/02/27 |
+| 上游计划更新 | 2018/07/31 |
+| 说明 | The World Statistics Pocketbook is an annual compilation of key economic, social and environmental indicators, presented in one-page profiles. This edition includes profiles for 30 world geographical regions and 232 countries or areas. |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2018-02-27 |
+| 更新频率 | UNdata catalog lists next update as 2018/07/31. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#WorldStat](https://data.un.org/DataMartInfo.aspx#WorldStat) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Telecommunication/ICT Indicators Database
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-telecommunication-ict-indicators-database` |
+| 上游目录ID | ITU |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#ITU](https://data.un.org/DataMartInfo.aspx#ITU) |
+| 原始提供机构 | International Telecommunications Union |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2024/04/04 |
+| 上游计划更新 | 2025/04/01 |
+| 说明 | ITU's World Telecommunication/ICT Indicators Database is the main source of global, and internationally comparable, telecommunication/ICT statistics. It includes time series for more than 140 indicators and around 200 economies. The data are collected directly from telecommunication regulatory agencies and/or ministries and national statistical offices by means of an annual questionnaire, and subsequently verified, harmonized and complemented by ITU. The data are disseminated online, via CD Rom and through numerous ITU publications, including the Yearbook of Statistics and the Measuring the Information Society Report. The statistics are used to track and benchmark the Information Society, to monitor the digital divide and to identify market potential and investment opportunities. They are an indispensable tool for policy makers in the area of ICT for development. Download the footnotes in Excel format |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2024-04-04 |
+| 更新频率 | UNdata catalog lists next update as 2025/04/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#ITU](https://data.un.org/DataMartInfo.aspx#ITU) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Telecommunication/ICT Indicators Table
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-telecommunication-ict-indicators-table` |
+| 上游目录ID | 31 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#31](https://data.un.org/DataMartInfo.aspx#31) |
+| 原始提供机构 | International Telecommunications Union |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2016/01/14 |
+| 上游计划更新 | To be confirmed |
+| 说明 | Availability of ICT in households and use of ICTs by individuals |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2016-01-14 |
+| 更新频率 | UNdata catalog lists next update as To be confirmed. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#31](https://data.un.org/DataMartInfo.aspx#31) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### World Tourism Data
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:dataset:undata-world-tourism-data` |
+| 上游目录ID | 19 |
+| 上游目录入口 | [https://data.un.org/DataMartInfo.aspx#19](https://data.un.org/DataMartInfo.aspx#19) |
+| 原始提供机构 | World Tourism Organization |
+| 生命周期 | `unknown` |
+| 上游最近更新 | 2022/12/12 |
+| 上游计划更新 | 2023/12/01 |
+| 说明 | The World Tourism Organization's Compendium of Tourism Statistics and Yearbook of Tourism Statistics provide comprehensive information on international tourism worldwide and offer a selection of the latest available statistics on "arrivals of non-resident tourists/visitors" and "tourism expenditure". |
+| 学科领域 | multidisciplinary |
+| 主题维度 | 未知 / 尚未登记 |
+| 目标总体 | 未知 / 尚未登记 |
+| 观察单位 | country-period or other dataset-specific unit |
+| 地理覆盖 | 未知 / 尚未登记 |
+| 空间分辨率 | 未知 / 尚未登记 |
+| 时间覆盖 | 未知 / 尚未登记 |
+| 时间分辨率 | 未知 / 尚未登记 |
+| 数据模态 | tabular |
+| 当前版本 | 未知 / 尚未登记 |
+| 发布日期 | 2022-12-12 |
+| 更新频率 | UNdata catalog lists next update as 2023/12/01. |
+| 有修订政策 | 未知 / 尚未登记 |
+| 保留历史版本 | 未知 / 尚未登记 |
+| 数据生成过程 | 未知 / 尚未登记 |
+| 协调方式 | `unknown` |
+| 模型估计 | `unknown` |
+| 方法文件 | 未知 |
+| 已知限制 | This catalog-level record verifies identity, provider, description, and update metadata only.、Variables, coverage, methodology, comparability, and current access must be profiled from the responsible source before research use. |
+| 建议引用 | 未知 / 尚未登记 |
+| DOI | 未知 / 尚未登记 |
+| 引用入口 | [https://data.un.org/DataMartInfo.aspx#19](https://data.un.org/DataMartInfo.aspx#19) |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据集层证据**
+
+- [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
 
 ### 第4层：访问资源（Resource）
 
-> 尚未建立访问资源层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关访问资源。
+#### UNdata SDMX API manual
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-api-manual` |
+| 资源入口 | [https://data.un.org/Host.aspx?Content=API](https://data.un.org/Host.aspx?Content=API) |
+| 资源类型 | `documentation` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `none` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata SDMX API manual](https://data.un.org/Host.aspx?Content=API) — United Nations Statistics Division；证据类型：`api_documentation`；支持：sdmx_api、formats、query_documentation；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata SDMX dataflow catalog
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-dataflow-catalog` |
+| 资源入口 | [https://data.un.org/ws/rest/dataflow/all/all/latest](https://data.un.org/ws/rest/dataflow/all/all/latest) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata SDMX dataflow catalog](https://data.un.org/ws/rest/dataflow/all/all/latest) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dataflow_inventory、structure_discovery；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata datamart catalog and update calendar
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-datamart-catalog` |
+| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
+| 资源类型 | `catalog` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata datamart catalog and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：catalog、provider、description、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Energy Statistics browser
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-energy-browser` |
+| 资源入口 | [https://data.un.org/Browse.aspx?d=EDATA](https://data.un.org/Browse.aspx?d=EDATA) |
+| 资源类型 | `browser_query` |
+| 格式 | HTML、CSV |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Energy Statistics browser](https://data.un.org/Browse.aspx?d=EDATA) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Energy Statistics SDMX data structure
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-energy-dsd` |
+| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Energy Statistics SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、attributes、measure、codelists；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Greenhouse Gas Inventory browser
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-ghg-browser` |
+| 资源入口 | [https://data.un.org/Browse.aspx?d=GHG](https://data.un.org/Browse.aspx?d=GHG) |
+| 资源类型 | `browser_query` |
+| 格式 | HTML、CSV |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Greenhouse Gas Inventory browser](https://data.un.org/Browse.aspx?d=GHG) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Greenhouse Gas Inventory SDMX data structure
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-ghg-dsd` |
+| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Greenhouse Gas Inventory SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、measure、codelists；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata glossary catalog
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-glossary-catalog` |
+| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
+| 资源类型 | `catalog` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata glossary catalog](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：six_glossary_entries、definitions_catalog；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata terms of use
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-terms-of-use` |
+| 资源入口 | [https://data.un.org/Host.aspx?Content=UNdataUse](https://data.un.org/Host.aspx?Content=UNdataUse) |
+| 资源类型 | `documentation` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `none` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata terms of use](https://data.un.org/Host.aspx?Content=UNdataUse) — United Nations Statistics Division；证据类型：`license`；支持：license、attribution、republishing_policy；检索于 2026-08-18T00:00:00Z。
 
 ### 第5层：变量（Variable）
 
-> 尚未建立变量层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关变量。
+#### 5A 数据结构元素（维度、测度、标识符、属性）
+
+#### Energy commodity (`COMMODITY`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-commodity` |
+| 元素类型 | `dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | COMMODITY |
+| 位置 | 3 |
+| 附着层级 | series_or_dataset |
+| 定义 | Energy commodity |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_COMMODITY_NRG |
+| 代码数量 | 75 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_COMMODITY_NRG/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_COMMODITY_NRG/1.0) |
+| 结构角色 | `filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_COMMODITY_NRG](https://data.un.org/ws/rest/codelist/UNSD/CL_COMMODITY_NRG/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Conversion factor (`CONVERSION_FACTOR`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-conversion-factor` |
+| 元素类型 | `attribute` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | CONVERSION_FACTOR |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | observation |
+| 定义 | Conversion factor |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | decimal |
+| 取值说明 | 未知 / 尚未登记 |
+| 代码表 | 未知 / 尚未登记 |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | 未知 |
+| 结构角色 | `conversion` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+
+#### Frequency (`FREQ`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-freq` |
+| 元素类型 | `dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | FREQ |
+| 位置 | 1 |
+| 附着层级 | series_or_dataset |
+| 定义 | Frequency |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_FREQ |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/SDMX/CL_FREQ/2.0](https://data.un.org/ws/rest/codelist/SDMX/CL_FREQ/2.0) |
+| 结构角色 | `filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_FREQ](https://data.un.org/ws/rest/codelist/SDMX/CL_FREQ/2.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Observation status (`OBS_STATUS`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-obs-status` |
+| 元素类型 | `flag` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | OBS_STATUS |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | observation |
+| 定义 | Observation status |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_OBS_STATUS |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/SDMX/CL_OBS_STATUS/2.1](https://data.un.org/ws/rest/codelist/SDMX/CL_OBS_STATUS/2.1) |
+| 结构角色 | `status` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_OBS_STATUS](https://data.un.org/ws/rest/codelist/SDMX/CL_OBS_STATUS/2.1) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Observation value (`OBS_VALUE`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-obs-value` |
+| 元素类型 | `measure` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | OBS_VALUE |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | observation |
+| 定义 | Observation value |
+| 单位 | See the unit attribute for each observation or series. |
+| 数据类型 | decimal |
+| 取值说明 | 未知 / 尚未登记 |
+| 代码表 | 未知 / 尚未登记 |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | 未知 |
+| 结构角色 | `measure` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+
+#### Reference area (`REF_AREA`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-ref-area` |
+| 元素类型 | `identifier` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | REF_AREA |
+| 位置 | 2 |
+| 附着层级 | series_or_dataset |
+| 定义 | Reference area |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_AREA_NRG |
+| 代码数量 | 251 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_AREA_NRG/1.2](https://data.un.org/ws/rest/codelist/UNSD/CL_AREA_NRG/1.2) |
+| 结构角色 | `filter`、`join_key`、`geographic_key` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_AREA_NRG](https://data.un.org/ws/rest/codelist/UNSD/CL_AREA_NRG/1.2) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Time period (`TIME_PERIOD`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-time-period` |
+| 元素类型 | `time_dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | TIME_PERIOD |
+| 位置 | 5 |
+| 附着层级 | series_or_dataset |
+| 定义 | Time period |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | 未知 / 尚未登记 |
+| 代码表 | 未知 / 尚未登记 |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | 未知 |
+| 结构角色 | `time_key`、`join_key` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+
+#### Energy transaction (`TRANSACTION`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-transaction` |
+| 元素类型 | `dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | TRANSACTION |
+| 位置 | 4 |
+| 附着层级 | series_or_dataset |
+| 定义 | Energy transaction |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_TRANSACTION_NRG |
+| 代码数量 | 216 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) |
+| 结构角色 | `filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_TRANSACTION_NRG](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Unit of measure (`UNIT_MEASURE`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-unit-measure` |
+| 元素类型 | `attribute` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | UNIT_MEASURE |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | series_or_dataset |
+| 定义 | Unit of measure |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_UNIT_MEASURE_NRG |
+| 代码数量 | 5 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT_MEASURE_NRG/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT_MEASURE_NRG/1.0) |
+| 结构角色 | `unit` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_UNIT_MEASURE_NRG](https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT_MEASURE_NRG/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Unit multiplier (`UNIT_MULT`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-energy-unit-mult` |
+| 元素类型 | `attribute` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 上游元素ID | UNIT_MULT |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | series_or_dataset |
+| 定义 | Unit multiplier |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_UNIT_MULT |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/SDMX/CL_UNIT_MULT/1.1](https://data.un.org/ws/rest/codelist/SDMX/CL_UNIT_MULT/1.1) |
+| 结构角色 | `multiplier` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Energy SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_UNIT_MULT](https://data.un.org/ws/rest/codelist/SDMX/CL_UNIT_MULT/1.1) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Frequency (`FREQ`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-freq` |
+| 元素类型 | `dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | FREQ |
+| 位置 | 1 |
+| 附着层级 | series_or_dataset |
+| 定义 | Frequency |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_FREQ |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_FREQ/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_FREQ/1.0) |
+| 结构角色 | `filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_FREQ](https://data.un.org/ws/rest/codelist/UNSD/CL_FREQ/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Greenhouse gas indicator (`INDICATOR`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-indicator` |
+| 元素类型 | `dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | INDICATOR |
+| 位置 | 2 |
+| 附着层级 | series_or_dataset |
+| 定义 | Greenhouse gas indicator |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_INDICATOR |
+| 代码数量 | 7 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) |
+| 结构角色 | `filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_INDICATOR](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Observation value (`OBS_VALUE`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-obs-value` |
+| 元素类型 | `measure` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | OBS_VALUE |
+| 位置 | 未知 / 尚未登记 |
+| 附着层级 | observation |
+| 定义 | Observation value |
+| 单位 | See the unit attribute for each observation or series. |
+| 数据类型 | decimal |
+| 取值说明 | 未知 / 尚未登记 |
+| 代码表 | 未知 / 尚未登记 |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | 未知 |
+| 结构角色 | `measure` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+
+#### Reference area (`REF_AREA`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-ref-area` |
+| 元素类型 | `identifier` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | REF_AREA |
+| 位置 | 3 |
+| 附着层级 | series_or_dataset |
+| 定义 | Reference area |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_REF_AREA |
+| 代码数量 | 43 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_REF_AREA/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_REF_AREA/1.0) |
+| 结构角色 | `filter`、`join_key`、`geographic_key` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_REF_AREA](https://data.un.org/ws/rest/codelist/UNSD/CL_REF_AREA/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### Time period (`TIME_PERIOD`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-time-period` |
+| 元素类型 | `time_dimension` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | TIME_PERIOD |
+| 位置 | 5 |
+| 附着层级 | series_or_dataset |
+| 定义 | Time period |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | 未知 / 尚未登记 |
+| 代码表 | 未知 / 尚未登记 |
+| 代码数量 | 未知 / 尚未登记 |
+| 代码表入口 | 未知 |
+| 结构角色 | `time_key`、`join_key` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+
+#### Unit (`UNIT`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:data-element:undata-ghg-unit` |
+| 元素类型 | `attribute` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 上游元素ID | UNIT |
+| 位置 | 4 |
+| 附着层级 | series_or_dataset |
+| 定义 | Unit |
+| 单位 | 未知 / 尚未登记 |
+| 数据类型 | coded or time value |
+| 取值说明 | See the referenced official codelist. |
+| 代码表 | CL_UNIT |
+| 代码数量 | 1 |
+| 代码表入口 | [https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT/1.0](https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT/1.0) |
+| 结构角色 | `unit`、`filter` |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**数据元素证据**
+
+- [UNdata Ghg SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：element_identity、element_type、position、representation；检索于 2026-08-18T00:00:00Z。
+- [UNdata SDMX codelist CL_UNIT](https://data.un.org/ws/rest/codelist/UNSD/CL_UNIT/1.0) — United Nations Statistics Division；证据类型：`codelist`；支持：codelist_identity、codes、code_count；检索于 2026-08-18T00:00:00Z。
+
+#### 5B 可研究匹配变量
+
+#### Production (`01`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-01` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "01", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Production"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Production |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Imports (`03`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-03` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "03", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Imports"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Imports |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Exports (`04`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-04` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "04", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Exports"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Exports |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Consumption by manufacturing, construction and non-fuel industry (`121`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-121` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "121", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Consumption by manufacturing, construction and non-fuel industry"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Consumption by manufacturing, construction and non-fuel industry |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Total energy supply (`GA`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-ga` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "GA", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Total energy supply"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Total energy supply |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Final consumption (`NA`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-energy-na` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNDATA_ENERGY |
+| 数据结构ID | DSD_ENERGY |
+| 维度选择 | {"code": "NA", "element_id": "grdr:data-element:undata-energy-transaction", "label": "Final consumption"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Commodity-specific unit with UNIT_MULT multiplier |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | country-commodity-year |
+| 空间分辨率 | Country or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `administrative_measure` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Final consumption |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Energy SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Carbon dioxide emissions excluding LULUCF (`EN_ATM_CO2E_XLULUCF`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-co2e-xlulucf` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_CO2E_XLULUCF", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Carbon dioxide emissions excluding LULUCF"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Carbon dioxide emissions excluding LULUCF |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Hydrofluorocarbon emissions (`EN_ATM_HFCE`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-hfce` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_HFCE", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Hydrofluorocarbon emissions"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Hydrofluorocarbon emissions |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Methane emissions excluding LULUCF (`EN_ATM_METH_XLULUCF`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-meth-xlulucf` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_METH_XLULUCF", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Methane emissions excluding LULUCF"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Methane emissions excluding LULUCF |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Nitrous oxide emissions excluding LULUCF (`EN_ATM_NO2E_XLULUCF`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-no2e-xlulucf` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_NO2E_XLULUCF", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Nitrous oxide emissions excluding LULUCF"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Nitrous oxide emissions excluding LULUCF |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Perfluorocarbon emissions (`EN_ATM_PFCE`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-pfce` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_PFCE", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Perfluorocarbon emissions"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Perfluorocarbon emissions |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Sulphur hexafluoride emissions (`EN_ATM_SF6E`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-atm-sf6e` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_ATM_SF6E", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Sulphur hexafluoride emissions"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Sulphur hexafluoride emissions |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Greenhouse gas emissions excluding LULUCF (`EN_CLC_GHGE_XLULUCF`)
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:variable:undata-ghg-en-clc-ghge-xlulucf` |
+| 上游系统 | SDMX 2.1 |
+| Dataflow ID | DF_UNData_UNFCC |
+| 数据结构ID | DSD_GHG_UNDATA |
+| 维度选择 | {"code": "EN_CLC_GHGE_XLULUCF", "element_id": "grdr:data-element:undata-ghg-indicator", "label": "Greenhouse gas emissions excluding LULUCF"} |
+| 研究角色候选 | `outcome`、`exposure`、`control`、`confounder`、`context` |
+| 单位 | Gigagrams (Gg) CO2 equivalent |
+| 分母 | 未知 / 尚未登记 |
+| 目标总体 | Countries/areas and series present in the selected UNdata dataflow. |
+| 观察单位 | party-gas-year |
+| 空间分辨率 | Party or area |
+| 时间分辨率 | Annual |
+| 测量类型 | `modelled_estimate` |
+| 客观/主观 | `objective` |
+| 直接性 | `constructed` |
+| 定义 | Greenhouse gas emissions excluding LULUCF |
+| 构造说明 | Research-matchable variable formed by selecting the official SDMX dimension code and reading OBS_VALUE; units and flags must be retained. |
+| 可比性 | `partially_comparable` |
+| 可比性说明 | The dataflow uses a common international code structure, but availability, national methods, revisions, units, and inventory methods may differ. |
+| 连接键 | REF_AREA、TIME_PERIOD |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**变量层证据**
+
+- [UNdata Ghg SDMX data structure and codelists](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`data_dictionary`；支持：code、label、data_structure、unit、operationalization；检索于 2026-08-18T00:00:00Z。
 
 ### 第6层：理论构念（Construct）
 
-> 尚未建立理论构念层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关理论构念。
+#### Carbon dioxide emissions excluding LULUCF
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:co2-emissions-excluding-lulucf` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic carbon dioxide emissions excluding land use, land-use change and forestry, expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Energy exports
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:energy-exports` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | The quantity of energy commodities leaving the reporting reference area during the period. |
+| 学科领域 | energy statistics |
+| 构念类型 | `physical_quantity` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Energy imports
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:energy-imports` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | The quantity of energy commodities entering the reporting reference area during the period. |
+| 学科领域 | energy statistics |
+| 构念类型 | `physical_quantity` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Energy production
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:energy-production` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | The quantity of energy commodities produced within the reporting reference area and period. |
+| 学科领域 | energy statistics |
+| 构念类型 | `physical_quantity` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Final energy consumption
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:final-energy-consumption` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Energy delivered to final consumers under the UNdata energy transaction classification. |
+| 学科领域 | energy statistics |
+| 构念类型 | `physical_quantity` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Greenhouse gas emissions excluding LULUCF
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:ghg-emissions-excluding-lulucf` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic greenhouse gas emissions excluding land use, land-use change and forestry, expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Hydrofluorocarbon emissions
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:hfc-emissions` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic hydrofluorocarbon emissions expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Industrial energy consumption
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:industrial-energy-consumption` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Final energy consumption by manufacturing, construction, and non-fuel industry under the UNdata classification. |
+| 学科领域 | energy statistics |
+| 构念类型 | `physical_quantity` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Methane emissions excluding LULUCF
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:methane-emissions-excluding-lulucf` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic methane emissions excluding land use, land-use change and forestry, expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Nitrous oxide emissions excluding LULUCF
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:nitrous-oxide-emissions-excluding-lulucf` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic nitrous oxide emissions excluding land use, land-use change and forestry, expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Perfluorocarbon emissions
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:pfc-emissions` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic perfluorocarbon emissions expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Sulphur hexafluoride emissions
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:sf6-emissions` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | Reported anthropogenic sulphur hexafluoride emissions expressed as CO2 equivalent. |
+| 学科领域 | climate science、environmental accounting |
+| 构念类型 | `environmental` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_INDICATOR/1.0) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+#### Total energy supply
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:construct:total-energy-supply` |
+| 别名 | 未知 / 尚未登记 |
+| 定义 | The energy supply available to the reporting economy under the UNdata energy transaction classification. |
+| 学科领域 | energy statistics |
+| 构念类型 | `computed_or_formal` |
+| 范围说明 | This construct is bounded by the official UNdata transaction or indicator code used in the linked variable; it is not automatically interchangeable with differently bounded measures. |
+| 验证状态 | 部分验证 (`partially_verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**构念层证据**
+
+- [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
 
 ## 机器读取与维护
 

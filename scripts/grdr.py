@@ -17,6 +17,7 @@ ENTITY_FILES = {
     "source": "sources.jsonl",
     "dataset": "datasets.jsonl",
     "resource": "resources.jsonl",
+    "data_element": "data_elements.jsonl",
     "construct": "constructs.jsonl",
     "variable": "variables.jsonl",
     "adapter": "adapters.jsonl",
@@ -122,6 +123,7 @@ def layer_summary(
 
 def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
     institutions = {item["id"]: item for item in load_jsonl("institutions.jsonl")}
+    relationships = load_jsonl("relationships.jsonl")
     datasets = [
         item
         for item in load_jsonl("datasets.jsonl")
@@ -133,6 +135,11 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         for item in load_jsonl("resources.jsonl")
         if item["source_id"] == source["id"]
         or dataset_ids.intersection(item["dataset_ids"])
+    ]
+    data_elements = [
+        item
+        for item in load_jsonl("data_elements.jsonl")
+        if dataset_ids.intersection(item["dataset_ids"])
     ]
     variables = [
         item
@@ -149,11 +156,15 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         for item in load_jsonl("constructs.jsonl")
         if item["id"] in construct_ids
     ]
-    maintainers = [
-        institutions[item]
-        for item in source["maintainer_ids"]
-        if item in institutions
-    ]
+    related_institution_ids = set(source["maintainer_ids"])
+    related_institution_ids.update(
+        edge["object_id"]
+        for edge in relationships
+        if edge["subject_id"] in {source["id"], *dataset_ids}
+        and edge["object_id"] in institutions
+        and edge["predicate"] in {"produced_by", "published_by", "maintained_by", "governed_by"}
+    )
+    maintainers = [institutions[item] for item in sorted(related_institution_ids)]
     declared_profile = next(
         (
             item
@@ -167,7 +178,7 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         layer_summary(2, "source", [source]),
         layer_summary(3, "dataset", datasets),
         layer_summary(4, "resource", resources),
-        layer_summary(5, "variable", variables),
+        layer_summary(5, "variable", data_elements + variables),
         layer_summary(6, "construct", constructs),
     ]
     populated = [item["name"] for item in layers if item["record_count"] > 0]
@@ -185,7 +196,7 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         "source": "Verify canonical identity, scope, authority role, access modes, license, and provenance.",
         "dataset": "Enumerate the official catalog and register prioritized datasets with methodology, coverage, release, citation, and limitations.",
         "resource": "Register APIs, downloads, query systems, documentation, application routes, formats, authentication, and licenses.",
-        "variable": "Use official dictionaries, schemas, codebooks, or API metadata to register variables, definitions, units, populations, resolutions, and join keys.",
+        "variable": "Model source-native data structures first, then use official dictionaries, schemas, codebooks, or API metadata to register research-matchable variables, definitions, units, populations, resolutions, and join keys.",
         "construct": "Map variables to theoretical constructs and label direct, constructed, modeled, forecast, subjective, and proxy measurements.",
     }
     gaps = [
@@ -198,7 +209,7 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         for item in layers
         if item["state"] != "registered_with_evidence"
     ]
-    if not gaps:
+    if not gaps and declared_profile is None:
         gaps.append(
             {
                 "layer": None,
@@ -216,6 +227,8 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         "populated_layers": populated,
         "layers": layers,
         "variable_matching_ready": bool(variables and datasets),
+        "data_element_count": len(data_elements),
+        "variable_count": len(variables),
         "declared_profile": declared_profile,
         "catalog_completeness": (
             declared_profile["inventory_claim"]
@@ -293,6 +306,7 @@ def search_datasets(args: argparse.Namespace) -> None:
                 {
                     "id": item["id"],
                     "name": item["name"],
+                    "source_native": item.get("source_native"),
                     "source_ids": item["source_ids"],
                     "description": item["description"],
                     "scope": item["scope"],
@@ -345,10 +359,12 @@ def search_variables(args: argparse.Namespace) -> None:
                     "id": item["id"],
                     "name": item["name"],
                     "label": item["label"],
+                    "source_native": item.get("source_native"),
                     "dataset_ids": item["dataset_ids"],
                     "construct_ids": item["construct_ids"],
                     "role_candidates": item["role_candidates"],
                     "observation_unit": item["observation_unit"],
+                    "unit": item["unit"],
                     "measurement": item["measurement"],
                     "comparability": item["comparability"],
                     "join_keys": item["join_keys"],
@@ -410,6 +426,7 @@ def get_dataset(args: argparse.Namespace) -> None:
     sources = {item["id"]: item for item in load_jsonl("sources.jsonl")}
     resources = load_jsonl("resources.jsonl")
     variables = load_jsonl("variables.jsonl")
+    data_elements = load_jsonl("data_elements.jsonl")
     emit(
         {
             "operation": "get_dataset",
@@ -417,6 +434,7 @@ def get_dataset(args: argparse.Namespace) -> None:
             "dataset": dataset,
             "sources": [sources[item] for item in dataset["source_ids"] if item in sources],
             "resources": [item for item in resources if args.dataset_id in item["dataset_ids"]],
+            "data_elements": [item for item in data_elements if args.dataset_id in item["dataset_ids"]],
             "variables": [item for item in variables if args.dataset_id in item["dataset_ids"]],
         }
     )
@@ -438,6 +456,26 @@ def get_variable(args: argparse.Namespace) -> None:
             "variable": variable,
             "datasets": [datasets[item] for item in variable["dataset_ids"] if item in datasets],
             "constructs": [constructs[item] for item in variable["construct_ids"] if item in constructs],
+        }
+    )
+
+
+def get_data_element(args: argparse.Namespace) -> None:
+    elements = {item["id"]: item for item in load_jsonl("data_elements.jsonl")}
+    element = elements.get(args.element_id)
+    if element is None:
+        emit({"operation": "get_data_element", "registry_version": REGISTRY_VERSION, "error": "data_element_not_found", "element_id": args.element_id})
+        raise SystemExit(2)
+
+    datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
+    resources = {item["id"]: item for item in load_jsonl("resources.jsonl")}
+    emit(
+        {
+            "operation": "get_data_element",
+            "registry_version": REGISTRY_VERSION,
+            "data_element": element,
+            "datasets": [datasets[item] for item in element["dataset_ids"] if item in datasets],
+            "resources": [resources[item] for item in element["resource_ids"] if item in resources],
         }
     )
 
@@ -672,6 +710,7 @@ def stats(_args: argparse.Namespace) -> None:
                         "source": "sources",
                         "dataset": "datasets",
                         "resource": "resources",
+                        "data_element": "data_elements",
                         "construct": "constructs",
                         "variable": "variables",
                         "adapter": "adapters",
@@ -753,6 +792,10 @@ def parser() -> argparse.ArgumentParser:
     get_variable_command = commands.add_parser("get-variable", help="Get a variable with datasets and constructs")
     get_variable_command.add_argument("variable_id")
     get_variable_command.set_defaults(handler=get_variable)
+
+    get_element_command = commands.add_parser("get-data-element", help="Get a source-native dimension, measure, identifier, or attribute")
+    get_element_command.add_argument("element_id")
+    get_element_command.set_defaults(handler=get_data_element)
 
     trace = commands.add_parser("trace-provenance", help="Traverse evidence-backed registry relationships")
     trace.add_argument("entity_id")
