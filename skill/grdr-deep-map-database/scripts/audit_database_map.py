@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the canonical GRDR six-layer source-depth audit."""
+"""Audit the canonical GRDR six-layer database deep map."""
 
 from __future__ import annotations
 

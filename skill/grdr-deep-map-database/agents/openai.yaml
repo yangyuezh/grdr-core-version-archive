@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR Database Deep Mapper"
+  short_description: "Deep-read databases and map six research layers"
+  default_prompt: "Use $grdr-deep-map-database to deep-read this database, establish its verified GRDR mapping topology, and report its scope and gaps."

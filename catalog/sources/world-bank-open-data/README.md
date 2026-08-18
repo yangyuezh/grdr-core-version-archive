@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:world-bank-open-data"
 record_type: "source_catalog"
-registry_version: "0.6.0"
+registry_version: "1.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.worldbank.org/"
 ---
@@ -23,6 +23,7 @@ canonical_url: "https://data.worldbank.org/"
 | 观察单位 | country-year、country-period |
 | 模态 | tabular |
 | 已登记数据集 | 1 |
+| 已登记数据库内部结构 | 1 |
 | 已登记访问资源 | 2 |
 | 已登记数据元素 | 0 |
 | 已登记变量 | 1 |
@@ -35,10 +36,10 @@ canonical_url: "https://data.worldbank.org/"
 
 | 字段 | 内容 |
 |---|---|
-| 范围说明 | Representative six-layer chain limited to World Development Indicators, its official catalog and API resources, the SP.POP.TOTL variable, and the Population size construct. |
+| 范围说明 | Representative deep-map chain limited to World Development Indicators, its documented API data structure, the SP.POP.TOTL variable, the Population size construct, and attached official access resources. |
 | 清单声明 | `representative_only` |
-| 各层声明 | {"construct": "representative_only", "dataset": "representative_only", "institution": "in_progress", "resource": "representative_only", "source": "representative_only", "variable": "representative_only"} |
-| 第5层 5A/5B 边界 | 未知 / 尚未登记 |
+| 各层声明 | {"construct": "representative_only", "data_element": "not_started", "data_structure": "representative_only", "dataset": "representative_only", "institution": "in_progress", "source": "representative_only", "variable": "representative_only"} |
+| 第5层 5A/5B 边界 | {"data_element_claim": "not_started", "notes": "The representative WDI pass registers an API-level DataStructure and one research-matchable indicator variable; source-native field-level DataElements remain to be enumerated.", "registered_data_element_count": 0, "registered_variable_count": 1, "variable_claim": "representative_only"} |
 | 枚举方法 | Manual representative-chain selection from the official WDI catalog, documentation, and Indicators API metadata. |
 | 上游项目数 | 未知 / 尚未登记 |
 | 快照边界 | 2026-08-14 |
@@ -145,53 +146,30 @@ canonical_url: "https://data.worldbank.org/"
 - [User Guide to WDI Resources](https://datatopics.worldbank.org/world-development-indicators/user-guide.html) — World Bank；证据类型：`official_documentation`；支持：scope、bulk_download、api、archives；检索于 2026-08-14T00:00:00Z。
 - [WDI Technical and Release Notes](https://datatopics.worldbank.org/world-development-indicators/release-note-toc.html) — World Bank；证据类型：`official_documentation`；支持：update_frequency、revision_history；检索于 2026-08-14T00:00:00Z。
 
-### 第4层：访问资源（Resource）
+### 第4层：数据库内部结构（DataStructure）
 
-#### World Development Indicators Data Catalog Record
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:wdi-data-catalog` |
-| 资源入口 | [https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) |
-| 资源类型 | `catalog` |
-| 格式 | HTML、CSV archive、Excel archive |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | The official catalog record provides metadata and bulk resources; individual resource behavior and release files require separate checks. |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-14T00:00:00Z |
-
-**资源层证据**
-
-- [World Development Indicators - World Bank Data Catalog](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) — World Bank；证据类型：`official_catalog`；支持：catalog、formats、public_classification、license；检索于 2026-08-14T00:00:00Z。
-
-#### World Bank Indicators API v2
+#### WDI indicator-series data structure (`World Bank Indicators API v2 indicator-series model`)
 
 | 字段 | 内容 |
 |---|---|
-| GRDR ID | `grdr:resource:world-bank-indicators-api` |
-| 资源入口 | [https://api.worldbank.org/v2/](https://api.worldbank.org/v2/) |
-| 资源类型 | `api` |
-| 格式 | XML、JSON、JSONP |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `documented` |
-| 限流已知 | 否 |
-| 许可状态 | `custom_or_mixed` |
-| 访问说明 | No API key is required. Dataset and third-party terms remain applicable, and reasonable request-volume restrictions apply. |
+| GRDR ID | `grdr:data-structure:world-bank-indicators-api-v2` |
+| 结构类型 | `api_schema` |
+| 上游系统 | World Bank Indicators API v2 |
+| 发布机构标识 | World Bank |
+| 上游对象类别 | indicator-series API model |
+| 上游对象 ID | indicator/{indicator}/country/{country} |
+| 结构版本 | v2 |
+| 父结构 | 未知 / 尚未登记 |
+| 附属访问资源 | grdr:resource:world-bank-indicators-api、grdr:resource:wdi-data-catalog |
+| 结构说明 | The documented Indicators API organization connecting indicator identity, economy, time, value and metadata for World Development Indicators; it provides the structural context for GRDR research variables registered from WDI indicator metadata. |
 | 验证状态 | 已验证 (`verified`) |
 | 最后验证 | 2026-08-14T00:00:00Z |
 
-**资源层证据**
+**数据结构层证据**
 
-- [About the Indicators API Documentation](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392) — World Bank；证据类型：`api_documentation`；支持：endpoint_version、authentication、scope；检索于 2026-08-14T00:00:00Z。
-- [API Basic Call Structures](https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures) — World Bank；证据类型：`api_documentation`；支持：query_structure、formats；检索于 2026-08-14T00:00:00Z。
-- [Summary Terms of Use](https://data.worldbank.org/summary-terms-of-use) — World Bank；证据类型：`license`；支持：api_terms、third_party_exceptions；检索于 2026-08-14T00:00:00Z。
+- [API Basic Call Structures](https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures) — World Bank；证据类型：`api_documentation`；支持：native_identity、query_dimensions、response_structure；检索于 2026-08-14T00:00:00Z。
 
-### 第5层：变量（Variable）
+### 第5层：数据元素与研究变量
 
 #### 5A 数据结构元素（维度、测度、标识符、属性）
 
@@ -249,6 +227,52 @@ canonical_url: "https://data.worldbank.org/"
 **构念层证据**
 
 - [World Bank indicator metadata: Population, total](https://api.worldbank.org/v2/indicator/SP.POP.TOTL?format=json) — World Bank；证据类型：`official_definition`；支持：definition、operationalization、upstream_sources；检索于 2026-08-14T00:00:00Z。
+
+## 访问方式与资源（旁路信息，不占内容层级）
+
+#### World Development Indicators Data Catalog Record
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:wdi-data-catalog` |
+| 资源入口 | [https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) |
+| 资源类型 | `catalog` |
+| 格式 | HTML、CSV archive、Excel archive |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | The official catalog record provides metadata and bulk resources; individual resource behavior and release files require separate checks. |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-14T00:00:00Z |
+
+**资源层证据**
+
+- [World Development Indicators - World Bank Data Catalog](https://datacatalog.worldbank.org/search/dataset/0037712/world-development-indicators) — World Bank；证据类型：`official_catalog`；支持：catalog、formats、public_classification、license；检索于 2026-08-14T00:00:00Z。
+
+#### World Bank Indicators API v2
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:world-bank-indicators-api` |
+| 资源入口 | [https://api.worldbank.org/v2/](https://api.worldbank.org/v2/) |
+| 资源类型 | `api` |
+| 格式 | XML、JSON、JSONP |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 否 |
+| 许可状态 | `custom_or_mixed` |
+| 访问说明 | No API key is required. Dataset and third-party terms remain applicable, and reasonable request-volume restrictions apply. |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-14T00:00:00Z |
+
+**资源层证据**
+
+- [About the Indicators API Documentation](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392) — World Bank；证据类型：`api_documentation`；支持：endpoint_version、authentication、scope；检索于 2026-08-14T00:00:00Z。
+- [API Basic Call Structures](https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures) — World Bank；证据类型：`api_documentation`；支持：query_structure、formats；检索于 2026-08-14T00:00:00Z。
+- [Summary Terms of Use](https://data.worldbank.org/summary-terms-of-use) — World Bank；证据类型：`license`；支持：api_terms、third_party_exceptions；检索于 2026-08-14T00:00:00Z。
 
 ## 机器读取与维护
 

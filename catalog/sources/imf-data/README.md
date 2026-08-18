@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:imf-data"
 record_type: "source_catalog"
-registry_version: "0.6.0"
+registry_version: "1.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.imf.org/"
 ---
@@ -23,6 +23,7 @@ canonical_url: "https://data.imf.org/"
 | 观察单位 | country-period |
 | 模态 | tabular |
 | 已登记数据集 | 0 |
+| 已登记数据库内部结构 | 0 |
 | 已登记访问资源 | 0 |
 | 已登记数据元素 | 0 |
 | 已登记变量 | 0 |
@@ -91,11 +92,11 @@ canonical_url: "https://data.imf.org/"
 
 > 尚未建立数据集层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关数据集。
 
-### 第4层：访问资源（Resource）
+### 第4层：数据库内部结构（DataStructure）
 
-> 尚未建立访问资源层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关访问资源。
+> 尚未建立数据库内部结构层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关数据库内部结构。
 
-### 第5层：变量（Variable）
+### 第5层：数据元素与研究变量
 
 #### 5A 数据结构元素（维度、测度、标识符、属性）
 
@@ -108,6 +109,10 @@ canonical_url: "https://data.imf.org/"
 ### 第6层：理论构念（Construct）
 
 > 尚未建立理论构念层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关理论构念。
+
+## 访问方式与资源（旁路信息，不占内容层级）
+
+> 尚未建立访问资源层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关访问资源。
 
 ## 机器读取与维护
 

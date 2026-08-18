@@ -30,9 +30,10 @@ class HumanCatalogTests(unittest.TestCase):
             "### 第1层：发布/维护机构（Institution）",
             "### 第2层：数据库/数据源（Source）",
             "### 第3层：数据集（Dataset）",
-            "### 第4层：访问资源（Resource）",
-            "### 第5层：变量（Variable）",
+            "### 第4层：数据库内部结构（DataStructure）",
+            "### 第5层：数据元素与研究变量",
             "### 第6层：理论构念（Construct）",
+            "## 访问方式与资源（旁路信息，不占内容层级）",
         ]
         for source in sources:
             slug = source["id"].rsplit(":", 1)[-1]
@@ -48,6 +49,7 @@ class HumanCatalogTests(unittest.TestCase):
         text = page.read_text(encoding="utf-8")
         self.assertIn("36 datamarts", text)
         self.assertIn("#### Energy Statistics Database", text)
+        self.assertIn("UNdata Energy Statistics SDMX cube", text)
         self.assertIn("#### 5A 数据结构元素", text)
         self.assertIn("Energy transaction (`TRANSACTION`)", text)
         self.assertIn("Total energy supply (`GA`)", text)

@@ -16,6 +16,7 @@ ENTITY_FILES = {
     "institution": "institutions.jsonl",
     "source": "sources.jsonl",
     "dataset": "datasets.jsonl",
+    "data_structure": "data_structures.jsonl",
     "resource": "resources.jsonl",
     "data_element": "data_elements.jsonl",
     "construct": "constructs.jsonl",
@@ -136,6 +137,12 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         if item["source_id"] == source["id"]
         or dataset_ids.intersection(item["dataset_ids"])
     ]
+    data_structures = [
+        item
+        for item in load_jsonl("data_structures.jsonl")
+        if item["source_id"] == source["id"]
+        or dataset_ids.intersection(item["dataset_ids"])
+    ]
     data_elements = [
         item
         for item in load_jsonl("data_elements.jsonl")
@@ -177,16 +184,18 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         layer_summary(1, "institution", maintainers),
         layer_summary(2, "source", [source]),
         layer_summary(3, "dataset", datasets),
-        layer_summary(4, "resource", resources),
-        layer_summary(5, "variable", data_elements + variables),
+        layer_summary(4, "data_structure", data_structures),
+        layer_summary(5, "data_element_and_variable", data_elements + variables),
         layer_summary(6, "construct", constructs),
     ]
     populated = [item["name"] for item in layers if item["record_count"] > 0]
     if all(item["record_count"] > 0 for item in layers):
         stage = "six_layer_chain_present"
-    elif variables:
+    elif variables or data_elements:
         stage = "variable_depth_started"
-    elif datasets or resources:
+    elif data_structures:
+        stage = "data_structure_depth_started"
+    elif datasets:
         stage = "dataset_depth_started"
     else:
         stage = "source_only"
@@ -195,8 +204,8 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
         "institution": "Verify the publishing, maintaining, producing, and governing institutions with official mandate evidence.",
         "source": "Verify canonical identity, scope, authority role, access modes, license, and provenance.",
         "dataset": "Enumerate the official catalog and register prioritized datasets with methodology, coverage, release, citation, and limitations.",
-        "resource": "Register APIs, downloads, query systems, documentation, application routes, formats, authentication, and licenses.",
-        "variable": "Model source-native data structures first, then use official dictionaries, schemas, codebooks, or API metadata to register research-matchable variables, definitions, units, populations, resolutions, and join keys.",
+        "data_structure": "Recover the database's native hierarchy, tables, dataflows, schemas, files, questionnaires, or scientific arrays and register their exact identifiers.",
+        "data_element_and_variable": "Register 5A source-native elements, then create 5B research-matchable variables only from explicit measure-plus-dimension semantics.",
         "construct": "Map variables to theoretical constructs and label direct, constructed, modeled, forecast, subjective, and proxy measurements.",
     }
     gaps = [
@@ -219,16 +228,50 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    coverage_gaps = []
+    if declared_profile is not None:
+        coverage_gaps = [
+            {
+                "entity": name,
+                "claim": claim,
+                "meaning": "Records exist, but the declared upstream scope is not complete at this entity level.",
+            }
+            for name, claim in declared_profile["layer_claims"].items()
+            if claim != "scope_complete"
+        ]
+        if declared_profile["access_claim"] != "scope_complete":
+            coverage_gaps.append(
+                {
+                    "entity": "access",
+                    "claim": declared_profile["access_claim"],
+                    "meaning": "Access routes are attached as sidecars, but the declared access inventory is not complete.",
+                }
+            )
+
     return {
         "source_id": source["id"],
         "source_name": source["name"],
         "canonical_url": source["canonical_url"],
         "profile_stage": stage,
+        "deep_map_scope_complete": bool(
+            declared_profile
+            and all(
+                claim == "scope_complete"
+                for claim in declared_profile["layer_claims"].values()
+            )
+        ),
         "populated_layers": populated,
         "layers": layers,
         "variable_matching_ready": bool(variables and datasets),
         "data_element_count": len(data_elements),
         "variable_count": len(variables),
+        "data_structure_count": len(data_structures),
+        "access_sidecar": {
+            "state": "registered" if resources else "not_started",
+            "resource_count": len(resources),
+            "resource_ids": [item["id"] for item in resources],
+            "note": "Access resources are attached to content entities and do not occupy a deep-map layer.",
+        },
         "declared_profile": declared_profile,
         "catalog_completeness": (
             declared_profile["inventory_claim"]
@@ -236,10 +279,12 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
             else "not_assessed"
         ),
         "gaps": gaps,
+        "coverage_gaps": coverage_gaps,
         "warnings": [
             "A populated layer proves only that GRDR has records at that layer; it does not prove that the upstream database has been completely inventoried.",
             "A missing layer is a GRDR coverage gap, not evidence that the upstream database lacks that layer.",
             "Source-level topic tags must never be treated as proof that a specific dataset or variable exists.",
+            "variable_matching_ready means at least one registered variable can be matched; it does not mean that all datasets or variables in the source have been deep-mapped.",
         ],
     }
 
@@ -425,6 +470,7 @@ def get_dataset(args: argparse.Namespace) -> None:
 
     sources = {item["id"]: item for item in load_jsonl("sources.jsonl")}
     resources = load_jsonl("resources.jsonl")
+    data_structures = load_jsonl("data_structures.jsonl")
     variables = load_jsonl("variables.jsonl")
     data_elements = load_jsonl("data_elements.jsonl")
     emit(
@@ -434,6 +480,7 @@ def get_dataset(args: argparse.Namespace) -> None:
             "dataset": dataset,
             "sources": [sources[item] for item in dataset["source_ids"] if item in sources],
             "resources": [item for item in resources if args.dataset_id in item["dataset_ids"]],
+            "data_structures": [item for item in data_structures if args.dataset_id in item["dataset_ids"]],
             "data_elements": [item for item in data_elements if args.dataset_id in item["dataset_ids"]],
             "variables": [item for item in variables if args.dataset_id in item["dataset_ids"]],
         }
@@ -449,6 +496,7 @@ def get_variable(args: argparse.Namespace) -> None:
 
     datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
     constructs = {item["id"]: item for item in load_jsonl("constructs.jsonl")}
+    structures = {item["id"]: item for item in load_jsonl("data_structures.jsonl")}
     emit(
         {
             "operation": "get_variable",
@@ -456,6 +504,7 @@ def get_variable(args: argparse.Namespace) -> None:
             "variable": variable,
             "datasets": [datasets[item] for item in variable["dataset_ids"] if item in datasets],
             "constructs": [constructs[item] for item in variable["construct_ids"] if item in constructs],
+            "data_structures": [structures[item] for item in variable["data_structure_ids"] if item in structures],
         }
     )
 
@@ -469,6 +518,7 @@ def get_data_element(args: argparse.Namespace) -> None:
 
     datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
     resources = {item["id"]: item for item in load_jsonl("resources.jsonl")}
+    structures = {item["id"]: item for item in load_jsonl("data_structures.jsonl")}
     emit(
         {
             "operation": "get_data_element",
@@ -476,6 +526,32 @@ def get_data_element(args: argparse.Namespace) -> None:
             "data_element": element,
             "datasets": [datasets[item] for item in element["dataset_ids"] if item in datasets],
             "resources": [resources[item] for item in element["resource_ids"] if item in resources],
+            "data_structures": [structures[item] for item in element["data_structure_ids"] if item in structures],
+        }
+    )
+
+
+def get_data_structure(args: argparse.Namespace) -> None:
+    structures = {item["id"]: item for item in load_jsonl("data_structures.jsonl")}
+    structure = structures.get(args.data_structure_id)
+    if structure is None:
+        emit({"operation": "get_data_structure", "registry_version": REGISTRY_VERSION, "error": "data_structure_not_found", "data_structure_id": args.data_structure_id})
+        raise SystemExit(2)
+
+    datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
+    resources = {item["id"]: item for item in load_jsonl("resources.jsonl")}
+    elements = load_jsonl("data_elements.jsonl")
+    variables = load_jsonl("variables.jsonl")
+    emit(
+        {
+            "operation": "get_data_structure",
+            "registry_version": REGISTRY_VERSION,
+            "data_structure": structure,
+            "datasets": [datasets[item] for item in structure["dataset_ids"] if item in datasets],
+            "parent_structures": [structures[item] for item in structure["parent_structure_ids"] if item in structures],
+            "resources": [resources[item] for item in structure["resource_ids"] if item in resources],
+            "data_elements": [item for item in elements if args.data_structure_id in item["data_structure_ids"]],
+            "variables": [item for item in variables if args.data_structure_id in item["data_structure_ids"]],
         }
     )
 
@@ -787,6 +863,7 @@ def stats(_args: argparse.Namespace) -> None:
                         "institution": "institutions",
                         "source": "sources",
                         "dataset": "datasets",
+                        "data_structure": "data_structures",
                         "resource": "resources",
                         "data_element": "data_elements",
                         "construct": "constructs",
@@ -874,6 +951,10 @@ def parser() -> argparse.ArgumentParser:
     get_element_command = commands.add_parser("get-data-element", help="Get a source-native dimension, measure, identifier, or attribute")
     get_element_command.add_argument("element_id")
     get_element_command.set_defaults(handler=get_data_element)
+
+    get_structure_command = commands.add_parser("get-data-structure", help="Get a database-internal structure with linked datasets, elements, variables, and access resources")
+    get_structure_command.add_argument("data_structure_id")
+    get_structure_command.set_defaults(handler=get_data_structure)
 
     trace = commands.add_parser("trace-provenance", help="Traverse evidence-backed registry relationships")
     trace.add_argument("entity_id")

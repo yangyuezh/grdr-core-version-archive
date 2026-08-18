@@ -4,7 +4,7 @@
   "title": "GRDR variable record",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "name", "label", "dataset_ids", "construct_ids", "role_candidates", "unit", "denominator", "population", "observation_unit", "spatial_resolution", "temporal_resolution", "measurement", "comparability", "join_keys", "verification", "evidence"],
+  "required": ["schema_version", "id", "name", "label", "dataset_ids", "data_structure_ids", "construct_ids", "role_candidates", "unit", "denominator", "population", "observation_unit", "spatial_resolution", "temporal_resolution", "measurement", "comparability", "join_keys", "verification", "evidence"],
   "properties": {
     "schema_version": {"const": "0.1.0"},
     "id": {"type": "string", "pattern": "^grdr:variable:[a-z0-9][a-z0-9-]*$"},
@@ -38,6 +38,7 @@
       }
     },
     "dataset_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"}, "minItems": 1, "uniqueItems": true},
+    "data_structure_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"}, "minItems": 1, "uniqueItems": true},
     "construct_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:construct:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
     "role_candidates": {"type": "array", "items": {"enum": ["outcome", "exposure", "control", "confounder", "mediator", "moderator", "instrument", "selection", "validation", "context"]}, "uniqueItems": true},
     "unit": {"type": ["string", "null"]},

@@ -39,6 +39,8 @@ class UNdataRegistryTests(unittest.TestCase):
         profile = next(item for item in load_jsonl("source_profiles.jsonl") if item["source_id"] == "grdr:source:undata")
         self.assertEqual(profile["inventory_claim"], "catalog_scope_complete")
         self.assertEqual(profile["layer_claims"]["dataset"], "scope_complete")
+        self.assertEqual(profile["layer_claims"]["data_structure"], "representative_only")
+        self.assertEqual(profile["access_claim"], "representative_only")
         self.assertEqual(profile["layer_claims"]["variable"], "representative_only")
         self.assertEqual(profile["layer_5_details"]["registered_data_element_count"], 16)
         self.assertEqual(profile["layer_5_details"]["registered_variable_count"], 13)
@@ -46,8 +48,10 @@ class UNdataRegistryTests(unittest.TestCase):
         self.assertIn("six glossaries", profile["enumeration"]["notes"])
 
     def test_deep_profiles_cover_energy_and_ghg_structures(self) -> None:
+        structures = load_jsonl("data_structures.jsonl")
         elements = load_jsonl("data_elements.jsonl")
         variables = load_jsonl("variables.jsonl")
+        self.assertEqual(len([item for item in structures if item["source_id"] == "grdr:source:undata"]), 2)
         self.assertEqual(len([item for item in elements if "undata-energy" in item["id"]]), 10)
         self.assertEqual(len([item for item in elements if "undata-ghg" in item["id"]]), 6)
         self.assertEqual(len([item for item in variables if "undata-energy" in item["id"]]), 6)

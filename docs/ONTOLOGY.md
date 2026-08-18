@@ -8,11 +8,14 @@ GRDR models research data at multiple levels:
 Institution
   └── Source
         └── Dataset
-              └── Resource
-              └── Layer 5
+              └── DataStructure
+                    └── Layer 5
                     ├── DataElement
                     └── Variable
                           └── Construct
+
+Resource (API/download/query/auth/license) attaches to Dataset or DataStructure
+as an access sidecar and does not occupy a content layer.
 ```
 
 The hierarchy expresses containment, not provenance. Provenance and other semantics are represented by typed relationships.
@@ -45,7 +48,11 @@ A versionable collection of observations produced under a defined methodology an
 
 ### Resource
 
-A concrete access object such as an API endpoint, downloadable file, table, database view, cloud bucket, query service, or application procedure.
+A concrete access object such as an API endpoint, downloadable file, cloud bucket, query service, documentation, secure environment, or application procedure. Resources attach access mechanics to content entities; they are not the database-internal structure and do not occupy layer 4.
+
+### DataStructure
+
+The source-native organization inside a Dataset: a catalog hierarchy, dataflow, multidimensional schema, table/view, API schema, file layout, questionnaire, instrument, scientific array, or knowledge-graph schema. It preserves upstream identity, version, nesting, and the context that defines DataElements.
 
 ### DataElement
 
@@ -82,6 +89,7 @@ GRDR must preserve these distinctions:
 - producer versus publisher;
 - source versus dataset;
 - dataset versus access resource;
+- access resource versus database-internal data structure;
 - source-native data element versus research-matchable variable;
 - variable versus theoretical construct;
 - direct measure versus proxy;
@@ -101,6 +109,8 @@ Initial relationship types are:
 - `funded_by`
 - `governed_by`
 - `contains`
+- `organized_as`
+- `defines`
 - `derived_from`
 - `harmonizes`
 - `mirrors`
@@ -113,6 +123,7 @@ Initial relationship types are:
 - `complements`
 - `overlaps_with`
 - `cites`
+- `accessed_via`
 
 Relationships such as `joinable_with` must specify the proposed keys and compatibility limitations. They are not implied merely because two datasets share a country name or calendar year.
 

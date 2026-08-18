@@ -27,6 +27,7 @@ The registry must also support direct source discovery and curation without requ
 - `search_sources`
 - `get_source`
 - `search_datasets`
+- `get_data_structure`
 - `search_variables`
 - `trace_provenance`
 - `get_access_instructions`
@@ -60,10 +61,12 @@ The registry must also support direct source discovery and curation without requ
 - `audit_source_depth`
 - `audit_all_source_depth`
 - `declare_source_profile_scope`
-- `decompose_source_six_layers`
+- `deep_map_database_six_layers`
 - `register_institution`
 - `register_source`
 - `register_dataset`
+- `register_data_structure`
+- `register_data_element`
 - `register_resource`
 - `register_variable`
 - `register_relationship`

@@ -60,7 +60,7 @@ def text(fragment: str) -> str:
 
 
 def fetch(url: str) -> str:
-    request = Request(url, headers={"User-Agent": "GRDR/0.5 source profiler"})
+    request = Request(url, headers={"User-Agent": "GRDR/1.0 database deep mapper"})
     with urlopen(request, timeout=60) as response:
         return response.read().decode("utf-8", "replace")
 
@@ -439,6 +439,7 @@ def data_element_records() -> list[dict]:
                 "name": native,
                 "label": label,
                 "dataset_ids": [did],
+                "data_structure_ids": [f"grdr:data-structure:undata-{dataset_key}-sdmx"],
                 "resource_ids": [f"grdr:resource:undata-{resource_key}"],
                 "element_type": element_type,
                 "source_native": {
@@ -532,6 +533,7 @@ def variable_records() -> list[dict]:
                     "schema_version": "0.1.0",
                     "id": f"grdr:variable:undata-{dataset_key}-{slug(code)}",
                     "name": code, "label": label, "aliases": [], "dataset_ids": [did],
+                    "data_structure_ids": [f"grdr:data-structure:undata-{dataset_key}-sdmx"],
                     "construct_ids": [f"grdr:construct:{construct_key}"],
                     "source_native": {
                         "system": "SDMX 2.1", "dataflow_id": dataflow, "data_structure_id": dsd,
@@ -568,7 +570,28 @@ def relationship_record(rid: str, subject: str, predicate: str, obj: str, url: s
     }
 
 
-def relationship_records(items: list[dict], resources: list[dict], elements: list[dict], variables: list[dict]) -> list[dict]:
+def data_structure_records() -> list[dict]:
+    specs = [
+        ("energy", "Energy Statistics", "DF_UNDATA_ENERGY / DSD_ENERGY", "DSD 1.2", DEEP_DATASET_IDS["EDATA"], ENERGY_DSD_URL, ["grdr:resource:undata-energy-dsd", "grdr:resource:undata-dataflow-catalog", "grdr:resource:undata-api-manual", "grdr:resource:undata-energy-browser"]),
+        ("ghg", "Greenhouse Gas Inventory", "DF_UNData_UNFCC / DSD_GHG_UNDATA", "DSD 1.0", DEEP_DATASET_IDS["GHG"], GHG_DSD_URL, ["grdr:resource:undata-ghg-dsd", "grdr:resource:undata-dataflow-catalog", "grdr:resource:undata-api-manual", "grdr:resource:undata-ghg-browser"]),
+    ]
+    records = []
+    for key, label, object_id, version, dataset_id_value, url, resource_ids in specs:
+        records.append({
+            "schema_version": "1.0.0", "id": f"grdr:data-structure:undata-{key}-sdmx",
+            "name": object_id.split(" / ")[-1], "label": f"UNdata {label} SDMX cube",
+            "source_id": "grdr:source:undata", "dataset_ids": [dataset_id_value], "parent_structure_ids": [],
+            "structure_type": "multidimensional_schema",
+            "native_identity": {"system": "SDMX 2.1", "agency_id": "UNSD", "object_class": "dataflow-bound data structure definition", "object_id": object_id, "version": version},
+            "description": f"The official multidimensional structure that organizes {label} observations and supplies the parent context for registered data elements and research variables.",
+            "resource_ids": resource_ids,
+            "verification": {"status": "verified", "last_verified_at": STAMP, "notes": "Official SDMX dataflow and DSD metadata inspected; observation access health is tracked separately."},
+            "evidence": [{"url": url, "title": f"UNdata {label} SDMX data structure", "publisher": "United Nations Statistics Division", "evidence_type": "data_structure", "supports": ["native_identity", "dimensions", "attributes", "measure", "codelists"], "retrieved_at": STAMP, "archived_url": None}],
+        })
+    return records
+
+
+def relationship_records(items: list[dict], structures: list[dict], resources: list[dict], elements: list[dict], variables: list[dict]) -> list[dict]:
     records = []
     for item in items:
         did = dataset_id(item)
@@ -578,9 +601,15 @@ def relationship_records(items: list[dict], resources: list[dict], elements: lis
     for resource in resources:
         for did in resource["dataset_ids"]:
             records.append(relationship_record(f"{slug(did)}-accessed-via-{resource['id'].rsplit(':', 1)[-1]}", did, "accessed_via", resource["id"], resource["url"], ["resource_linkage"]))
+    structure_index = {item["id"]: item for item in structures}
+    for structure in structures:
+        did = structure["dataset_ids"][0]
+        records.append(relationship_record(f"{slug(did)}-organized-as-{structure['id'].rsplit(':', 1)[-1]}", did, "organized_as", structure["id"], structure["evidence"][0]["url"], ["dataset_structure_topology"]))
+        for resource_id in structure["resource_ids"]:
+            records.append(relationship_record(f"{structure['id'].rsplit(':', 1)[-1]}-accessed-via-{resource_id.rsplit(':', 1)[-1]}", structure["id"], "accessed_via", resource_id, structure["evidence"][0]["url"], ["access_attachment"]))
     for element in elements:
-        did = element["dataset_ids"][0]
-        records.append(relationship_record(f"{slug(did)}-contains-{element['id'].rsplit(':', 1)[-1]}", did, "contains", element["id"], element["evidence"][0]["url"], ["data_structure_membership"]))
+        structure_id = element["data_structure_ids"][0]
+        records.append(relationship_record(f"{structure_id.rsplit(':', 1)[-1]}-defines-{element['id'].rsplit(':', 1)[-1]}", structure_id, "defines", element["id"], structure_index[structure_id]["evidence"][0]["url"], ["structure_element_topology"]))
     for variable in variables:
         did = variable["dataset_ids"][0]
         records.append(relationship_record(f"{slug(did)}-contains-{variable['id'].rsplit(':', 1)[-1]}", did, "contains", variable["id"], variable["evidence"][0]["url"], ["variable_operationalization"]))
@@ -648,15 +677,16 @@ def adapter_and_monitor() -> tuple[dict, dict]:
 
 def source_profile() -> dict:
     return {
-        "schema_version": "0.1.0", "id": "grdr:source-profile:undata", "source_id": "grdr:source:undata",
+        "schema_version": "1.0.0", "id": "grdr:source-profile:undata", "source_id": "grdr:source:undata",
         "scope_mode": "catalog_level",
-        "scope_statement": "Catalog-level enumeration covers all 36 datamarts and separately records the six glossaries listed on the official UNdata catalog on 2026-08-18. Energy Statistics and Greenhouse Gas Inventory Data are additionally profiled through resources, SDMX data structures, data elements, research-matchable variables, and constructs. Other datamarts remain catalog-identity records.",
+        "scope_statement": "Catalog-level enumeration covers all 36 datamarts and separately records the six glossaries listed on the official UNdata catalog on 2026-08-18. Energy Statistics and Greenhouse Gas Inventory Data are additionally mapped through SDMX data structures, data elements, research-matchable variables, and constructs. Access routes are attached as sidecars. Other datamarts remain catalog-identity records.",
         "inventory_claim": "catalog_scope_complete",
-        "layer_claims": {"institution": "scope_complete", "source": "scope_complete", "dataset": "scope_complete", "resource": "representative_only", "variable": "representative_only", "construct": "representative_only"},
+        "layer_claims": {"institution": "scope_complete", "source": "scope_complete", "dataset": "scope_complete", "data_structure": "representative_only", "data_element": "representative_only", "variable": "representative_only", "construct": "representative_only"},
+        "access_claim": "representative_only",
         "layer_5_details": {"data_element_claim": "representative_only", "variable_claim": "representative_only", "registered_data_element_count": 16, "registered_variable_count": 13, "notes": "5A and 5B cover the Energy Statistics and Greenhouse Gas Inventory SDMX structures only; they do not enumerate the other 34 datamarts."},
         "enumeration": {"method": "Parsed all ordered DataMart blocks on the official UNdata Sources page and verified the dataset/glossary boundary.", "upstream_item_count": 36, "snapshot_boundary": SNAPSHOT, "notes": "36 datamarts are represented as Dataset records; six glossaries are recorded as a separate catalog resource. The live SDMX dataflow endpoint exposed 15 dataflows, so API coverage must not be equated with catalog coverage."},
         "blockers": [
-            {"type": "technical", "layer": "resource", "notes": "Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational."},
+            {"type": "technical", "layer": "access", "notes": "Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational."},
             {"type": "scale", "layer": "variable", "notes": "Thirty-four datamarts still require structure/codebook and variable-level profiling; catalog identity is not variable completeness."},
         ],
         "last_reviewed_at": STAMP,
@@ -689,15 +719,17 @@ def main() -> int:
     datasets = [dataset_record(item) for item in items]
     dataset_ids = [item["id"] for item in datasets]
     resources = resource_records(dataset_ids)
+    structures = data_structure_records()
     elements = data_element_records()
     variables = variable_records()
     constructs = construct_records()
-    relationships = relationship_records(items, resources, elements, variables)
+    relationships = relationship_records(items, structures, resources, elements, variables)
     source, unsd = update_source_and_unsd()
     adapter, monitor = adapter_and_monitor()
     merge("institutions.jsonl", [unsd, *institution_records(items)])
     merge("sources.jsonl", [source])
     merge("datasets.jsonl", datasets)
+    merge("data_structures.jsonl", structures)
     merge("resources.jsonl", resources)
     merge("data_elements.jsonl", elements)
     merge("variables.jsonl", variables)
@@ -706,7 +738,7 @@ def main() -> int:
     merge("adapters.jsonl", [adapter])
     merge("monitors.jsonl", [monitor])
     merge("source_profiles.jsonl", [source_profile()])
-    print(f"Merged {len(datasets)} datasets, {len(elements)} data elements, {len(variables)} variables, and {len(constructs)} constructs")
+    print(f"Merged {len(datasets)} datasets, {len(structures)} data structures, {len(elements)} data elements, {len(variables)} variables, and {len(constructs)} constructs")
     return 0
 
 

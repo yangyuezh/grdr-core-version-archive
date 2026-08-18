@@ -31,6 +31,10 @@ Capture canonical name and URL, maintainer, source class, disciplines and topics
 
 Capture parent source, scope, population, observation unit, spatial and temporal coverage, modality, release and revision information, methodology, limitations, access resources, citation, and evidence.
 
+## Minimum deep-map chain
+
+Use `$grdr-deep-map-database` to recover a Dataset's native DataStructure before registering DataElements and research-matchable Variables. Keep APIs, files, authentication, and licenses as access Resources attached to the content chain; never substitute them for the database-internal structure.
+
 ## Unknowns and conflicts
 
 Use explicit unknown or null values. Never convert missing metadata into a negative claim. Preserve conflicting evidence and mark the record `conflicted` until adjudicated.

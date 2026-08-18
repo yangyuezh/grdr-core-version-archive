@@ -103,6 +103,7 @@ def build_context() -> dict[str, Any]:
             "institutions",
             "sources",
             "datasets",
+            "data_structures",
             "resources",
             "data_elements",
             "variables",
@@ -125,6 +126,12 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
     resources = [
         item
         for item in context["resources"]
+        if item["source_id"] == source["id"]
+        or dataset_ids.intersection(item["dataset_ids"])
+    ]
+    data_structures = [
+        item
+        for item in context["data_structures"]
         if item["source_id"] == source["id"]
         or dataset_ids.intersection(item["dataset_ids"])
     ]
@@ -163,6 +170,7 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
     return {
         "institutions": institutions,
         "datasets": datasets,
+        "data_structures": data_structures,
         "resources": resources,
         "data_elements": data_elements,
         "variables": variables,
@@ -172,13 +180,13 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
 
 
 def profile_stage(linked: dict[str, list[dict[str, Any]]]) -> str:
-    if all(linked[name] for name in ("institutions", "datasets", "resources", "variables", "constructs")):
+    if all(linked[name] for name in ("institutions", "datasets", "data_structures", "variables", "constructs")):
         return "six_layer_chain_present"
     if linked["variables"]:
         return "variable_depth_started"
-    if linked["data_elements"]:
+    if linked["data_structures"]:
         return "data_structure_depth_started"
-    if linked["datasets"] or linked["resources"]:
+    if linked["datasets"]:
         return "dataset_depth_started"
     return "source_only"
 
@@ -331,6 +339,36 @@ def render_resources(records: list[dict[str, Any]]) -> str:
     return "\n\n".join(sections)
 
 
+def render_data_structures(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("数据库内部结构")
+    sections = []
+    for item in records:
+        native = item["native_identity"]
+        sections.append(
+            f"#### {item['label']} (`{item['name']}`)\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("结构类型", f"`{item['structure_type']}`"),
+                    ("上游系统", native["system"]),
+                    ("发布机构标识", native.get("agency_id")),
+                    ("上游对象类别", native["object_class"]),
+                    ("上游对象 ID", native["object_id"]),
+                    ("结构版本", native.get("version")),
+                    ("父结构", item["parent_structure_ids"]),
+                    ("附属访问资源", item["resource_ids"]),
+                    ("结构说明", item["description"]),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**数据结构层证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
 def render_variables(records: list[dict[str, Any]]) -> str:
     if not records:
         return missing_layer("变量")
@@ -461,6 +499,7 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("观察单位", source["scope"]["observation_units"]),
             ("模态", source["scope"]["modalities"]),
             ("已登记数据集", len(linked["datasets"])),
+            ("已登记数据库内部结构", len(linked["data_structures"])),
             ("已登记访问资源", len(linked["resources"])),
             ("已登记数据元素", len(linked["data_elements"])),
             ("已登记变量", len(linked["variables"])),
@@ -527,11 +566,11 @@ canonical_url: {json.dumps(source['canonical_url'])}
 
 {render_datasets(linked['datasets'])}
 
-### 第4层：访问资源（Resource）
+### 第4层：数据库内部结构（DataStructure）
 
-{render_resources(linked['resources'])}
+{render_data_structures(linked['data_structures'])}
 
-### 第5层：变量（Variable）
+### 第5层：数据元素与研究变量
 
 #### 5A 数据结构元素（维度、测度、标识符、属性）
 
@@ -544,6 +583,10 @@ canonical_url: {json.dumps(source['canonical_url'])}
 ### 第6层：理论构念（Construct）
 
 {render_constructs(linked['constructs'])}
+
+## 访问方式与资源（旁路信息，不占内容层级）
+
+{render_resources(linked['resources'])}
 
 ## 机器读取与维护
 
@@ -585,8 +628,8 @@ def render_root_block(context: dict[str, Any]) -> str:
 def render_catalog_index(context: dict[str, Any], version: str) -> str:
     counts: dict[str, int] = {}
     rows = [
-        "| 数据库 | 发布/维护机构 | 数据集 | 资源 | 数据元素 | 变量 | 构念 | 拆解范围 | 拆解阶段 | 状态 |",
-        "|---|---|---:|---:|---:|---:|---:|---|---|---|",
+        "| 数据库 | 发布/维护机构 | 数据集 | 数据结构 | 数据元素 | 变量 | 构念 | 访问资源 | 拆解范围 | 拆解阶段 | 状态 |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
@@ -597,8 +640,8 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
         scope_mode, _inventory_claim = declared_scope(linked)
         rows.append(
             f"| [{source['name']}](sources/{slug}/README.md) | {publishers or '未知 / 尚未登记'} | "
-            f"{len(linked['datasets'])} | {len(linked['resources'])} | {len(linked['data_elements'])} | {len(linked['variables'])} | "
-            f"{len(linked['constructs'])} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
+            f"{len(linked['datasets'])} | {len(linked['data_structures'])} | {len(linked['data_elements'])} | {len(linked['variables'])} | "
+            f"{len(linked['constructs'])} | {len(linked['resources'])} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
         )
     summary = "、".join(
         f"{STATUS_LABELS.get(code, code)} {count} 个" for code, count in sorted(counts.items())
@@ -614,9 +657,11 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
 1. 发布/维护机构（Institution）
 2. 数据库/数据源（Source）
 3. 数据集（Dataset）
-4. 访问资源（Resource）
-5. 数据结构元素与变量（Data Element & Variable）
+4. 数据库内部结构（DataStructure）
+5. 数据元素与研究变量（5A DataElement / 5B Variable）
 6. 理论构念（Construct）
+
+API、CSV、批量下载、查询器、认证与许可作为访问旁路挂接到内容实体，不占六层主链。
 
 “尚未登记”表示 GRDR 还没有完成该层的核验和录入，不表示上游数据库不存在相关内容。
 

@@ -26,7 +26,7 @@ def fetch(url: str, timeout: int, accept: str = "application/vnd.sdmx.structure+
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "GRDR source profiler SDMX inspector/0.1",
+            "User-Agent": "GRDR database deep mapper SDMX inspector/1.0",
             "Accept": accept,
         },
     )

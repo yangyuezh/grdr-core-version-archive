@@ -1,4 +1,0 @@
-interface:
-  display_name: "GRDR Source Profiler"
-  short_description: "Decompose databases into six research layers"
-  default_prompt: "Use $grdr-source-profiler to decompose this database into verified institution, source, dataset, resource, variable, and construct layers."

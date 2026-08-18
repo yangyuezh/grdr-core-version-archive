@@ -42,6 +42,7 @@ class GrdrCliTests(unittest.TestCase):
         payload = run_cli("stats")
         self.assertGreaterEqual(payload["counts"]["sources"], 1)
         self.assertGreaterEqual(payload["counts"]["datasets"], 1)
+        self.assertGreaterEqual(payload["counts"]["data_structures"], 1)
         self.assertGreaterEqual(payload["counts"]["data_elements"], 1)
         self.assertGreaterEqual(payload["counts"]["variables"], 1)
         self.assertEqual(payload["counts"]["source_profiles"], 2)
@@ -103,14 +104,19 @@ class GrdrCliTests(unittest.TestCase):
         )["profile"]
         self.assertEqual(undata["profile_stage"], "six_layer_chain_present")
         self.assertTrue(undata["variable_matching_ready"])
+        self.assertFalse(undata["deep_map_scope_complete"])
         self.assertEqual(undata["data_element_count"], 16)
         self.assertEqual(undata["variable_count"], 13)
+        self.assertEqual(undata["data_structure_count"], 2)
+        self.assertEqual(undata["access_sidecar"]["resource_count"], 9)
         self.assertEqual(world_bank["profile_stage"], "six_layer_chain_present")
         self.assertTrue(world_bank["variable_matching_ready"])
         self.assertEqual(world_bank["catalog_completeness"], "representative_only")
         self.assertEqual(world_bank["declared_profile"]["scope_mode"], "representative_chain")
         self.assertEqual(undata["declared_profile"]["scope_mode"], "catalog_level")
         self.assertEqual(undata["catalog_completeness"], "catalog_scope_complete")
+        self.assertIn("data_structure", {item["entity"] for item in undata["coverage_gaps"]})
+        self.assertNotIn("dataset", {item["entity"] for item in undata["coverage_gaps"]})
 
     def test_all_source_depth_audit_covers_every_registered_source(self) -> None:
         payload = run_cli("audit-all-source-depth")
@@ -126,8 +132,8 @@ class GrdrCliTests(unittest.TestCase):
         self.assertEqual(payload["source_count"], source_count)
         self.assertEqual(payload["variable_matching_ready_sources"], 2)
 
-    def test_source_profiler_skill_wrapper_calls_canonical_audit(self) -> None:
-        wrapper = ROOT / "skill" / "grdr-source-profiler" / "scripts" / "profile_source.py"
+    def test_deep_map_skill_wrapper_calls_canonical_audit(self) -> None:
+        wrapper = ROOT / "skill" / "grdr-deep-map-database" / "scripts" / "audit_database_map.py"
         completed = subprocess.run(
             [sys.executable, str(wrapper), "grdr:source:undata"],
             cwd=ROOT.parent,
@@ -145,6 +151,13 @@ class GrdrCliTests(unittest.TestCase):
         self.assertEqual(payload["data_element"]["source_native"]["native_id"], "TRANSACTION")
         self.assertEqual(payload["data_element"]["codelist"]["code_count"], 216)
         self.assertEqual(payload["datasets"][0]["id"], "grdr:dataset:undata-energy-statistics")
+        self.assertEqual(payload["data_structures"][0]["id"], "grdr:data-structure:undata-energy-sdmx")
+
+    def test_database_internal_structure_is_queryable(self) -> None:
+        payload = run_cli("get-data-structure", "grdr:data-structure:undata-energy-sdmx")
+        self.assertEqual(payload["data_structure"]["native_identity"]["object_id"], "DF_UNDATA_ENERGY / DSD_ENERGY")
+        self.assertEqual(len(payload["data_elements"]), 10)
+        self.assertEqual(len(payload["variables"]), 6)
 
     def test_undata_variables_preserve_dimension_selections(self) -> None:
         payload = run_cli("get-variable", "grdr:variable:undata-energy-ga")

@@ -10,6 +10,7 @@
     "name",
     "label",
     "dataset_ids",
+    "data_structure_ids",
     "resource_ids",
     "element_type",
     "source_native",
@@ -29,6 +30,12 @@
     "dataset_ids": {
       "type": "array",
       "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "data_structure_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"},
       "minItems": 1,
       "uniqueItems": true
     },

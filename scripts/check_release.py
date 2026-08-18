@@ -37,13 +37,16 @@ def main() -> int:
     if legacy_skill.exists():
         errors.append("legacy global-research-data-warehouse Skill bundle still exists")
 
-    profiler_skill = ROOT / "skill" / "grdr-source-profiler" / "SKILL.md"
-    if not profiler_skill.is_file():
-        errors.append("version-controlled grdr-source-profiler Skill is missing")
-    elif not profiler_skill.read_text(encoding="utf-8").startswith(
-        "---\nname: grdr-source-profiler\n"
+    mapper_skill = ROOT / "skill" / "grdr-deep-map-database" / "SKILL.md"
+    if not mapper_skill.is_file():
+        errors.append("version-controlled grdr-deep-map-database Skill is missing")
+    elif not mapper_skill.read_text(encoding="utf-8").startswith(
+        "---\nname: grdr-deep-map-database\n"
     ):
-        errors.append("version-controlled profiler Skill identity is not 'grdr-source-profiler'")
+        errors.append("version-controlled deep-map Skill identity is not 'grdr-deep-map-database'")
+
+    if (ROOT / "skill" / "grdr-source-profiler").exists():
+        errors.append("superseded grdr-source-profiler Skill bundle still exists")
 
     indicator_skill = ROOT / "skill" / "grdr-indicator-builder" / "SKILL.md"
     if not indicator_skill.is_file():
@@ -56,6 +59,8 @@ def main() -> int:
     for required_path in [
         ROOT / "schemas" / "research_workflow.schema.json",
         ROOT / "schemas" / "data_gap.schema.json",
+        ROOT / "schemas" / "data_structure.schema.json",
+        ROOT / "registry" / "data_structures.jsonl",
         ROOT / "scripts" / "research_project.py",
     ]:
         if not required_path.is_file():

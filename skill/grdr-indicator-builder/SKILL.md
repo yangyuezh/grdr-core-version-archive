@@ -15,7 +15,7 @@ research question -> literature evidence -> indicator hierarchy -> operational r
 GRDR source profile -> official datasets -> official variables ----+-> variable matching
 ```
 
-Use `$grdr-source-profiler` to decompose databases. Use `$grdr` to coordinate registry search, source expansion, gap diagnosis, and final matching. Do not write question-specific indicators, literature evidence, or mappings into the canonical global `registry/*.jsonl` collections.
+Use `$grdr-deep-map-database` to deep-read databases and establish their native structure-to-variable mapping topology. Use `$grdr` to coordinate registry search, source expansion, gap diagnosis, and final matching. Do not write question-specific indicators, literature evidence, or mappings into the canonical global `registry/*.jsonl` collections.
 
 Store each project under:
 

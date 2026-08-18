@@ -16,12 +16,12 @@ Research-question matching, source combination, and data-gap diagnosis are centr
 
 ## 数据库六层拆解
 
-GRDR uses the dedicated `$grdr-source-profiler` Skill to deepen a registered database from a source-level entry into Institution → Source → Dataset → Resource → Data Element & Variable → Construct records. Layer 5 first preserves source-native dimensions, measures, identifiers, attributes, and code lists, then forms research-matchable variables from a measure plus its required dimension selections. The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated six-layer chain is never reported as a complete upstream inventory. See [the source profiling protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
+GRDR uses the dedicated `$grdr-deep-map-database` Skill to deep-read a registered database into Institution → Source → Dataset → DataStructure → 5A DataElement / 5B Variable → Construct records. `DataStructure` restores the database's own catalog, schema, table, dataflow, questionnaire, array, or other internal organization before variables are formed. API、CSV、下载、认证与许可作为 Resource 旁路挂接，不占第4层。The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated chain is never reported as a complete upstream inventory. See [the database deep-mapping protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
 
 ```bash
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
 python3 scripts/grdr.py audit-all-source-depth
-python3 skill/grdr-source-profiler/scripts/profile_source.py grdr:source:world-bank-open-data
+python3 skill/grdr-deep-map-database/scripts/audit_database_map.py grdr:source:world-bank-open-data
 ```
 
 ## 研究指标构建器
@@ -142,6 +142,7 @@ grdr/
 │   ├── institutions.jsonl
 │   ├── sources.jsonl
 │   ├── datasets.jsonl
+│   ├── data_structures.jsonl
 │   ├── resources.jsonl
 │   ├── data_elements.jsonl
 │   ├── source_profiles.jsonl
@@ -155,6 +156,7 @@ grdr/
 │   ├── institution.schema.json
 │   ├── source.schema.json
 │   ├── dataset.schema.json
+│   ├── data_structure.schema.json
 │   ├── resource.schema.json
 │   ├── data_element.schema.json
 │   ├── source_profile.schema.json
@@ -190,7 +192,7 @@ grdr/
 │   └── validate_registry.py
 ├── skill/
 │   ├── grdr/
-│   ├── grdr-source-profiler/
+│   ├── grdr-deep-map-database/
 │   └── grdr-indicator-builder/
 └── tests/
     ├── test_catalog.py
@@ -200,7 +202,7 @@ grdr/
 
 ## Current phase
 
-Version `0.6.0` completes the first real research-question closed loop and implements all seven project orchestration commands. The persisted exploratory test matches population, final energy consumption, and CO2 emissions to registered variables, converts income-per-capita and industrial-structure misses into auditable profiling leads, and preserves the unapproved human gate. This builds on the `0.5.0` catalog-level UNdata pass—36 datamarts, six glossaries, and deep Energy/GHG chains—without confusing catalog completeness with deep-variable completeness. The target of roughly 100 high-value sources is a first coverage pass, not a collection limit. The Codex Skills are installed as `$grdr`, `$grdr-source-profiler`, and `$grdr-indicator-builder`.
+Version `1.0.0` stabilizes GRDR's database deep-mapping architecture and replaces the former profiler with `$grdr-deep-map-database`. The six-layer main chain now uses DataStructure as layer 4, splits layer 5 into source-native DataElement and research-matchable Variable, and treats access Resource records as sidecars. UNdata Energy/GHG and the WDI representative chain have been migrated to explicit DataStructure topology. This major version marks a stable model and Skill contract, not complete database coverage. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -216,6 +218,7 @@ python3 scripts/grdr.py search-datasets --topic population
 python3 scripts/grdr.py search-variables --construct population
 python3 scripts/grdr.py get-source grdr:source:undata
 python3 scripts/grdr.py get-dataset grdr:dataset:world-development-indicators
+python3 scripts/grdr.py get-data-structure grdr:data-structure:undata-energy-sdmx
 python3 scripts/grdr.py get-data-element grdr:data-element:undata-energy-transaction
 python3 scripts/grdr.py get-variable grdr:variable:undata-energy-ga
 python3 scripts/grdr.py trace-provenance grdr:variable:wdi-sp-pop-totl

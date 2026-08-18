@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "0.6.0"
+registry_version: "1.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.un.org/"
 ---
@@ -23,6 +23,7 @@ canonical_url: "https://data.un.org/"
 | 观察单位 | country-year、region-year |
 | 模态 | tabular |
 | 已登记数据集 | 36 |
+| 已登记数据库内部结构 | 2 |
 | 已登记访问资源 | 9 |
 | 已登记数据元素 | 16 |
 | 已登记变量 | 13 |
@@ -35,15 +36,15 @@ canonical_url: "https://data.un.org/"
 
 | 字段 | 内容 |
 |---|---|
-| 范围说明 | Catalog-level enumeration covers all 36 datamarts and separately records the six glossaries listed on the official UNdata catalog on 2026-08-18. Energy Statistics and Greenhouse Gas Inventory Data are additionally profiled through resources, SDMX data structures, data elements, research-matchable variables, and constructs. Other datamarts remain catalog-identity records. |
+| 范围说明 | Catalog-level enumeration covers all 36 datamarts and separately records the six glossaries listed on the official UNdata catalog on 2026-08-18. Energy Statistics and Greenhouse Gas Inventory Data are additionally profiled through SDMX data structures, data elements, research-matchable variables, and constructs. Access routes are attached as sidecar records. Other datamarts remain catalog-identity records. |
 | 清单声明 | `catalog_scope_complete` |
-| 各层声明 | {"construct": "representative_only", "dataset": "scope_complete", "institution": "scope_complete", "resource": "representative_only", "source": "scope_complete", "variable": "representative_only"} |
+| 各层声明 | {"construct": "representative_only", "data_element": "representative_only", "data_structure": "representative_only", "dataset": "scope_complete", "institution": "scope_complete", "source": "scope_complete", "variable": "representative_only"} |
 | 第5层 5A/5B 边界 | {"data_element_claim": "representative_only", "notes": "5A and 5B cover the Energy Statistics and Greenhouse Gas Inventory SDMX structures only; they do not enumerate the other 34 datamarts.", "registered_data_element_count": 16, "registered_variable_count": 13, "variable_claim": "representative_only"} |
 | 枚举方法 | Parsed all ordered DataMart blocks on the official UNdata Sources page and verified the dataset/glossary boundary. |
 | 上游项目数 | 36 |
 | 快照边界 | 2026-08-18 |
 | 枚举说明 | 36 datamarts are represented as Dataset records; six glossaries are recorded as a separate catalog resource. The live SDMX dataflow endpoint exposed 15 dataflows, so API coverage must not be equated with catalog coverage. |
-| 已知阻塞 | resource / technical: Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational.、variable / scale: Thirty-four datamarts still require structure/codebook and variable-level profiling; catalog identity is not variable completeness. |
+| 已知阻塞 | access / technical: Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational.、variable / scale: Thirty-four datamarts still require structure/codebook and variable-level profiling; catalog identity is not variable completeness. |
 | 最后复核 | 2026-08-18T00:00:00Z |
 
 ## 六层目录
@@ -1868,198 +1869,51 @@ canonical_url: "https://data.un.org/"
 
 - [UNdata datamarts and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：identity、description、provider、catalog_membership、update_metadata；检索于 2026-08-18T00:00:00Z。
 
-### 第4层：访问资源（Resource）
+### 第4层：数据库内部结构（DataStructure）
 
-#### UNdata SDMX API manual
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-api-manual` |
-| 资源入口 | [https://data.un.org/Host.aspx?Content=API](https://data.un.org/Host.aspx?Content=API) |
-| 资源类型 | `documentation` |
-| 格式 | HTML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `none` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata SDMX API manual](https://data.un.org/Host.aspx?Content=API) — United Nations Statistics Division；证据类型：`api_documentation`；支持：sdmx_api、formats、query_documentation；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata SDMX dataflow catalog
+#### UNdata Energy Statistics SDMX cube (`DSD_ENERGY`)
 
 | 字段 | 内容 |
 |---|---|
-| GRDR ID | `grdr:resource:undata-dataflow-catalog` |
-| 资源入口 | [https://data.un.org/ws/rest/dataflow/all/all/latest](https://data.un.org/ws/rest/dataflow/all/all/latest) |
-| 资源类型 | `api` |
-| 格式 | SDMX-XML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `documented` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
+| GRDR ID | `grdr:data-structure:undata-energy-sdmx` |
+| 结构类型 | `multidimensional_schema` |
+| 上游系统 | SDMX 2.1 |
+| 发布机构标识 | UNSD |
+| 上游对象类别 | dataflow-bound data structure definition |
+| 上游对象 ID | DF_UNDATA_ENERGY / DSD_ENERGY |
+| 结构版本 | DSD 1.2 |
+| 父结构 | 未知 / 尚未登记 |
+| 附属访问资源 | grdr:resource:undata-energy-dsd、grdr:resource:undata-dataflow-catalog、grdr:resource:undata-api-manual、grdr:resource:undata-energy-browser |
+| 结构说明 | The official multidimensional structure that organizes Energy Statistics observations by source-native dimensions and attributes around OBS_VALUE; it is the parent context for the registered Energy data elements and research variables. |
 | 验证状态 | 已验证 (`verified`) |
 | 最后验证 | 2026-08-18T00:00:00Z |
 
-**资源层证据**
+**数据结构层证据**
 
-- [UNdata SDMX dataflow catalog](https://data.un.org/ws/rest/dataflow/all/all/latest) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dataflow_inventory、structure_discovery；检索于 2026-08-18T00:00:00Z。
+- [UNdata Energy Statistics SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`data_structure`；支持：native_identity、dimensions、attributes、measure、codelists；检索于 2026-08-18T00:00:00Z。
 
-#### UNdata datamart catalog and update calendar
+#### UNdata Greenhouse Gas Inventory SDMX cube (`DSD_GHG_UNDATA`)
 
 | 字段 | 内容 |
 |---|---|
-| GRDR ID | `grdr:resource:undata-datamart-catalog` |
-| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
-| 资源类型 | `catalog` |
-| 格式 | HTML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
+| GRDR ID | `grdr:data-structure:undata-ghg-sdmx` |
+| 结构类型 | `multidimensional_schema` |
+| 上游系统 | SDMX 2.1 |
+| 发布机构标识 | UNSD |
+| 上游对象类别 | dataflow-bound data structure definition |
+| 上游对象 ID | DF_UNData_UNFCC / DSD_GHG_UNDATA |
+| 结构版本 | DSD 1.0 |
+| 父结构 | 未知 / 尚未登记 |
+| 附属访问资源 | grdr:resource:undata-ghg-dsd、grdr:resource:undata-dataflow-catalog、grdr:resource:undata-api-manual、grdr:resource:undata-ghg-browser |
+| 结构说明 | The official multidimensional structure that organizes greenhouse-gas inventory observations by indicator, frequency, geography, unit and time around OBS_VALUE; it is the parent context for the registered GHG data elements and research variables. |
 | 验证状态 | 已验证 (`verified`) |
 | 最后验证 | 2026-08-18T00:00:00Z |
 
-**资源层证据**
+**数据结构层证据**
 
-- [UNdata datamart catalog and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：catalog、provider、description、update_metadata；检索于 2026-08-18T00:00:00Z。
+- [UNdata Greenhouse Gas Inventory SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`data_structure`；支持：native_identity、dimensions、measure、codelists；检索于 2026-08-18T00:00:00Z。
 
-#### UNdata Energy Statistics browser
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-energy-browser` |
-| 资源入口 | [https://data.un.org/Browse.aspx?d=EDATA](https://data.un.org/Browse.aspx?d=EDATA) |
-| 资源类型 | `browser_query` |
-| 格式 | HTML、CSV |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata Energy Statistics browser](https://data.un.org/Browse.aspx?d=EDATA) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata Energy Statistics SDMX data structure
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-energy-dsd` |
-| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) |
-| 资源类型 | `api` |
-| 格式 | SDMX-XML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `documented` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata Energy Statistics SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、attributes、measure、codelists；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata Greenhouse Gas Inventory browser
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-ghg-browser` |
-| 资源入口 | [https://data.un.org/Browse.aspx?d=GHG](https://data.un.org/Browse.aspx?d=GHG) |
-| 资源类型 | `browser_query` |
-| 格式 | HTML、CSV |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata Greenhouse Gas Inventory browser](https://data.un.org/Browse.aspx?d=GHG) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata Greenhouse Gas Inventory SDMX data structure
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-ghg-dsd` |
-| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) |
-| 资源类型 | `api` |
-| 格式 | SDMX-XML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `documented` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata Greenhouse Gas Inventory SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、measure、codelists；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata glossary catalog
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-glossary-catalog` |
-| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
-| 资源类型 | `catalog` |
-| 格式 | HTML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `partial` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata glossary catalog](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：six_glossary_entries、definitions_catalog；检索于 2026-08-18T00:00:00Z。
-
-#### UNdata terms of use
-
-| 字段 | 内容 |
-|---|---|
-| GRDR ID | `grdr:resource:undata-terms-of-use` |
-| 资源入口 | [https://data.un.org/Host.aspx?Content=UNdataUse](https://data.un.org/Host.aspx?Content=UNdataUse) |
-| 资源类型 | `documentation` |
-| 格式 | HTML |
-| 开放程度 | `open` |
-| 身份验证 | `none` |
-| 机器访问 | `none` |
-| 限流已知 | 未知 / 尚未登记 |
-| 许可状态 | `documented_open` |
-| 访问说明 | 未知 / 尚未登记 |
-| 验证状态 | 已验证 (`verified`) |
-| 最后验证 | 2026-08-18T00:00:00Z |
-
-**资源层证据**
-
-- [UNdata terms of use](https://data.un.org/Host.aspx?Content=UNdataUse) — United Nations Statistics Division；证据类型：`license`；支持：license、attribution、republishing_policy；检索于 2026-08-18T00:00:00Z。
-
-### 第5层：变量（Variable）
+### 第5层：数据元素与研究变量
 
 #### 5A 数据结构元素（维度、测度、标识符、属性）
 
@@ -3133,6 +2987,197 @@ canonical_url: "https://data.un.org/"
 **构念层证据**
 
 - [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+## 访问方式与资源（旁路信息，不占内容层级）
+
+#### UNdata SDMX API manual
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-api-manual` |
+| 资源入口 | [https://data.un.org/Host.aspx?Content=API](https://data.un.org/Host.aspx?Content=API) |
+| 资源类型 | `documentation` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `none` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata SDMX API manual](https://data.un.org/Host.aspx?Content=API) — United Nations Statistics Division；证据类型：`api_documentation`；支持：sdmx_api、formats、query_documentation；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata SDMX dataflow catalog
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-dataflow-catalog` |
+| 资源入口 | [https://data.un.org/ws/rest/dataflow/all/all/latest](https://data.un.org/ws/rest/dataflow/all/all/latest) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata SDMX dataflow catalog](https://data.un.org/ws/rest/dataflow/all/all/latest) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dataflow_inventory、structure_discovery；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata datamart catalog and update calendar
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-datamart-catalog` |
+| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
+| 资源类型 | `catalog` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata datamart catalog and update calendar](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：catalog、provider、description、update_metadata；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Energy Statistics browser
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-energy-browser` |
+| 资源入口 | [https://data.un.org/Browse.aspx?d=EDATA](https://data.un.org/Browse.aspx?d=EDATA) |
+| 资源类型 | `browser_query` |
+| 格式 | HTML、CSV |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Energy Statistics browser](https://data.un.org/Browse.aspx?d=EDATA) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Energy Statistics SDMX data structure
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-energy-dsd` |
+| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Energy Statistics SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_ENERGY/1.2) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、attributes、measure、codelists；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Greenhouse Gas Inventory browser
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-ghg-browser` |
+| 资源入口 | [https://data.un.org/Browse.aspx?d=GHG](https://data.un.org/Browse.aspx?d=GHG) |
+| 资源类型 | `browser_query` |
+| 格式 | HTML、CSV |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Greenhouse Gas Inventory browser](https://data.un.org/Browse.aspx?d=GHG) — United Nations Statistics Division；证据类型：`official_documentation`；支持：interactive_access、csv_download；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata Greenhouse Gas Inventory SDMX data structure
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-ghg-dsd` |
+| 资源入口 | [https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) |
+| 资源类型 | `api` |
+| 格式 | SDMX-XML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `documented` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata Greenhouse Gas Inventory SDMX data structure](https://data.un.org/ws/rest/datastructure/UNSD/DSD_GHG_UNDATA/1.0) — United Nations Statistics Division；证据类型：`api_documentation`；支持：dimensions、measure、codelists；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata glossary catalog
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-glossary-catalog` |
+| 资源入口 | [https://data.un.org/DataMartInfo.aspx](https://data.un.org/DataMartInfo.aspx) |
+| 资源类型 | `catalog` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `partial` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata glossary catalog](https://data.un.org/DataMartInfo.aspx) — United Nations Statistics Division；证据类型：`official_catalog`；支持：six_glossary_entries、definitions_catalog；检索于 2026-08-18T00:00:00Z。
+
+#### UNdata terms of use
+
+| 字段 | 内容 |
+|---|---|
+| GRDR ID | `grdr:resource:undata-terms-of-use` |
+| 资源入口 | [https://data.un.org/Host.aspx?Content=UNdataUse](https://data.un.org/Host.aspx?Content=UNdataUse) |
+| 资源类型 | `documentation` |
+| 格式 | HTML |
+| 开放程度 | `open` |
+| 身份验证 | `none` |
+| 机器访问 | `none` |
+| 限流已知 | 未知 / 尚未登记 |
+| 许可状态 | `documented_open` |
+| 访问说明 | 未知 / 尚未登记 |
+| 验证状态 | 已验证 (`verified`) |
+| 最后验证 | 2026-08-18T00:00:00Z |
+
+**资源层证据**
+
+- [UNdata terms of use](https://data.un.org/Host.aspx?Content=UNdataUse) — United Nations Statistics Division；证据类型：`license`；支持：license、attribution、republishing_policy；检索于 2026-08-18T00:00:00Z。
 
 ## 机器读取与维护
 

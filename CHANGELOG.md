@@ -2,6 +2,25 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [1.0.0] - 2026-08-18
+
+### Added
+
+- First-class `DataStructure` schema, registry collection, CLI query, validation rules, catalog rendering, and typed knowledge-graph relationships.
+- Explicit deep-map topology for UNdata Energy Statistics, UNdata Greenhouse Gas Inventory, and the representative World Development Indicators chain.
+- `$grdr-deep-map-database`, a dedicated Skill for deep-reading a database and mapping its native structure through data elements, research variables, and theoretical constructs.
+
+### Changed
+
+- Stabilized the six-layer content chain as Institution → Source → Dataset → DataStructure → 5A DataElement / 5B Variable → Construct.
+- Moved Resource out of the content hierarchy: APIs, files, queries, authentication, limits, and licenses are now access sidecars and do not advance profiling depth.
+- Replaced `$grdr-source-profiler` with `$grdr-deep-map-database` across the repository, installed Skills, documentation, tests, and release checks.
+- Upgraded SourceProfile to schema `1.0.0` with separate DataStructure, DataElement, Variable, Construct, and access claims.
+
+### Migration note
+
+- This is a major version because the layer-4 meaning and SourceProfile contract are incompatible with the 0.x model. Version 1.0 stabilizes the mapping architecture; it does not claim complete deep coverage of all registered databases.
+
 ## [0.6.0] - 2026-08-18
 
 ### Added

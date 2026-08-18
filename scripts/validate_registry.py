@@ -17,6 +17,7 @@ COLLECTIONS = {
     "institutions": (REGISTRY / "institutions.jsonl", SCHEMAS / "institution.schema.json"),
     "sources": (REGISTRY / "sources.jsonl", SCHEMAS / "source.schema.json"),
     "datasets": (REGISTRY / "datasets.jsonl", SCHEMAS / "dataset.schema.json"),
+    "data_structures": (REGISTRY / "data_structures.jsonl", SCHEMAS / "data_structure.schema.json"),
     "resources": (REGISTRY / "resources.jsonl", SCHEMAS / "resource.schema.json"),
     "data_elements": (REGISTRY / "data_elements.jsonl", SCHEMAS / "data_element.schema.json"),
     "constructs": (REGISTRY / "constructs.jsonl", SCHEMAS / "construct.schema.json"),
@@ -82,6 +83,7 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
     institution_ids = {record["id"] for record in collections["institutions"]}
     source_ids = {record["id"] for record in collections["sources"]}
     dataset_ids = {record["id"] for record in collections["datasets"]}
+    data_structure_ids = {record["id"] for record in collections["data_structures"]}
     resource_ids = {record["id"] for record in collections["resources"]}
     data_element_ids = {record["id"] for record in collections["data_elements"]}
     construct_ids = {record["id"] for record in collections["constructs"]}
@@ -105,10 +107,26 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
             if dataset_id not in dataset_ids:
                 errors.append(f"{resource.get('id')}: unknown dataset_id {dataset_id}")
 
+    for structure in collections["data_structures"]:
+        if structure.get("source_id") not in source_ids:
+            errors.append(f"{structure.get('id')}: unknown source_id {structure.get('source_id')}")
+        for dataset_id in structure.get("dataset_ids", []):
+            if dataset_id not in dataset_ids:
+                errors.append(f"{structure.get('id')}: unknown dataset_id {dataset_id}")
+        for parent_id in structure.get("parent_structure_ids", []):
+            if parent_id not in data_structure_ids:
+                errors.append(f"{structure.get('id')}: unknown parent_structure_id {parent_id}")
+        for resource_id in structure.get("resource_ids", []):
+            if resource_id not in resource_ids:
+                errors.append(f"{structure.get('id')}: unknown resource_id {resource_id}")
+
     for variable in collections["variables"]:
         for dataset_id in variable.get("dataset_ids", []):
             if dataset_id not in dataset_ids:
                 errors.append(f"{variable.get('id')}: unknown dataset_id {dataset_id}")
+        for structure_id in variable.get("data_structure_ids", []):
+            if structure_id not in data_structure_ids:
+                errors.append(f"{variable.get('id')}: unknown data_structure_id {structure_id}")
         for construct_id in variable.get("construct_ids", []):
             if construct_id not in construct_ids:
                 errors.append(f"{variable.get('id')}: unknown construct_id {construct_id}")
@@ -125,6 +143,9 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
         for dataset_id in element.get("dataset_ids", []):
             if dataset_id not in dataset_ids:
                 errors.append(f"{element.get('id')}: unknown dataset_id {dataset_id}")
+        for structure_id in element.get("data_structure_ids", []):
+            if structure_id not in data_structure_ids:
+                errors.append(f"{element.get('id')}: unknown data_structure_id {structure_id}")
         for resource_id in element.get("resource_ids", []):
             if resource_id not in resource_ids:
                 errors.append(f"{element.get('id')}: unknown resource_id {resource_id}")

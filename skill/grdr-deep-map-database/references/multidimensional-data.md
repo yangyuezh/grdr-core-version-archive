@@ -4,7 +4,7 @@
 
 Many authoritative statistical systems do not expose a flat table. They expose a cube whose observation value is meaningful only after selecting dimensions such as area, commodity, transaction, indicator, unit, frequency, and time. Flattening the cube directly into a list of labels loses identity, units, join keys, and comparability boundaries.
 
-Within GRDR layer 5, keep two linked representations:
+First register the cube or equivalent hierarchy as layer 4 `DataStructure`. Within layer 5, keep two linked representations:
 
 1. **5A DataElement** mirrors the upstream structure.
 2. **5B Variable** is a research-matchable operational variable defined by a measure plus required dimension selections.
@@ -24,8 +24,8 @@ OBS_VALUE
 ## SDMX route
 
 1. Enumerate dataflows and record the dated count.
-2. Resolve each selected dataflow to its Data Structure Definition (DSD).
-3. Register dimensions, time dimensions, primary measures, and attributes as DataElements.
+2. Resolve each selected dataflow to its Data Structure Definition (DSD) and register their stable topology as a `DataStructure`.
+3. Register dimensions, time dimensions, primary measures, and attributes as DataElements linked to that structure.
 4. Resolve referenced codelists and retain agency, ID, version, and code count.
 5. Identify which dimension codes produce meaningful research variables.
 6. Create Variable records that point to the measure element and list their exact dimension selections.
@@ -36,7 +36,7 @@ The completion gate is mechanical: without a resolved measure element and at lea
 
 ## Other multidimensional systems
 
-- **DCAT/data catalogs:** catalog → dataset → distribution/resource → schema/field.
+- **DCAT/data catalogs:** catalog → dataset → schema/field; distributions are access-sidecar Resources.
 - **JSON/JSON Schema:** object → nested property/array → field constraints and enumerations.
 - **Relational systems:** database → schema → table/view → column/key/constraint.
 - **Questionnaires:** study → instrument → section → question/item → response codes and derived variables.
