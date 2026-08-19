@@ -60,14 +60,35 @@ def main() -> int:
         ROOT / "schemas" / "research_workflow.schema.json",
         ROOT / "schemas" / "data_gap.schema.json",
         ROOT / "schemas" / "data_structure.schema.json",
+        ROOT / "schemas" / "database_deep_map_project.schema.json",
+        ROOT / "schemas" / "database_deep_map_unit.schema.json",
+        ROOT / "schemas" / "database_deep_map_phase_update.schema.json",
+        ROOT / "schemas" / "database_deep_map_stage_update.schema.json",
         ROOT / "registry" / "data_structures.jsonl",
         ROOT / "scripts" / "research_project.py",
+        ROOT / "scripts" / "database_deep_map.py",
+        ROOT / "deep_map_projects" / "undata" / "project.json",
+        ROOT / "deep_map_projects" / "undata" / "units.jsonl",
+        ROOT / "docs" / "DATABASE_DEEP_MAP_WORKFLOW.md",
+        ROOT / "skill" / "grdr-deep-map-database" / "references" / "completion-contract.md",
+        ROOT / "skill" / "grdr-deep-map-database" / "references" / "database-archetypes.md",
+        ROOT / "skill" / "grdr-deep-map-database" / "references" / "within-stage-enumeration.md",
+        ROOT / "skill" / "grdr-deep-map-database" / "references" / "phase-update.example.json",
+        ROOT / "skill" / "grdr-deep-map-database" / "references" / "stage-update.example.json",
+        ROOT / "skill" / "grdr-deep-map-database" / "scripts" / "inspect_sdmx.py",
     ]:
         if not required_path.is_file():
             errors.append(f"required research workflow file is missing: {required_path.relative_to(ROOT)}")
 
     cli = (ROOT / "scripts" / "grdr.py").read_text(encoding="utf-8")
     for command in [
+        "start-database-deep-map",
+        "database-deep-map-status",
+        "resume-database-deep-map",
+        "record-database-deep-map-phase",
+        "record-database-deep-map-stage",
+        "audit-database-deep-map",
+        "complete-database-deep-map",
         "start-research-project",
         "research-project-status",
         "approve-human-gate",

@@ -2,6 +2,30 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [1.1.0] - 2026-08-19
+
+### Added
+
+- Persistent database deep-mapping projects under `deep_map_projects/<source>/`, with a bounded project definition, ordered work-unit ledger, generated human report, history, blockers, and deterministic next action.
+- Seven executable database lifecycle operations: `start-database-deep-map`, `database-deep-map-status`, `resume-database-deep-map`, `record-database-deep-map-phase`, `record-database-deep-map-stage`, `audit-database-deep-map`, and `complete-database-deep-map`.
+- Database and work-unit classification for discipline, primary/secondary origin, provenance role, production mode, structural archetype, access regime, and composable extraction routes.
+- Strict schemas and completion contract for counted Dataset, DataStructure, DataElement, Variable, Construct, and Access stages.
+- Route guidance for catalogs, statistical cubes, tables, APIs, surveys, administrative systems, geospatial data, scientific arrays, biomedical data, knowledge graphs, multimodal corpora, restricted environments, and derived data.
+- Read-only exact `next_target` and queue previews, deterministic within-stage native ordering and cursor rules, legal update examples, and a bundled SDMX inspection entry point.
+
+### Changed
+
+- `$grdr-deep-map-database` is now an executable, resumable state machine rather than a guidance-only profiling procedure.
+- Mapping progress and strict completion are reported separately; only fully counted and evidenced `verified_complete` or `not_applicable` stages count toward strict completion.
+- The generated catalog now exposes persistent deep-map progress for every registered source and links to the corresponding project report where one exists.
+- UNdata has been migrated into the first real 36-work-unit deep-map project. Its prior records remain useful evidence, but are no longer mistaken for complete database coverage.
+
+### Results
+
+- The dated UNdata boundary contains all 36 official datamarts and 216 required work-unit stages.
+- At migration, 42 stages are mapped and 2 are strictly closed: 19.44% mapping progress and 0.93% strict completion, with two documented access blockers.
+- The next deterministic target is the Energy Statistics variable stage using the SDMX-cube route; GRDR cannot declare UNdata complete until every bounded stage closes and all blockers are resolved.
+
 ## [1.0.0] - 2026-08-18
 
 ### Added

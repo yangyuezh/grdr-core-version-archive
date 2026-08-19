@@ -1,0 +1,261 @@
+{
+  "created_at": "2026-08-19T10:22:59.139663+00:00",
+  "current_phase": "deep_mapping",
+  "database_profile": {
+    "access_regime": "mixed",
+    "classification_notes": "UNdata is an official UN Statistics Division aggregation portal combining UNSD-produced collections with datasets supplied by other international organizations; provenance must be resolved per datamart.",
+    "disciplines": [
+      "multidisciplinary"
+    ],
+    "origin_type": "hybrid",
+    "production_modes": [
+      "official_statistics",
+      "survey",
+      "census",
+      "administrative"
+    ],
+    "provenance_role": "derivative_aggregator",
+    "route_modules": [
+      "catalog",
+      "sdmx_cube",
+      "table_schema",
+      "api_schema",
+      "derived_provenance"
+    ],
+    "structural_archetypes": [
+      "hierarchical_catalog",
+      "statistical_cube",
+      "flat_table_collection",
+      "json_or_xml_api"
+    ]
+  },
+  "history": [
+    {
+      "operation": "start-database-deep-map",
+      "summary": "Created persistent database deep-map project and initial work-unit ledger.",
+      "timestamp": "2026-08-19T10:22:59.139663+00:00"
+    },
+    {
+      "operation": "migrate-existing-undata-map",
+      "summary": "Migrated 36 datamarts and all existing Energy/GHG deep-map records into the strict work-unit ledger without upgrading partial verification.",
+      "timestamp": "2026-08-19T00:00:00Z"
+    },
+    {
+      "operation": "resume-database-deep-map",
+      "summary": "Next target: 16 / data_structure.",
+      "timestamp": "2026-08-19T10:22:59.255381+00:00"
+    },
+    {
+      "operation": "resume-database-deep-map",
+      "summary": "Next target: EDATA / variable.",
+      "timestamp": "2026-08-19T10:24:37.851658+00:00"
+    },
+    {
+      "operation": "resume-database-deep-map",
+      "summary": "Next target: EDATA / variable.",
+      "timestamp": "2026-08-19T10:41:24.957950+00:00"
+    },
+    {
+      "operation": "resume-database-deep-map",
+      "summary": "Next target: EDATA / variable.",
+      "timestamp": "2026-08-19T10:47:43.591153+00:00"
+    },
+    {
+      "operation": "record-database-deep-map-stage",
+      "summary": "Set EDATA / variable to in_progress.",
+      "timestamp": "2026-08-19T10:49:42.808314+00:00"
+    }
+  ],
+  "id": "grdr:deep-map-project:undata",
+  "next_actions": [
+    "resume-database-deep-map"
+  ],
+  "phase_states": {
+    "boundary": {
+      "blockers": [],
+      "completion_basis": "Official catalog parsing established the dated 36-datamart boundary and separated six glossary entries.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "catalog",
+            "provider",
+            "description",
+            "update_metadata"
+          ],
+          "title": "UNdata datamart catalog and update calendar",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-19T00:00:00Z"
+    },
+    "classification": {
+      "blockers": [],
+      "completion_basis": "Database origin, provenance role, production modes, structural archetypes, access regime, and routes were classified in the start specification.",
+      "evidence": [
+        {
+          "evidence_type": "official_homepage",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "identity",
+            "maintainer",
+            "scope",
+            "provenance_position"
+          ],
+          "title": "About UNdata",
+          "url": "https://data.un.org/Host.aspx?Content=About"
+        },
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "36_datamarts",
+            "6_glossaries",
+            "providers",
+            "update_metadata"
+          ],
+          "title": "UNdata datamarts and update calendar",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        },
+        {
+          "evidence_type": "api_documentation",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "machine_access",
+            "formats",
+            "api_scope"
+          ],
+          "title": "UNdata API Manual",
+          "url": "https://data.un.org/Host.aspx?Content=API"
+        },
+        {
+          "evidence_type": "license",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "free_access",
+            "copying",
+            "distribution",
+            "attribution",
+            "provider_responsibility"
+          ],
+          "title": "UNdata Terms of Use",
+          "url": "https://data.un.org/Host.aspx?Content=UNdataUse"
+        }
+      ],
+      "state": "mapped_complete",
+      "updated_at": "2026-08-19T10:22:59.139663+00:00"
+    },
+    "completion_audit": {
+      "blockers": [],
+      "completion_basis": null,
+      "evidence": [],
+      "state": "not_started",
+      "updated_at": "2026-08-19T10:22:59.139663+00:00"
+    },
+    "deep_mapping": {
+      "blockers": [],
+      "completion_basis": null,
+      "evidence": [],
+      "state": "in_progress",
+      "updated_at": "2026-08-19T10:22:59.139663+00:00"
+    },
+    "identity": {
+      "blockers": [],
+      "completion_basis": "Canonical GRDR Source identity and official evidence are registered.",
+      "evidence": [
+        {
+          "evidence_type": "official_homepage",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "identity",
+            "maintainer",
+            "scope",
+            "provenance_position"
+          ],
+          "title": "About UNdata",
+          "url": "https://data.un.org/Host.aspx?Content=About"
+        },
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "36_datamarts",
+            "6_glossaries",
+            "providers",
+            "update_metadata"
+          ],
+          "title": "UNdata datamarts and update calendar",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        },
+        {
+          "evidence_type": "api_documentation",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "machine_access",
+            "formats",
+            "api_scope"
+          ],
+          "title": "UNdata API Manual",
+          "url": "https://data.un.org/Host.aspx?Content=API"
+        },
+        {
+          "evidence_type": "license",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "free_access",
+            "copying",
+            "distribution",
+            "attribution",
+            "provider_responsibility"
+          ],
+          "title": "UNdata Terms of Use",
+          "url": "https://data.un.org/Host.aspx?Content=UNdataUse"
+        }
+      ],
+      "state": "mapped_complete",
+      "updated_at": "2026-08-19T10:22:59.139663+00:00"
+    },
+    "inventory": {
+      "blockers": [],
+      "completion_basis": "All 36 declared datamarts have one unique work unit and canonical Dataset record.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-18T00:00:00Z",
+          "supports": [
+            "catalog",
+            "provider",
+            "description",
+            "update_metadata"
+          ],
+          "title": "UNdata datamart catalog and update calendar",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-19T00:00:00Z"
+    },
+    "validation": {
+      "blockers": [],
+      "completion_basis": null,
+      "evidence": [],
+      "state": "not_started",
+      "updated_at": "2026-08-19T10:22:59.139663+00:00"
+    }
+  },
+  "schema_version": "1.0.0",
+  "scope": {
+    "boundary_statement": "All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.",
+    "boundary_type": "catalog_snapshot",
+    "enumeration_method": "Parse every ordered DataMart block in the official UNdata Sources page, preserve its catalog ID, and reconcile the count against 36 catalog entries.",
+    "expected_work_unit_count": 36,
+    "mode": "exhaustive_snapshot",
+    "snapshot_at": "2026-08-18T00:00:00Z"
+  },
+  "source_id": "grdr:source:undata",
+  "title": "UNdata bounded deep-map project",
+  "updated_at": "2026-08-19T10:49:42.808314+00:00",
+  "workflow_status": "in_progress"
+}

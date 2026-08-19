@@ -839,6 +839,69 @@ def rerun_matching_command(args: argparse.Namespace) -> None:
     )
 
 
+def start_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import start_database_deep_map
+
+    run_research_operation(
+        "start_database_deep_map",
+        lambda: start_database_deep_map(args.spec_file, args.project_dir),
+    )
+
+
+def database_deep_map_status_command(args: argparse.Namespace) -> None:
+    from database_deep_map import database_deep_map_status
+
+    run_research_operation(
+        "database_deep_map_status",
+        lambda: database_deep_map_status(args.project_dir),
+    )
+
+
+def resume_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import resume_database_deep_map
+
+    run_research_operation(
+        "resume_database_deep_map",
+        lambda: resume_database_deep_map(args.project_dir),
+    )
+
+
+def record_database_deep_map_phase_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_phase
+
+    run_research_operation(
+        "record_database_deep_map_phase",
+        lambda: record_database_deep_map_phase(args.project_dir, args.update_file),
+    )
+
+
+def record_database_deep_map_stage_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_stage
+
+    run_research_operation(
+        "record_database_deep_map_stage",
+        lambda: record_database_deep_map_stage(args.project_dir, args.update_file),
+    )
+
+
+def audit_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import audit_database_deep_map
+
+    run_research_operation(
+        "audit_database_deep_map",
+        lambda: audit_database_deep_map(args.project_dir),
+    )
+
+
+def complete_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import complete_database_deep_map
+
+    run_research_operation(
+        "complete_database_deep_map",
+        lambda: complete_database_deep_map(args.project_dir),
+    )
+
+
 def stats(_args: argparse.Namespace) -> None:
     collections = {
         entity_type: load_jsonl(filename)
@@ -977,6 +1040,58 @@ def parser() -> argparse.ArgumentParser:
         help="Audit six-layer profiling depth for every registered database",
     )
     all_source_depth.set_defaults(handler=audit_all_source_depth)
+
+    start_deep_map = commands.add_parser(
+        "start-database-deep-map",
+        help="Create a persistent, bounded database deep-map project and work-unit ledger",
+    )
+    start_deep_map.add_argument("spec_file")
+    start_deep_map.add_argument("--project-dir")
+    start_deep_map.set_defaults(handler=start_database_deep_map_command)
+
+    deep_map_status = commands.add_parser(
+        "database-deep-map-status",
+        help="Report strict and mapped progress for a database deep-map project",
+    )
+    deep_map_status.add_argument("project_dir")
+    deep_map_status.set_defaults(handler=database_deep_map_status_command)
+
+    resume_deep_map = commands.add_parser(
+        "resume-database-deep-map",
+        help="Select the next required phase or work-unit stage without skipping completion gates",
+    )
+    resume_deep_map.add_argument("project_dir")
+    resume_deep_map.set_defaults(handler=resume_database_deep_map_command)
+
+    record_deep_map_phase = commands.add_parser(
+        "record-database-deep-map-phase",
+        help="Apply an evidence-backed project-phase update",
+    )
+    record_deep_map_phase.add_argument("project_dir")
+    record_deep_map_phase.add_argument("update_file")
+    record_deep_map_phase.set_defaults(handler=record_database_deep_map_phase_command)
+
+    record_deep_map_stage = commands.add_parser(
+        "record-database-deep-map-stage",
+        help="Apply a counted, evidence-backed update to one work-unit stage",
+    )
+    record_deep_map_stage.add_argument("project_dir")
+    record_deep_map_stage.add_argument("update_file")
+    record_deep_map_stage.set_defaults(handler=record_database_deep_map_stage_command)
+
+    audit_deep_map = commands.add_parser(
+        "audit-database-deep-map",
+        help="Audit schemas, registry references, counts, blockers, and strict completion",
+    )
+    audit_deep_map.add_argument("project_dir")
+    audit_deep_map.set_defaults(handler=audit_database_deep_map_command)
+
+    complete_deep_map = commands.add_parser(
+        "complete-database-deep-map",
+        help="Declare bounded completion only after every strict gate passes",
+    )
+    complete_deep_map.add_argument("project_dir")
+    complete_deep_map.set_defaults(handler=complete_database_deep_map_command)
 
     indicator_project = commands.add_parser(
         "audit-indicator-project",

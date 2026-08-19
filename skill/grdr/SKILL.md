@@ -79,6 +79,19 @@ python3 scripts/grdr.py audit-all-source-depth
 
 Treat `six_layer_chain_present` as evidence that at least one chain exists, never as proof that the full upstream catalog has been inventoried.
 
+For every nontrivial pass, use the persistent workflow rather than an ad hoc browsing session:
+
+```bash
+python3 scripts/grdr.py start-database-deep-map <spec.json>
+python3 scripts/grdr.py database-deep-map-status <project>
+python3 scripts/grdr.py resume-database-deep-map <project>
+python3 scripts/grdr.py record-database-deep-map-stage <project> <update.json>
+python3 scripts/grdr.py audit-database-deep-map <project>
+python3 scripts/grdr.py complete-database-deep-map <project>
+```
+
+Keep projects under `deep_map_projects/<source>/`. Only the completion command may declare bounded completion; representative chains, unknown expected counts, partial verification, and blockers never equal 100%.
+
 ## Keep the human catalog synchronized
 
 Treat human readability as required, even though AI agents are the primary users. Every registered source must appear in the root `README.md` and have an independent `catalog/sources/<source-slug>/README.md` page covering Institution, Source, Dataset, DataStructure, DataElement & Variable, and Construct, plus access-sidecar Resources.

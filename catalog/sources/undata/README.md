@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "1.0.0"
+registry_version: "1.1.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.un.org/"
 ---
@@ -29,6 +29,7 @@ canonical_url: "https://data.un.org/"
 | 已登记变量 | 13 |
 | 已关联构念 | 13 |
 | 当前拆解阶段 | `six_layer_chain_present` |
+| 持久化深度映射 | 19.44% mapped / 0.93% strict |
 | 已声明拆解范围 | `catalog_level` |
 | 上游目录完整度 | `catalog_scope_complete`；存在六层链不等于完整枚举 |
 
@@ -46,6 +47,23 @@ canonical_url: "https://data.un.org/"
 | 枚举说明 | 36 datamarts are represented as Dataset records; six glossaries are recorded as a separate catalog resource. The live SDMX dataflow endpoint exposed 15 dataflows, so API coverage must not be equated with catalog coverage. |
 | 已知阻塞 | access / technical: Documented observation data queries timed out or returned HTTP 500 across live probes on 2026-08-18, while metadata and structure endpoints remained operational.、variable / scale: Thirty-four datamarts still require structure/codebook and variable-level profiling; catalog identity is not variable completeness. |
 | 最后复核 | 2026-08-18T00:00:00Z |
+
+## 持久化数据库深度映射工程
+
+#### UNdata bounded deep-map project
+
+| 字段 | 内容 |
+|---|---|
+| 工程ID | `grdr:deep-map-project:undata` |
+| 工程状态 | `in_progress` |
+| 边界 | All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units. |
+| 工作单元 | 36 / 36 |
+| 映射进度 | 19.44% |
+| 严格完成度 | 0.93% |
+| 完整闭合工作单元 | 0 / 36 |
+| 阻塞阶段 | 2 |
+| 可声明完成 | 否 |
+| 工程详情 | [打开工程台账](../../../deep_map_projects/undata/README.md) |
 
 ## 六层目录
 

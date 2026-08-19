@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:copernicus-climate-data-store"
 record_type: "source_catalog"
-registry_version: "1.0.0"
+registry_version: "1.1.0"
 verification_status: "unverified"
 canonical_url: "https://cds.climate.copernicus.eu/"
 ---
@@ -29,12 +29,17 @@ canonical_url: "https://cds.climate.copernicus.eu/"
 | 已登记变量 | 0 |
 | 已关联构念 | 0 |
 | 当前拆解阶段 | `source_only` |
+| 持久化深度映射 | 尚未建立持久化深度映射工程 |
 | 已声明拆解范围 | `undeclared` |
 | 上游目录完整度 | `not_assessed`；存在六层链不等于完整枚举 |
 
 ## 拆解范围与清单边界
 
 > 尚未建立拆解范围声明层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关拆解范围声明。
+
+## 持久化数据库深度映射工程
+
+> 尚未建立持久化数据库深度映射工程；当前六层记录不能解释为全库完成。
 
 ## 六层目录
 

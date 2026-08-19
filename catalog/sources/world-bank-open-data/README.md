@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:world-bank-open-data"
 record_type: "source_catalog"
-registry_version: "1.0.0"
+registry_version: "1.1.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.worldbank.org/"
 ---
@@ -29,6 +29,7 @@ canonical_url: "https://data.worldbank.org/"
 | 已登记变量 | 1 |
 | 已关联构念 | 1 |
 | 当前拆解阶段 | `six_layer_chain_present` |
+| 持久化深度映射 | 尚未建立持久化深度映射工程 |
 | 已声明拆解范围 | `representative_chain` |
 | 上游目录完整度 | `representative_only`；存在六层链不等于完整枚举 |
 
@@ -46,6 +47,10 @@ canonical_url: "https://data.worldbank.org/"
 | 枚举说明 | This profile does not enumerate the full World Bank Data catalog or all WDI indicators. |
 | 已知阻塞 | 未知 / 尚未登记 |
 | 最后复核 | 2026-08-15T00:00:00Z |
+
+## 持久化数据库深度映射工程
+
+> 尚未建立持久化数据库深度映射工程；当前六层记录不能解释为全库完成。
 
 ## 六层目录
 

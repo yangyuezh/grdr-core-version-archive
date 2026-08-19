@@ -76,6 +76,16 @@ The registry must also support direct source discovery and curation without requ
 - `mark_superseded`
 - `check_links`
 
+### Persistent database deep mapping
+
+- `start_database_deep_map`
+- `database_deep_map_status`
+- `resume_database_deep_map`
+- `record_database_deep_map_phase`
+- `record_database_deep_map_stage`
+- `audit_database_deep_map`
+- `complete_database_deep_map`
+
 ### Optional access extensions
 
 - `run_adapter`
@@ -84,6 +94,24 @@ The registry must also support direct source discovery and curation without requ
 - `monitor_upstream_change`
 
 The current CLI implements a subset. These operation names define the intended capability surface for CLI, SDK, and MCP delivery.
+
+## Executable database lifecycle
+
+Every nontrivial database pass is persisted under `deep_map_projects/<source-slug>/`:
+
+```text
+start-database-deep-map
+  → classify source and work-unit shapes
+  → fix dated boundary and expected unit count
+  → resume-database-deep-map
+  → map and record each required unit stage
+  → audit-database-deep-map
+  → complete-database-deep-map
+```
+
+The six required unit stages are Dataset, DataStructure, DataElement, Variable, Construct, and Access. Their semantic requirements remain fixed, while route modules adapt extraction to statistical cubes, surveys, administrative systems, tables, APIs, geospatial stores, scientific arrays, biomedical repositories, knowledge graphs, corpora, and restricted environments.
+
+`resume-database-deep-map` returns the next ordered open unit and stage; an Agent may not silently substitute a convenient sample. `complete-database-deep-map` is the only operation allowed to declare completion. It rejects unknown counts, open or blocked stages, invalid GRDR references, missing completion evidence, registry failures, and catalog drift. A 100% result is always limited to the project's explicit dated boundary.
 
 ## Executable research-project lifecycle
 

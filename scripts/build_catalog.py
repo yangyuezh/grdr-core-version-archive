@@ -115,6 +115,12 @@ def build_context() -> dict[str, Any]:
     collections["institution_index"] = {
         item["id"]: item for item in collections["institutions"]
     }
+    from database_deep_map import audit_database_deep_map
+
+    deep_maps = []
+    for project_file in sorted((ROOT / "deep_map_projects").glob("*/project.json")):
+        deep_maps.append(audit_database_deep_map(project_file.parent))
+    collections["deep_map_projects"] = deep_maps
     return collections
 
 
@@ -167,6 +173,9 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         for item in context["source_profiles"]
         if item["source_id"] == source["id"]
     ]
+    deep_map_projects = [
+        item for item in context["deep_map_projects"] if item["source_id"] == source["id"]
+    ]
     return {
         "institutions": institutions,
         "datasets": datasets,
@@ -176,6 +185,7 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         "variables": variables,
         "constructs": constructs,
         "source_profiles": source_profiles,
+        "deep_map_projects": deep_map_projects,
     }
 
 
@@ -196,6 +206,42 @@ def declared_scope(linked: dict[str, list[dict[str, Any]]]) -> tuple[str, str]:
         return "undeclared", "not_assessed"
     profile = linked["source_profiles"][0]
     return profile["scope_mode"], profile["inventory_claim"]
+
+
+def deep_map_summary(linked: dict[str, list[dict[str, Any]]]) -> str:
+    if not linked["deep_map_projects"]:
+        return "尚未建立持久化深度映射工程"
+    return "；".join(
+        f"{item['progress']['mapping_percentage']}% mapped / {item['progress']['strict_completion_percentage']}% strict"
+        for item in linked["deep_map_projects"]
+    )
+
+
+def render_deep_map_projects(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return "> 尚未建立持久化数据库深度映射工程；当前六层记录不能解释为全库完成。"
+    sections = []
+    for item in records:
+        progress = item["progress"]
+        slug = Path(item["project_dir"]).name
+        sections.append(
+            f"#### {item['title']}\n\n"
+            + table(
+                [
+                    ("工程ID", f"`{item['project_id']}`"),
+                    ("工程状态", f"`{item['workflow_status']}`"),
+                    ("边界", item["scope"]["boundary_statement"]),
+                    ("工作单元", f"{progress['work_units']} / {progress['expected_work_units']}"),
+                    ("映射进度", f"{progress['mapping_percentage']}%"),
+                    ("严格完成度", f"{progress['strict_completion_percentage']}%"),
+                    ("完整闭合工作单元", f"{progress['fully_closed_work_units']} / {progress['work_units']}"),
+                    ("阻塞阶段", progress["blocked_unit_stages"]),
+                    ("可声明完成", item["completion_ready"]),
+                    ("工程详情", f"[打开工程台账](../../../deep_map_projects/{slug}/README.md)"),
+                ]
+            )
+        )
+    return "\n\n".join(sections)
 
 
 def render_institutions(records: list[dict[str, Any]]) -> str:
@@ -505,6 +551,7 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("已登记变量", len(linked["variables"])),
             ("已关联构念", len(linked["constructs"])),
             ("当前拆解阶段", f"`{profile_stage(linked)}`"),
+            ("持久化深度映射", deep_map_summary(linked)),
             ("已声明拆解范围", f"`{scope_mode}`"),
             ("上游目录完整度", f"`{inventory_claim}`；存在六层链不等于完整枚举"),
         ]
@@ -551,6 +598,10 @@ canonical_url: {json.dumps(source['canonical_url'])}
 ## 拆解范围与清单边界
 
 {profile_details}
+
+## 持久化数据库深度映射工程
+
+{render_deep_map_projects(linked['deep_map_projects'])}
 
 ## 六层目录
 
@@ -602,8 +653,8 @@ def render_root_block(context: dict[str, Any]) -> str:
         "当前注册表共收录 **{}** 个数据库/数据平台。每个数据库均有独立六层详情页；"
         "“待验证候选”仅表示已经登记，不表示其覆盖与使用条件已经核验。".format(len(context["sources"])),
         "",
-        "| 数据库 | 发布/维护机构 | 主要领域 | 拆解范围 | 拆解阶段 | 验证状态 | 六层详情 |",
-        "|---|---|---|---|---|---|---|",
+        "| 数据库 | 发布/维护机构 | 主要领域 | 拆解范围 | 拆解阶段 | 严格完成度 | 验证状态 | 六层详情 |",
+        "|---|---|---|---|---|---:|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
@@ -613,7 +664,8 @@ def render_root_block(context: dict[str, Any]) -> str:
         scope_mode, _inventory_claim = declared_scope(linked)
         rows.append(
             f"| [{source['name']}]({source['canonical_url']}) | {publishers or '未知 / 尚未登记'} | "
-            f"{disciplines} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} | "
+            f"{disciplines} | `{scope_mode}` | `{profile_stage(linked)}` | "
+            f"{linked['deep_map_projects'][0]['progress']['strict_completion_percentage'] if linked['deep_map_projects'] else 0.0}% | {status(source)} | "
             f"[查看六层目录](catalog/sources/{slug}/README.md) |"
         )
     rows.extend(
@@ -628,8 +680,8 @@ def render_root_block(context: dict[str, Any]) -> str:
 def render_catalog_index(context: dict[str, Any], version: str) -> str:
     counts: dict[str, int] = {}
     rows = [
-        "| 数据库 | 发布/维护机构 | 数据集 | 数据结构 | 数据元素 | 变量 | 构念 | 访问资源 | 拆解范围 | 拆解阶段 | 状态 |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "| 数据库 | 发布/维护机构 | 数据集 | 数据结构 | 数据元素 | 变量 | 构念 | 访问资源 | 映射进度 | 严格完成度 | 拆解范围 | 拆解阶段 | 状态 |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     for source in context["sources"]:
         linked = linked_records(source, context)
@@ -641,7 +693,10 @@ def render_catalog_index(context: dict[str, Any], version: str) -> str:
         rows.append(
             f"| [{source['name']}](sources/{slug}/README.md) | {publishers or '未知 / 尚未登记'} | "
             f"{len(linked['datasets'])} | {len(linked['data_structures'])} | {len(linked['data_elements'])} | {len(linked['variables'])} | "
-            f"{len(linked['constructs'])} | {len(linked['resources'])} | `{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
+            f"{len(linked['constructs'])} | {len(linked['resources'])} | "
+            f"{linked['deep_map_projects'][0]['progress']['mapping_percentage'] if linked['deep_map_projects'] else 0.0}% | "
+            f"{linked['deep_map_projects'][0]['progress']['strict_completion_percentage'] if linked['deep_map_projects'] else 0.0}% | "
+            f"`{scope_mode}` | `{profile_stage(linked)}` | {status(source)} |"
         )
     summary = "、".join(
         f"{STATUS_LABELS.get(code, code)} {count} 个" for code, count in sorted(counts.items())
