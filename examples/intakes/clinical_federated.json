@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "source": {"source_id": null, "name": "Federated clinical cohort example", "url": "https://example.org/clinical-federation"},
+  "goal": {"scope_mode": "bounded_partition", "completion_claim": "bounded_partition", "research_question": "How do treatment pathways vary across participating hospitals?"},
+  "observations": {
+    "disciplines": ["medicine", "health services research"],
+    "origin_types": ["hybrid"],
+    "provenance_roles": ["federated_query_layer"],
+    "production_modes": ["clinical", "administrative"],
+    "structural_archetypes": ["federated_system", "clinical_record_system", "common_data_model", "relational_database"],
+    "content_modalities": ["tabular"],
+    "lifecycle_modes": ["mutable", "append_only"],
+    "versioning_models": ["schema_version_plus_site_snapshot"],
+    "access_regimes": ["application", "secure_environment"],
+    "sensitivity_classes": ["health", "personal"],
+    "scale_classes": ["very_large"],
+    "metadata_maturity": "human_documented",
+    "languages": ["en"]
+  },
+  "scope": {"boundary_type": "federated_query", "boundary_statement": "Named participating sites and approved cohort definition at one dated query-plan version.", "snapshot_at": "2026-08-19T00:00:00Z"},
+  "work_unit_strategy": {"unit_types": ["site_dataset"], "identity_rule": "Site identifier plus common-data-model version and extract date.", "partition_rule": "One approved site extract per unit.", "ordering_rule": "Stable site identifier.", "denominator_strategy": "official_manifest", "expected_count": 4},
+  "constraints": {"authorized_access": ["public_metadata"], "prohibited_actions": ["download_patient_rows"], "compute_limit": "Secure aggregate queries only.", "notes": "Synthetic planning example; no patient data are accessed."},
+  "explicit_route_modules": ["federated_identity", "clinical_interoperability", "restricted_access", "table_schema", "derived_provenance"],
+  "evidence": [{"url": "https://example.org/clinical-federation/metadata", "title": "Example federation metadata", "evidence_type": "synthetic_test_fixture", "supports": ["planning_test_only"], "retrieved_at": "2026-08-19T00:00:00Z"}]
+}

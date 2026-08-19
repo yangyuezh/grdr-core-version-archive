@@ -6,25 +6,33 @@
 - 数据库：`grdr:source:undata`
 - 工作状态：`in_progress`
 - 当前阶段：`deep_mapping`
+- 范围模式：`exhaustive_snapshot`
+- 完成声明：`exhaustive_snapshot`
 - 边界：All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.
 - 快照：`2026-08-18T00:00:00Z`
 - 工作单元：36 / 36
 - 映射进度：**19.44%**
 - 严格完成度：**0.93%**
+- 路线契约验收：**0.16%**（1 / 617）
 - 全部阶段完成的工作单元：0 / 36
 - 可声明完成：`false`
 
-“映射进度”包括已经完成映射但仍待充分核验的阶段；“严格完成度”只计入 `verified_complete` 或有证据的 `not_applicable`。只有后者达到100%，且没有阻塞和审计错误，项目才能完成。
+“映射进度”包括已经完成映射但仍待充分核验的阶段；“严格完成度”只计入 `verified_complete` 或有证据的 `not_applicable`。严格阶段达到100%仍不够：路线契约验收、诊断计划、人工门槛、阻塞和审计也必须全部闭合，项目才能完成。
 
 ## 数据库类型与路线
 
+- 诊断计划：`ready`
+- 路线契约版本：`2026-08-19`
 - 学科：multidisciplinary
 - 数据来源：`hybrid`
 - 来源角色：`derivative_aggregator`
 - 生产方式：official_statistics, survey, census, administrative
 - 结构类型：hierarchical_catalog, statistical_cube, flat_table_collection, json_or_xml_api
-- 执行路线：catalog, sdmx_cube, table_schema, api_schema, derived_provenance
+- 执行路线：core_metadata, catalog, file_archive, table_schema, api_schema, sdmx_cube, survey_instrument, administrative_provenance, scientific_array, derived_provenance
 - 访问制度：`mixed`
+- 风险标记：partitioning_or_compute_required, upstream_provenance_required
+- 未解决关键维度：0
+- 人工门槛：0 个待决
 
 ## 分阶段进度
 
@@ -41,9 +49,10 @@
 
 - 精确目标：`EDATA` / `variable`
 - 工作单元：`grdr:deep-map-unit:undata-edata`
-- 路线：catalog, sdmx_cube, table_schema, derived_provenance
+- 路线：core_metadata, catalog, sdmx_cube, table_schema, derived_provenance
 - 当前状态：`in_progress`
 - 阶段内检查点：enumeration=UNSD CL_TRANSACTION_NRG 1.1 with 216 codes; order=official codelist document order; completed_native=6; last_native=none because prior priority records were non-contiguous; next_native=010; snapshot=2026-08-19
+- 本目标路线验收项：5
 
 - `resume-database-deep-map`
 

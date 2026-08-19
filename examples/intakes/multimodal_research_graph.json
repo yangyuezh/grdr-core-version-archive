@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "source": {"source_id": null, "name": "Multilingual research graph and artifact example", "url": "https://example.org/research-graph"},
+  "goal": {"scope_mode": "catalog_level", "completion_claim": "catalog_only", "research_question": null},
+  "observations": {
+    "disciplines": ["multidisciplinary"],
+    "origin_types": ["secondary"],
+    "provenance_roles": ["curated_repository", "official_harmonizer"],
+    "production_modes": ["bibliographic_indexing", "machine_learning"],
+    "structural_archetypes": ["bibliographic_database", "knowledge_graph", "document_corpus", "model_registry", "software_repository"],
+    "content_modalities": ["graph", "text", "document", "model", "code"],
+    "lifecycle_modes": ["mutable", "versioned_release"],
+    "versioning_models": ["entity_revision_plus_release_snapshot"],
+    "access_regimes": ["api", "open"],
+    "sensitivity_classes": ["public"],
+    "scale_classes": ["very_large"],
+    "metadata_maturity": "machine_readable",
+    "languages": ["en", "zh", "es"]
+  },
+  "scope": {"boundary_type": "catalog_snapshot", "boundary_statement": "One dated catalog snapshot including works, entity graph, public documents, models, and code distributions.", "snapshot_at": "2026-08-19T00:00:00Z"},
+  "work_unit_strategy": {"unit_types": ["catalog_collection"], "identity_rule": "Collection identifier plus release version.", "partition_rule": "One top-level collection per unit.", "ordering_rule": "Official catalog order and stable identifier.", "denominator_strategy": "official_manifest", "expected_count": 5},
+  "constraints": {"authorized_access": ["public_metadata", "public_artifacts"], "prohibited_actions": [], "compute_limit": "Metadata and representative object probes only for catalog-level completion.", "notes": null},
+  "explicit_route_modules": [],
+  "evidence": [{"url": "https://example.org/research-graph/catalog", "title": "Example research graph catalog", "evidence_type": "synthetic_test_fixture", "supports": ["planning_test_only"], "retrieved_at": "2026-08-19T00:00:00Z"}]
+}

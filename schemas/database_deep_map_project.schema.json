@@ -4,9 +4,9 @@
   "title": "GRDR persistent database deep-map project",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "source_id", "title", "database_profile", "scope", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
+  "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "1.1.0"},
     "id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "title": {"type": "string", "minLength": 1},
@@ -18,20 +18,21 @@
         "disciplines": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
         "origin_type": {"enum": ["primary", "secondary", "hybrid", "unknown"]},
         "provenance_role": {"enum": ["original_producer", "official_harmonizer", "curated_repository", "mirror", "derivative_aggregator", "hybrid", "unknown"]},
-        "production_modes": {"type": "array", "items": {"$ref": "#/$defs/production_mode"}, "minItems": 1, "uniqueItems": true},
-        "structural_archetypes": {"type": "array", "items": {"$ref": "#/$defs/archetype"}, "minItems": 1, "uniqueItems": true},
-        "access_regime": {"enum": ["open", "registered", "licensed", "restricted", "secure_environment", "application", "commercial", "mixed", "unknown"]},
-        "route_modules": {"type": "array", "items": {"$ref": "#/$defs/route_module"}, "minItems": 1, "uniqueItems": true},
+        "production_modes": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+        "structural_archetypes": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+        "access_regime": {"type": "string", "minLength": 1},
+        "route_modules": {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "minItems": 1, "uniqueItems": true},
         "classification_notes": {"type": "string", "minLength": 1}
       }
     },
+    "diagnostic_plan": {"type": "object"},
     "scope": {
       "type": "object",
       "additionalProperties": false,
       "required": ["mode", "boundary_type", "boundary_statement", "snapshot_at", "enumeration_method", "expected_work_unit_count"],
       "properties": {
-        "mode": {"enum": ["representative_chain", "question_driven", "priority_catalog", "catalog_level", "exhaustive_snapshot"]},
-        "boundary_type": {"enum": ["catalog_snapshot", "release_version", "api_namespace", "collection", "question_bounded", "other"]},
+        "mode": {"enum": ["representative_chain", "question_driven", "priority_catalog", "catalog_level", "exhaustive_snapshot", "rolling_window", "bounded_partition"]},
+        "boundary_type": {"enum": ["catalog_snapshot", "release_version", "api_namespace", "collection", "question_bounded", "rolling_window", "partition_manifest", "federated_query", "other"]},
         "boundary_statement": {"type": "string", "minLength": 1},
         "snapshot_at": {"type": "string", "format": "date-time"},
         "enumeration_method": {"type": "string", "minLength": 1},
@@ -52,7 +53,7 @@
         "completion_audit": {"$ref": "#/$defs/phase_state"}
       }
     },
-    "workflow_status": {"enum": ["initialized", "in_progress", "blocked", "ready_for_completion", "complete"]},
+    "workflow_status": {"enum": ["initialized", "in_progress", "needs_human_review", "blocked", "ready_for_completion", "complete"]},
     "current_phase": {"enum": ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit", "complete"]},
     "next_actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
     "history": {"type": "array", "items": {"$ref": "#/$defs/history_event"}},
@@ -89,8 +90,8 @@
       "type": "object", "additionalProperties": false, "required": ["timestamp", "operation", "summary"],
       "properties": {"timestamp": {"type": "string", "format": "date-time"}, "operation": {"type": "string", "minLength": 1}, "summary": {"type": "string", "minLength": 1}}
     },
-    "production_mode": {"enum": ["official_statistics", "survey", "census", "administrative", "transactional", "experiment", "clinical", "scientific_observation", "sensor", "remote_sensing", "simulation", "curated_literature", "scholarly_metadata", "biological_assay", "genomic_or_proteomic", "document_corpus", "multimodal_collection", "knowledge_graph", "other"]},
-    "archetype": {"enum": ["hierarchical_catalog", "statistical_cube", "relational_database", "flat_table_collection", "json_or_xml_api", "survey_microdata", "questionnaire_or_instrument", "administrative_event_system", "geospatial_vector", "geospatial_raster", "scientific_array", "sensor_time_series", "biological_sequence_or_structure", "knowledge_graph", "document_corpus", "image_audio_video_collection", "secure_microdata", "other"]},
-    "route_module": {"enum": ["catalog", "sdmx_cube", "table_schema", "api_schema", "survey_instrument", "administrative_provenance", "geospatial", "scientific_array", "biomedical", "knowledge_graph", "corpus_multimodal", "restricted_access", "derived_provenance", "other"]}
+    "production_mode": {"type": "string", "minLength": 1},
+    "archetype": {"type": "string", "minLength": 1},
+    "route_module": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
   }
 }

@@ -2,7 +2,7 @@
 
 GRDR is AI-agent-native, all-discipline infrastructure for global data-source registration, discovery, assessment, connection, and research design.
 
-**Current status:** foundation, the first persistent database deep-mapping project, and the first executable research-question closed loop. The repository provides the evidence model, ontology, schemas, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG multidimensional examples, a resumable work-unit ledger, strict completion gates, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
+**Current status:** foundation, an open-world database deep-reading execution system, the first persistent real database project, and the first executable research-question closed loop. The repository provides evidence models, ontology, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG examples, preflight diagnosis, 29 composable database-route contracts, route-specific checks, resumable work-unit ledgers, strict completion gates, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
 
 It is not primarily a website and does not initially copy every upstream dataset. It combines:
 
@@ -18,9 +18,11 @@ Research-question matching, source combination, and data-gap diagnosis are centr
 
 GRDR uses the dedicated `$grdr-deep-map-database` Skill to deep-read a registered database into Institution → Source → Dataset → DataStructure → 5A DataElement / 5B Variable → Construct records. `DataStructure` restores the database's own catalog, schema, table, dataflow, questionnaire, array, or other internal organization before variables are formed. API、CSV、下载、认证与许可作为 Resource 旁路挂接，不占第4层。The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated chain is never reported as a complete upstream inventory. See [the database deep-mapping protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
 
-Every nontrivial pass is now a persistent engineering project under `deep_map_projects/<source>/`. The workflow classifies primary/secondary origin, disciplinary and storage archetypes, fixes a dated work-unit universe, tracks six required stages per unit, reports mapped versus strictly verified progress, and rejects completion while any count is unknown or any required stage is open or blocked. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
+Every nontrivial pass is a persistent engineering project under `deep_map_projects/<source-or-pass>/`. Before execution, the planner diagnoses origin, data-generating process, internal structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, language, boundary, denominator, and constraints. It then composes machine route contracts for the observed database shape; unknown structures enter an explicit open-world route instead of being forced into a closed taxonomy. Every project tracks six content stages and separate route obligations, and rejects completion while a required stage, route check, diagnostic issue, human gate, or blocker remains open. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
 
 ```bash
+python3 scripts/grdr.py list-database-route-modules
+python3 scripts/grdr.py plan-database-deep-map examples/intakes/sensor_stream.json
 python3 scripts/grdr.py database-deep-map-status deep_map_projects/undata
 python3 scripts/grdr.py resume-database-deep-map deep_map_projects/undata
 python3 scripts/grdr.py audit-database-deep-map deep_map_projects/undata
@@ -143,9 +145,13 @@ grdr/
 │   └── <source-slug>/
 │       ├── project.json
 │       ├── units.jsonl
+│       ├── checks.jsonl
 │       └── README.md
 ├── examples/
+│   ├── intakes/
 │   └── population_emissions_request.json
+├── config/
+│   └── database_route_contracts.json
 ├── registry/
 │   ├── institutions.jsonl
 │   ├── sources.jsonl
@@ -185,7 +191,12 @@ grdr/
 │   ├── database_deep_map_project.schema.json
 │   ├── database_deep_map_unit.schema.json
 │   ├── database_deep_map_phase_update.schema.json
-│   └── database_deep_map_stage_update.schema.json
+│   ├── database_deep_map_stage_update.schema.json
+│   ├── database_deep_map_intake.schema.json
+│   ├── database_deep_map_plan.schema.json
+│   ├── database_deep_map_check.schema.json
+│   ├── database_deep_map_check_update.schema.json
+│   └── database_route_contracts.schema.json
 ├── research_projects/
 │   └── <project-id>/
 │       ├── project.json
@@ -200,6 +211,7 @@ grdr/
 │   ├── curate_undata.py
 │   ├── indicator_builder.py
 │   ├── database_deep_map.py
+│   ├── database_deep_map_planner.py
 │   ├── research_project.py
 │   ├── grdr.py
 │   └── validate_registry.py
@@ -211,18 +223,35 @@ grdr/
     ├── test_catalog.py
     ├── test_cli.py
     ├── test_database_deep_map.py
+    ├── test_database_deep_map_planner.py
     └── test_indicator_builder.py
 ```
 
 ## Current phase
 
-Version `1.1.0` turns `$grdr-deep-map-database` into a persistent execution system. Every database can now be classified, bounded, divided into ordered work units, resumed deterministically, audited by counted stages, and completed only through a strict evidence gate. UNdata is the first real project: 36 bounded datamarts, 216 required unit stages, 19.44% mapped and 0.93% strictly complete at migration. These figures deliberately expose the remaining work instead of treating a few deep examples as a finished database. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
+Version `1.2.0` turns `$grdr-deep-map-database` into an open-world execution system. A database is now diagnosed before execution, assigned a composed plan from 29 route modules and 70 machine-audited facets, and then tracked through both canonical object stages and database-shape-specific checks. Restricted, federated, dynamic, streaming, large, legacy, experimental, instrument, simulated, physical-collection, qualitative, scholarly, platform, multimodal, ML, software, derived, and unknown systems have explicit continuation or recovery behavior. UNdata remains the first real project: 36 bounded datamarts, 216 required unit stages, 19.44% mapped and 0.93% strictly complete; migration now also exposes 617 route obligations, of which one is closed and six inherit the two documented blocked Access stages. These figures deliberately expose remaining work instead of treating deep examples as a finished database. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
 ## Local agent access
 
-The foundation release includes a dependency-free JSON CLI so an agent can inspect the registry immediately:
+Basic search remains dependency-free. Strict Schema validation, open-world planning, deep-map audit, and completion require `jsonschema`; the tools now fail explicitly instead of silently skipping it.
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-validation.txt
+.venv/bin/python -c "import jsonschema"
+```
+
+Use `.venv/bin/python` in place of `python3` for the strict commands below. For example:
+
+```bash
+.venv/bin/python scripts/grdr.py plan-database-deep-map examples/intakes/sensor_stream.json
+.venv/bin/python scripts/grdr.py audit-database-deep-map deep_map_projects/undata
+.venv/bin/python scripts/validate_registry.py
+```
+
+The foundation release includes a JSON CLI so an agent can inspect the registry immediately:
 
 ```bash
 python3 scripts/grdr.py stats
@@ -242,17 +271,22 @@ python3 scripts/grdr.py list-monitors --status passing
 python3 scripts/grdr.py diagnose-coverage examples/population_emissions_request.json
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
 python3 scripts/grdr.py audit-all-source-depth
+python3 scripts/grdr.py list-database-route-modules
+python3 scripts/grdr.py plan-database-deep-map examples/intakes/clinical_federated.json --output /tmp/clinical-plan.json
+python3 scripts/grdr.py audit-database-deep-map-plan /tmp/clinical-plan.json
 python3 scripts/grdr.py start-database-deep-map examples/world_bank_deep_map_spec.json
+python3 scripts/grdr.py upgrade-database-deep-map deep_map_projects/<legacy-project>
 python3 scripts/grdr.py database-deep-map-status deep_map_projects/undata
 python3 scripts/grdr.py resume-database-deep-map deep_map_projects/undata
 python3 scripts/grdr.py audit-database-deep-map deep_map_projects/undata
+python3 scripts/grdr.py record-database-deep-map-check deep_map_projects/<source-slug> <check-update.json>
 python3 scripts/grdr.py complete-database-deep-map deep_map_projects/<source-slug>
 python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
 python3 scripts/grdr.py research-project-status research_projects/<project-id>
-python3 scripts/validate_registry.py
-python3 scripts/build_catalog.py --check
+.venv/bin/python scripts/validate_registry.py
+.venv/bin/python scripts/build_catalog.py --check
 python3 scripts/check_release.py
-python3 -m unittest discover -s tests
+.venv/bin/python -m unittest discover -s tests
 ```
 
 All command output is JSON except validation diagnostics. Search results always include verification status; unverified bootstrap nominations are never presented as verified sources.

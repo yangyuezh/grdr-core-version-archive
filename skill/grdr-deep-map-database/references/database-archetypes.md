@@ -1,6 +1,6 @@
 # Database Archetypes and Route Selection
 
-Keep the six GRDR stages fixed. Select one or more route modules according to the actual storage structure and data-generating process.
+Keep the six GRDR stages fixed. Select one or more route modules according to the actual storage structure and data-generating process. This table is an orientation aid; `config/database_route_contracts.json` is the machine source of truth and may add routes without rewriting the workflow.
 
 | Archetype | Common domains | Structure to recover | Elements and variables that matter | Route |
 |---|---|---|---|---|
@@ -15,7 +15,20 @@ Keep the six GRDR stages fixed. Select one or more route modules according to th
 | Biomedical/genomic | medicine, biology, omics | study → subject/sample → assay/sequence/structure | specimen, assay, feature, ontology, genome build, batch, consent | `biomedical` |
 | Knowledge graph | scholarly, biomedical, semantic systems | graph → class/property → edge pattern | identifiers, predicates, ontology mappings, snapshots | `knowledge_graph` |
 | Document/media corpus | humanities, communication, AI | corpus → item → segment/annotation | text fields, media metadata, annotations, labels, rights | `corpus_multimodal` |
+| Experiment repository | physical, life, behavioral, engineering | experiment → condition → unit/sample → measurement | protocol, treatments, controls, randomization, replication, outcomes | `experimental_measurement` |
+| Instrument archive | earth, physical, life, engineering | platform/device → deployment → acquisition run → channel/output | settings, time base, firmware, calibration, limits, uncertainty, QC | `instrument_measurement` |
+| Simulation/model ensemble | climate, economics, engineering, physics | experiment → scenario → ensemble → run → output | code/model version, parameters, forcing, initialization, validation | `simulation_model_output` |
+| Physical collection | museums, archaeology, ecology, biobanks | collection → accession → object/specimen → sample | custody, collection event, identification, preparation, digitization | `physical_collection` |
+| Qualitative archive | social science, humanities, health | case → participant/event → document/session → segment/code | context, consent, transcription, anonymization, coding provenance | `qualitative_archive` |
+| Scholarly communication | scientometrics, information science, innovation | work/version → author/org/venue → reference/citation/grant/patent | persistent IDs, versions, disambiguation, coverage and indicator bias | `scholarly_communication` |
+| Digital platform trace | communication, computational social science, HCI | platform → actor/object → event/interaction/exposure | collection surface, ranking, mutation, deletion, moderation, event time | `digital_platform_trace` |
+| Machine-learning assets | AI and all applied fields | dataset/model/feature/embedding/benchmark → version | split, label, feature lineage, generated/synthetic status, evaluation | `machine_learning_asset` |
+| Software/workflow package | computational research | repository → environment → workflow/notebook → output | code/dependencies, parameters, execution graph, reproducibility | `software_workflow` |
+| Federated/virtual system | health, public administration, knowledge systems | federation → member → query/view → result | membership, partial failure, identity resolution, member versions | `federated_identity` |
+| Legacy/proprietary system | any | file/system → decoder/conversion → inferred schema | format signature, software/version, inference boundary, loss | `legacy_or_proprietary` |
 | Secure/restricted microdata | census, clinical, commercial | catalog plus controlled environment | disclosure controls, application, linkage rules, permitted outputs | `restricted_access` |
+| Secondary/harmonized/mirror | any | current product → transformation → upstream dataset/version | lineage, harmonization, conversion, revision, non-equivalence | `derived_provenance` |
+| Unknown/custom | any | observed objects without a sufficient known contract | observed structure, missing obligations, proposed reusable extension | `open_world_custom` |
 
 ## Primary and secondary data
 

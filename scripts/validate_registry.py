@@ -51,7 +51,7 @@ def validate_with_jsonschema(
     try:
         import jsonschema
     except ImportError:
-        return ["jsonschema is not installed; full JSON Schema validation was skipped"]
+        return ["jsonschema is not installed; install with python3 -m pip install -r requirements-validation.txt"]
 
     errors: list[str] = []
     for name, records in collections.items():
@@ -201,13 +201,8 @@ def main() -> int:
         return 1
 
     schema_messages = validate_with_jsonschema(collections)
-    schema_errors = [item for item in schema_messages if not item.startswith("jsonschema is not installed")]
-    warnings = [item for item in schema_messages if item.startswith("jsonschema is not installed")]
     integrity_errors = validate_integrity(collections)
-    errors = schema_errors + integrity_errors
-
-    for warning in warnings:
-        print(f"WARNING: {warning}")
+    errors = schema_messages + integrity_errors
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)

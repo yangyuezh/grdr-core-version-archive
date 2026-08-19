@@ -764,7 +764,7 @@ def audit_indicator_project(args: argparse.Namespace) -> None:
 def run_research_operation(operation: str, callback: Any) -> None:
     try:
         emit(callback())
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         emit(
             {
                 "operation": operation,
@@ -848,6 +848,41 @@ def start_database_deep_map_command(args: argparse.Namespace) -> None:
     )
 
 
+def list_database_route_modules_command(_args: argparse.Namespace) -> None:
+    from database_deep_map_planner import list_database_route_modules
+
+    run_research_operation("list_database_route_modules", list_database_route_modules)
+
+
+def plan_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map_planner import audit_database_deep_map_plan, build_database_deep_map_plan
+
+    def operation() -> dict[str, Any]:
+        plan = build_database_deep_map_plan(args.intake_file)
+        audit = audit_database_deep_map_plan(plan)
+        output_path = None
+        if args.output:
+            output = Path(args.output).expanduser().resolve()
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(json.dumps(plan, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            output_path = str(output)
+        return {"operation": "plan_database_deep_map", "output_path": output_path, "plan": plan, "audit": audit}
+
+    run_research_operation("plan_database_deep_map", operation)
+
+
+def audit_database_deep_map_plan_command(args: argparse.Namespace) -> None:
+    from database_deep_map_planner import audit_database_deep_map_plan
+
+    run_research_operation("audit_database_deep_map_plan", lambda: audit_database_deep_map_plan(args.plan_file))
+
+
+def upgrade_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import upgrade_database_deep_map
+
+    run_research_operation("upgrade_database_deep_map", lambda: upgrade_database_deep_map(args.project_dir))
+
+
 def database_deep_map_status_command(args: argparse.Namespace) -> None:
     from database_deep_map import database_deep_map_status
 
@@ -881,6 +916,24 @@ def record_database_deep_map_stage_command(args: argparse.Namespace) -> None:
     run_research_operation(
         "record_database_deep_map_stage",
         lambda: record_database_deep_map_stage(args.project_dir, args.update_file),
+    )
+
+
+def record_database_deep_map_check_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_check
+
+    run_research_operation(
+        "record_database_deep_map_check",
+        lambda: record_database_deep_map_check(args.project_dir, args.update_file),
+    )
+
+
+def record_database_deep_map_human_gate_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_human_gate
+
+    run_research_operation(
+        "record_database_deep_map_human_gate",
+        lambda: record_database_deep_map_human_gate(args.project_dir, args.gate, args.decision, args.reviewer, args.notes),
     )
 
 
@@ -1041,6 +1094,27 @@ def parser() -> argparse.ArgumentParser:
     )
     all_source_depth.set_defaults(handler=audit_all_source_depth)
 
+    list_routes = commands.add_parser(
+        "list-database-route-modules",
+        help="List extensible database-shape route contracts and their completion facets",
+    )
+    list_routes.set_defaults(handler=list_database_route_modules_command)
+
+    plan_deep_map = commands.add_parser(
+        "plan-database-deep-map",
+        help="Diagnose an open-world database intake and generate a route-contract execution plan",
+    )
+    plan_deep_map.add_argument("intake_file")
+    plan_deep_map.add_argument("--output")
+    plan_deep_map.set_defaults(handler=plan_database_deep_map_command)
+
+    audit_deep_map_plan = commands.add_parser(
+        "audit-database-deep-map-plan",
+        help="Audit a generated database diagnostic and route-contract plan",
+    )
+    audit_deep_map_plan.add_argument("plan_file")
+    audit_deep_map_plan.set_defaults(handler=audit_database_deep_map_plan_command)
+
     start_deep_map = commands.add_parser(
         "start-database-deep-map",
         help="Create a persistent, bounded database deep-map project and work-unit ledger",
@@ -1048,6 +1122,13 @@ def parser() -> argparse.ArgumentParser:
     start_deep_map.add_argument("spec_file")
     start_deep_map.add_argument("--project-dir")
     start_deep_map.set_defaults(handler=start_database_deep_map_command)
+
+    upgrade_deep_map = commands.add_parser(
+        "upgrade-database-deep-map",
+        help="Upgrade an older deep-map project to the current diagnostic plan and contract-check ledger",
+    )
+    upgrade_deep_map.add_argument("project_dir")
+    upgrade_deep_map.set_defaults(handler=upgrade_database_deep_map_command)
 
     deep_map_status = commands.add_parser(
         "database-deep-map-status",
@@ -1078,6 +1159,25 @@ def parser() -> argparse.ArgumentParser:
     record_deep_map_stage.add_argument("project_dir")
     record_deep_map_stage.add_argument("update_file")
     record_deep_map_stage.set_defaults(handler=record_database_deep_map_stage_command)
+
+    record_deep_map_check = commands.add_parser(
+        "record-database-deep-map-check",
+        help="Record one evidence-backed route-contract acceptance check",
+    )
+    record_deep_map_check.add_argument("project_dir")
+    record_deep_map_check.add_argument("update_file")
+    record_deep_map_check.set_defaults(handler=record_database_deep_map_check_command)
+
+    record_deep_map_gate = commands.add_parser(
+        "record-database-deep-map-human-gate",
+        help="Record an explicit named human database-governance decision; never self-approve",
+    )
+    record_deep_map_gate.add_argument("project_dir")
+    record_deep_map_gate.add_argument("gate")
+    record_deep_map_gate.add_argument("--decision", choices=["approved", "rejected", "not_applicable"], required=True)
+    record_deep_map_gate.add_argument("--reviewer", required=True)
+    record_deep_map_gate.add_argument("--notes", required=True)
+    record_deep_map_gate.set_defaults(handler=record_database_deep_map_human_gate_command)
 
     audit_deep_map = commands.add_parser(
         "audit-database-deep-map",

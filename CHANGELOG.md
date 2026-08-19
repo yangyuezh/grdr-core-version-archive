@@ -2,6 +2,31 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [1.2.0] - 2026-08-19
+
+### Added
+
+- An open-world preflight planner that diagnoses database identity, provenance, production process, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, language, boundary, denominator, authorization, and constraints before execution.
+- A machine-readable registry of 29 composable database-route modules with 70 mandatory facets, universal obligations, route fallbacks, official-standard links where applicable, and an explicit unknown/custom extension route.
+- Specialized contracts for catalogs, files, tables, APIs, SDMX cubes, surveys, administrative records, geospatial data, arrays, streams, biomedical and clinical systems, graphs, corpora, experiments, simulations, physical collections, qualitative archives, scholarly communication, digital platforms, ML assets, software workflows, restricted access, secondary provenance, federations, and legacy/proprietary systems.
+- Five Agent commands for route discovery, plan generation and audit, legacy-project upgrade, route-check recording, and named-human database gate decisions.
+- `checks.jsonl` route-obligation ledgers, typed blocker recovery semantics, current-route contract auditing, and completion gates that require both canonical object stages and database-shape-specific checks.
+- Regression intakes and tests spanning a restricted federated clinical system, rolling sensor/geospatial/array data, a multilingual scholarly graph/corpus/model system, and an unresolved legacy archive.
+- Skill references for the diagnostic matrix, route contracts, lifecycle boundaries, exception recovery, and check updates.
+
+### Changed
+
+- `$grdr-deep-map-database` now diagnoses and plans before execution instead of assuming a finite database taxonomy or relying on a manually chosen route list.
+- Project and work-unit schemas now persist diagnostic plans, content modalities, lifecycle and versioning semantics, sensitivity, open route identifiers, rolling/bounded scopes, and `needs_human_review` state.
+- Completion now rejects unresolved critical dimensions, stale or incomplete route plans, missing or altered route facets, Agent-unresolved human gates, and passed unit checks whose content stage is not mapped.
+- UNdata was migrated without changing its honest content-stage progress: 36 work units, 216 stages, 19.44% mapped, and 0.93% strictly complete. The migration additionally exposes 617 required route checks, with one pre-existing boundary/denominator check closed and six route checks inheriting the two documented blocked Access stages.
+
+### Safety and recovery
+
+- Sensitive, controlled, or question-bounded operations generate explicit human gates; Agents may prepare evidence but cannot self-approve them.
+- Dynamic, rolling, federated, non-enumerable, large-scale, inaccessible, schema-drifting, multilingual, proprietary, and semantically ambiguous sources now have explicit continuation and recovery rules rather than being silently skipped or forced into a familiar type.
+- Strict planners and validators now fail with an actionable dependency error when `jsonschema` is unavailable; `requirements-validation.txt` and local virtual-environment instructions make the validation path reproducible.
+
 ## [1.1.0] - 2026-08-19
 
 ### Added

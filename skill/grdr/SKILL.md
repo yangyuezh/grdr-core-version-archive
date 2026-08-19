@@ -39,6 +39,15 @@ Use `${GRDR_ROOT}` when set. Otherwise use:
 
 Before modifying records, read `docs/NORTH_STAR.md`, the relevant schema, and [references/curation-standard.md](references/curation-standard.md).
 
+Strict Schema validation and deep-map planning require `jsonschema`. Use a project-local environment; a skipped validator is a failure, not a warning:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-validation.txt
+```
+
+Use `.venv/bin/python` instead of `python3` for planning, deep-map audits, completion, registry validation, and tests.
+
 ## Search before expanding
 
 Run the bundled wrapper:
@@ -82,15 +91,19 @@ Treat `six_layer_chain_present` as evidence that at least one chain exists, neve
 For every nontrivial pass, use the persistent workflow rather than an ad hoc browsing session:
 
 ```bash
+python3 scripts/grdr.py list-database-route-modules
+python3 scripts/grdr.py plan-database-deep-map <intake-or-spec.json> --output <plan.json>
+python3 scripts/grdr.py audit-database-deep-map-plan <plan.json>
 python3 scripts/grdr.py start-database-deep-map <spec.json>
 python3 scripts/grdr.py database-deep-map-status <project>
 python3 scripts/grdr.py resume-database-deep-map <project>
 python3 scripts/grdr.py record-database-deep-map-stage <project> <update.json>
+python3 scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
 python3 scripts/grdr.py audit-database-deep-map <project>
 python3 scripts/grdr.py complete-database-deep-map <project>
 ```
 
-Keep projects under `deep_map_projects/<source>/`. Only the completion command may declare bounded completion; representative chains, unknown expected counts, partial verification, and blockers never equal 100%.
+Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Only the completion command may declare bounded completion; representative chains, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
 
 ## Keep the human catalog synchronized
 
@@ -99,8 +112,8 @@ Treat human readability as required, even though AI agents are the primary users
 After changing any of those registry layers, run:
 
 ```bash
-python3 scripts/build_catalog.py
-python3 scripts/build_catalog.py --check
+.venv/bin/python scripts/build_catalog.py
+.venv/bin/python scripts/build_catalog.py --check
 ```
 
 Generate pages only from canonical registry records. Display missing depth as unknown or not yet registered; never invent fields to make a page look complete.
@@ -164,9 +177,9 @@ Read `docs/RELEASE_PROCESS.md`. For each completed development batch:
 
 ```bash
 cd "${GRDR_ROOT:-/Users/jasper/Documents/codex/grdr}"
-python3 scripts/validate_registry.py
-python3 scripts/build_catalog.py --check
-python3 -m unittest discover -s tests
+.venv/bin/python scripts/validate_registry.py
+.venv/bin/python scripts/build_catalog.py --check
+.venv/bin/python -m unittest discover -s tests
 ```
 
 Report added coverage, verification levels, unresolved evidence, matching limitations, version, and release status.

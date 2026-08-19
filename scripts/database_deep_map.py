@@ -12,11 +12,19 @@ import sys
 import unicodedata
 from typing import Any
 
+from database_deep_map_planner import (
+    audit_database_deep_map_plan,
+    build_database_deep_map_plan_from_intake,
+    contract_index,
+    load_contracts,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = ROOT / "deep_map_projects"
 PROJECT_FILE = "project.json"
 UNIT_FILE = "units.jsonl"
+CHECK_FILE = "checks.jsonl"
 REPORT_FILE = "README.md"
 PHASES = ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit"]
 EARLY_PHASES = ["identity", "classification", "boundary", "inventory"]
@@ -24,6 +32,8 @@ UNIT_STAGES = ["dataset", "data_structure", "data_element", "variable", "constru
 CLOSED_STATES = {"verified_complete", "not_applicable"}
 MAPPED_STATES = {"mapped_complete", *CLOSED_STATES}
 ACTIVE_STATES = {"not_started", "enumerating", "in_progress", "blocked"}
+CHECK_CLOSED_STATES = {"passed", "not_applicable"}
+CHECK_ACTIVE_STATES = {"not_started", "in_progress", "blocked", "failed", "needs_human_review"}
 STAGE_PREFIXES = {
     "dataset": "grdr:dataset:",
     "data_structure": "grdr:data-structure:",
@@ -75,13 +85,15 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
     progress = audit["progress"]
     next_target = audit.get("next_target")
     if next_target:
+        target_checks = next_target.get("required_checks", [])
         next_target_text = (
-            f"- 精确目标：`{next_target.get('upstream_id', next_target.get('phase'))}` / "
-            f"`{next_target.get('stage', next_target.get('phase'))}`\n"
+            f"- 精确目标：`{next_target.get('upstream_id') or next_target.get('phase') or next_target.get('facet_id')}` / "
+            f"`{next_target.get('stage') or next_target.get('phase')}`\n"
             f"- 工作单元：`{next_target.get('unit_id', 'project')}`\n"
             f"- 路线：{', '.join(next_target.get('route_modules', [])) or '项目阶段核验'}\n"
             f"- 当前状态：`{next_target['state']}`\n"
-            f"- 阶段内检查点：{next_target.get('checkpoint') or '尚未登记'}"
+            f"- 阶段内检查点：{next_target.get('checkpoint') or '尚未登记'}\n"
+            f"- 本目标路线验收项：{len(target_checks)}"
         )
     else:
         next_target_text = "- 当前没有可执行的工作单元目标；请检查审计错误或项目级完成门槛。"
@@ -103,18 +115,23 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 - 数据库：`{project['source_id']}`
 - 工作状态：`{project['workflow_status']}`
 - 当前阶段：`{project['current_phase']}`
+- 范围模式：`{project['diagnostic_plan']['goal']['scope_mode']}`
+- 完成声明：`{project['diagnostic_plan']['goal']['completion_claim']}`
 - 边界：{project['scope']['boundary_statement']}
 - 快照：`{project['scope']['snapshot_at']}`
 - 工作单元：{progress['work_units']} / {progress['expected_work_units']}
 - 映射进度：**{progress['mapping_percentage']}%**
 - 严格完成度：**{progress['strict_completion_percentage']}%**
+- 路线契约验收：**{progress['contract_check_percentage']}%**（{progress['closed_contract_checks']} / {progress['required_contract_checks']}）
 - 全部阶段完成的工作单元：{progress['fully_closed_work_units']} / {progress['work_units']}
 - 可声明完成：`{str(audit['completion_ready']).lower()}`
 
-“映射进度”包括已经完成映射但仍待充分核验的阶段；“严格完成度”只计入 `verified_complete` 或有证据的 `not_applicable`。只有后者达到100%，且没有阻塞和审计错误，项目才能完成。
+“映射进度”包括已经完成映射但仍待充分核验的阶段；“严格完成度”只计入 `verified_complete` 或有证据的 `not_applicable`。严格阶段达到100%仍不够：路线契约验收、诊断计划、人工门槛、阻塞和审计也必须全部闭合，项目才能完成。
 
 ## 数据库类型与路线
 
+- 诊断计划：`{project['diagnostic_plan']['plan_status']}`
+- 路线契约版本：`{project['diagnostic_plan']['route_contract_version']}`
 - 学科：{', '.join(project['database_profile']['disciplines'])}
 - 数据来源：`{project['database_profile']['origin_type']}`
 - 来源角色：`{project['database_profile']['provenance_role']}`
@@ -122,6 +139,9 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 - 结构类型：{', '.join(project['database_profile']['structural_archetypes'])}
 - 执行路线：{', '.join(project['database_profile']['route_modules'])}
 - 访问制度：`{project['database_profile']['access_regime']}`
+- 风险标记：{', '.join(project['diagnostic_plan']['risk_flags']) or '无'}
+- 未解决关键维度：{len(project['diagnostic_plan']['unresolved_critical'])}
+- 人工门槛：{len([item for item in project['diagnostic_plan']['human_gates'] if item['status'] == 'pending'])} 个待决
 
 ## 分阶段进度
 
@@ -160,7 +180,7 @@ def resolve_project_dir(value: str | Path) -> Path:
 
 
 def require_project(path: Path) -> None:
-    missing = [name for name in (PROJECT_FILE, UNIT_FILE) if not (path / name).is_file()]
+    missing = [name for name in (PROJECT_FILE, UNIT_FILE, CHECK_FILE) if not (path / name).is_file()]
     if missing:
         raise ValueError(f"incomplete database deep-map project {path}: missing {', '.join(missing)}")
 
@@ -202,6 +222,116 @@ def phase_state(state: str, timestamp: str, basis: str | None = None, evidence: 
     }
 
 
+def expected_check_specs(project: dict[str, Any], units: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    specs = []
+    selected = set(project["diagnostic_plan"]["selected_route_modules"])
+    for facet in project["diagnostic_plan"]["required_facets"]:
+        source_routes = set(facet["source_routes"])
+        if facet["scope"] == "project":
+            applicable = sorted(source_routes & selected)
+            if applicable:
+                specs.append({**facet, "unit_id": None, "route_modules": applicable})
+            continue
+        for unit in units:
+            applicable = sorted(source_routes & set(unit["route_modules"]))
+            if applicable:
+                specs.append({**facet, "unit_id": unit["id"], "route_modules": applicable})
+    return specs
+
+
+def check_identifier(project: dict[str, Any], spec: dict[str, Any]) -> str:
+    project_slug = project["id"].rsplit(":", 1)[-1]
+    unit_slug = spec["unit_id"].rsplit(":", 1)[-1] if spec["unit_id"] else "project"
+    native_id = f"{project_slug}-{unit_slug}-{spec['id']}"
+    return f"grdr:deep-map-check:{slug(native_id)}"
+
+
+def materialize_checks(project: dict[str, Any], units: list[dict[str, Any]], timestamp: str) -> list[dict[str, Any]]:
+    checks = []
+    for facet in expected_check_specs(project, units):
+        checks.append({
+            "schema_version": "1.0.0",
+            "id": check_identifier(project, facet),
+            "project_id": project["id"],
+            "unit_id": facet["unit_id"],
+            "route_modules": facet["route_modules"],
+            "facet_id": facet["id"],
+            "scope": facet["scope"],
+            "stage": facet["stage"],
+            "requirement": facet["requirement"],
+            "required": True,
+            "state": "not_started",
+            "completion_basis": None,
+            "evidence": [],
+            "blockers": [],
+            "notes": None,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        })
+    return checks
+
+
+def check_errors(check: dict[str, Any], project: dict[str, Any], unit_ids: set[str], route_ids: set[str]) -> list[str]:
+    errors = []
+    label = check.get("id", "check")
+    if check.get("project_id") != project["id"]:
+        errors.append(f"{label}: project_id does not match {project['id']}")
+    if check["scope"] == "project" and check["unit_id"] is not None:
+        errors.append(f"{label}: project-scoped check cannot reference a unit")
+    if check["scope"] == "unit" and check["unit_id"] not in unit_ids:
+        errors.append(f"{label}: unknown or missing unit_id {check['unit_id']}")
+    for route_id in check["route_modules"]:
+        if route_id not in route_ids:
+            errors.append(f"{label}: unknown route module {route_id}")
+    if check["state"] in CHECK_CLOSED_STATES:
+        if not check["completion_basis"] or not check["evidence"]:
+            errors.append(f"{label}: a passed or not-applicable check requires completion_basis and evidence")
+    if check["state"] in {"blocked", "failed", "needs_human_review"} and not check["blockers"]:
+        errors.append(f"{label}: {check['state']} requires at least one typed blocker")
+    return errors
+
+
+def route_blockers_from_stage(blockers: list[dict[str, Any]]) -> list[dict[str, str]]:
+    recoverability = {
+        "access": "alternative_route", "authentication": "requires_authorization",
+        "payment": "requires_authorization", "license": "requires_authorization",
+        "privacy": "requires_human_decision", "ethics": "requires_human_decision",
+        "technical": "retryable", "scale": "alternative_route",
+        "missing_metadata": "upstream_only", "other": "unknown",
+    }
+    return [
+        {
+            "type": item["type"], "scope": "stage",
+            "recoverability": recoverability[item["type"]],
+            "resolution": f"Resolve the inherited {item['type']} blocker before closing this route obligation.",
+            "notes": item["notes"],
+        }
+        for item in blockers
+    ]
+
+
+def synchronize_blocked_stage_checks(units: list[dict[str, Any]], checks: list[dict[str, Any]], timestamp: str) -> int:
+    blocked_stages = {
+        (unit["id"], stage_name): stage
+        for unit in units
+        for stage_name, stage in unit["stages"].items()
+        if stage["state"] == "blocked"
+    }
+    changed = 0
+    for check in checks:
+        stage = blocked_stages.get((check["unit_id"], check["stage"]))
+        if stage is None or check["state"] not in {"not_started", "in_progress"}:
+            continue
+        check.update({
+            "state": "blocked", "completion_basis": None, "evidence": [],
+            "blockers": route_blockers_from_stage(stage["blockers"]),
+            "notes": "Inherited from the blocked work-unit stage; resolve each route obligation explicitly.",
+            "updated_at": timestamp,
+        })
+        changed += 1
+    return changed
+
+
 def append_history(project: dict[str, Any], operation: str, summary: str) -> None:
     timestamp = now()
     project["history"].append({"timestamp": timestamp, "operation": operation, "summary": summary})
@@ -211,8 +341,11 @@ def append_history(project: dict[str, Any], operation: str, summary: str) -> Non
 def validate_schema(value: Any, schema_name: str, label: str) -> list[str]:
     try:
         import jsonschema
-    except ImportError:
-        return []
+    except ImportError as exc:
+        raise RuntimeError(
+            "strict database deep-map validation requires jsonschema; install with "
+            "python3 -m pip install -r requirements-validation.txt"
+        ) from exc
     schema = json.loads((ROOT / "schemas" / schema_name).read_text(encoding="utf-8"))
     validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
     errors = []
@@ -273,9 +406,14 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     require_project(target)
     project = read_json(target / PROJECT_FILE)
     units = read_jsonl(target / UNIT_FILE)
+    checks = read_jsonl(target / CHECK_FILE)
+    contracts = load_contracts()
+    route_ids = set(contract_index(contracts))
     known_records = registry_index()
     known_ids = set(known_records)
     errors = validate_schema(project, "database_deep_map_project.schema.json", PROJECT_FILE)
+    plan_audit = audit_database_deep_map_plan(project.get("diagnostic_plan", {}))
+    errors.extend(f"diagnostic_plan: {item}" for item in plan_audit["errors"])
     warnings = []
     seen_units, seen_upstream = set(), set()
     for index, unit in enumerate(units, 1):
@@ -289,8 +427,46 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             errors.append(f"{unit['id']}: project_id does not match {project['id']}")
         if unit.get("dataset_id") and unit["dataset_id"] not in known_ids:
             errors.append(f"{unit['id']}: unknown dataset_id {unit['dataset_id']}")
+        for route_id in unit["route_modules"]:
+            if route_id not in route_ids:
+                errors.append(f"{unit['id']}: unknown route module {route_id}")
+            if route_id not in project["diagnostic_plan"]["selected_route_modules"]:
+                errors.append(f"{unit['id']}: route module {route_id} is absent from the project diagnostic plan")
         for stage_name, stage in unit["stages"].items():
             errors.extend(stage_errors(unit, stage_name, stage, known_ids))
+    unit_ids = {item["id"] for item in units}
+    seen_checks: set[str] = set()
+    actual_check_keys: set[tuple[str | None, str]] = set()
+    for index, check in enumerate(checks, 1):
+        errors.extend(validate_schema(check, "database_deep_map_check.schema.json", f"{CHECK_FILE}:{index}"))
+        if check["id"] in seen_checks:
+            errors.append(f"duplicate check id {check['id']}")
+        seen_checks.add(check["id"])
+        key = (check["unit_id"], check["facet_id"])
+        if key in actual_check_keys:
+            errors.append(f"duplicate route-contract check {key}")
+        actual_check_keys.add(key)
+        errors.extend(check_errors(check, project, unit_ids, route_ids))
+    expected_specs = expected_check_specs(project, units) if not plan_audit["errors"] else []
+    expected_check_map = {(item["unit_id"], item["id"]): item for item in expected_specs}
+    expected_check_keys = {(item["unit_id"], item["id"]) for item in expected_specs}
+    for key in sorted(expected_check_keys - actual_check_keys, key=str):
+        errors.append(f"missing required route-contract check {key}")
+    for key in sorted(actual_check_keys - expected_check_keys, key=str):
+        errors.append(f"unexpected route-contract check {key}")
+    unit_by_id = {item["id"]: item for item in units}
+    for check in checks:
+        key = (check["unit_id"], check["facet_id"])
+        expected_check = expected_check_map.get(key)
+        if expected_check is None:
+            continue
+        for field in ("scope", "stage", "requirement", "route_modules"):
+            if check[field] != expected_check[field]:
+                errors.append(f"{check['id']}: {field} differs from the active route contract")
+        if check["unit_id"] is not None and check["state"] in CHECK_CLOSED_STATES:
+            stage_state = unit_by_id[check["unit_id"]]["stages"][check["stage"]]["state"]
+            if stage_state not in MAPPED_STATES:
+                errors.append(f"{check['id']}: cannot close before its {check['stage']} stage is mapped")
     expected_units = project["scope"]["expected_work_unit_count"]
     if expected_units is not None and expected_units != len(units):
         errors.append(f"project expected_work_unit_count={expected_units} but units={len(units)}")
@@ -318,15 +494,34 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         }
     fully_mapped_units = sum(all(unit["stages"][name]["state"] in MAPPED_STATES for name in unit["required_stages"]) for unit in units)
     fully_closed_units = sum(all(unit["stages"][name]["state"] in CLOSED_STATES for name in unit["required_stages"]) for unit in units)
+    required_checks = [item for item in checks if item["required"]]
+    closed_checks = sum(item["state"] in CHECK_CLOSED_STATES for item in required_checks)
+    blocked_checks = sum(item["state"] == "blocked" for item in required_checks)
+    failed_checks = sum(item["state"] == "failed" for item in required_checks)
+    human_checks = sum(item["state"] == "needs_human_review" for item in required_checks)
     core_phases_closed = all(project["phase_states"][name]["state"] in CLOSED_STATES for name in EARLY_PHASES)
-    completion_ready = not errors and core_phases_closed and total > 0 and closed == total and blocked == 0
+    unresolved_gates = [
+        item for item in project["diagnostic_plan"]["human_gates"]
+        if item["status"] in {"pending", "rejected"}
+    ]
+    plan_ready = project["diagnostic_plan"]["plan_status"] == "ready" and not project["diagnostic_plan"]["unresolved_critical"]
+    completion_ready = (
+        not errors and plan_ready and not unresolved_gates
+        and core_phases_closed and total > 0 and closed == total and blocked == 0
+        and required_checks and closed_checks == len(required_checks)
+        and blocked_checks == failed_checks == human_checks == 0
+    )
     if project["workflow_status"] == "complete" and not completion_ready:
         errors.append("project is marked complete but the strict completion contract is not satisfied")
     if mapped == total and closed < total:
         warnings.append("All required unit stages are mapped, but one or more still lack full verification.")
     if expected_units is None:
         warnings.append("The work-unit universe is not fixed; no percentage can represent bounded completeness.")
-    queue = [] if errors else action_queue(project, units)
+    if project["diagnostic_plan"]["plan_status"] == "needs_evidence":
+        warnings.append("Diagnostic plan retains critical unresolved dimensions; classification or boundary work must continue.")
+    if unresolved_gates:
+        warnings.append("Diagnostic plan retains human gates; protected operations and final completion remain unavailable.")
+    queue = [] if errors else action_queue(project, units, checks)
     if queue:
         effective_next_actions = [queue[0]["command"]]
     elif completion_ready:
@@ -338,6 +533,14 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "source_id": project["source_id"], "workflow_status": project["workflow_status"],
         "current_phase": project["current_phase"], "scope": project["scope"],
         "database_profile": project["database_profile"],
+        "diagnostic_plan": {
+            "plan_status": project["diagnostic_plan"]["plan_status"],
+            "route_contract_version": project["diagnostic_plan"]["route_contract_version"],
+            "selected_route_modules": project["diagnostic_plan"]["selected_route_modules"],
+            "unresolved_critical": project["diagnostic_plan"]["unresolved_critical"],
+            "human_gates": project["diagnostic_plan"]["human_gates"],
+            "risk_flags": project["diagnostic_plan"]["risk_flags"],
+        },
         "progress": {
             "work_units": len(units), "expected_work_units": expected_units,
             "fully_mapped_work_units": fully_mapped_units, "fully_closed_work_units": fully_closed_units,
@@ -345,6 +548,10 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "blocked_unit_stages": blocked,
             "mapping_percentage": round((mapped / total) * 100, 2) if total else 0.0,
             "strict_completion_percentage": round((closed / total) * 100, 2) if total else 0.0,
+            "required_contract_checks": len(required_checks), "closed_contract_checks": closed_checks,
+            "blocked_contract_checks": blocked_checks, "failed_contract_checks": failed_checks,
+            "human_review_contract_checks": human_checks,
+            "contract_check_percentage": round((closed_checks / len(required_checks)) * 100, 2) if required_checks else 0.0,
         },
         "stage_summary": stage_summary,
         "phase_states": project["phase_states"], "completion_ready": completion_ready,
@@ -377,13 +584,20 @@ def build_unit(spec: dict[str, Any], project: dict[str, Any], timestamp: str, re
             "evidence": evidence_from(dataset), "blockers": [],
             "notes": "Dataset identity is registered; verification state follows the canonical record.", "updated_at": timestamp,
         }
+    dimensions = project["diagnostic_plan"]["diagnostic_dimensions"]
+    routes = list(dict.fromkeys(["core_metadata", *(spec.get("route_modules") or project["database_profile"]["route_modules"])]))
     return {
-        "schema_version": "1.0.0", "id": unit_id, "project_id": project["id"], "sequence": spec.get("sequence", sequence),
+        "schema_version": "1.1.0", "id": unit_id, "project_id": project["id"], "sequence": spec.get("sequence", sequence),
         "upstream_id": upstream_id, "label": spec["label"], "dataset_id": dataset_id,
+        "unit_type": spec.get("unit_type") or project["diagnostic_plan"]["work_unit_strategy"]["unit_types"][0],
         "disciplines": spec.get("disciplines") or project["database_profile"]["disciplines"],
         "origin_type": spec.get("origin_type") or project["database_profile"]["origin_type"],
         "structural_archetypes": spec.get("structural_archetypes") or project["database_profile"]["structural_archetypes"],
-        "route_modules": spec.get("route_modules") or project["database_profile"]["route_modules"],
+        "content_modalities": spec.get("content_modalities") or dimensions["content_modalities"],
+        "lifecycle_modes": spec.get("lifecycle_modes") or dimensions["lifecycle_modes"],
+        "versioning_model": spec.get("versioning_model") or dimensions["versioning_models"][0],
+        "sensitivity_classes": spec.get("sensitivity_classes") or dimensions["sensitivity_classes"],
+        "route_modules": routes,
         "required_stages": spec.get("required_stages") or UNIT_STAGES,
         "stages": stages, "created_at": timestamp, "updated_at": timestamp,
     }
@@ -406,12 +620,34 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     project_id = f"grdr:deep-map-project:{project_slug}"
     source_evidence = evidence_from(source)
     boundary_evidence = spec.get("boundary_evidence", [])
+    if "diagnostic_plan" in spec:
+        diagnostic_plan = spec["diagnostic_plan"]
+    elif "diagnostic_intake" in spec:
+        diagnostic_plan = build_database_deep_map_plan_from_intake(spec["diagnostic_intake"])
+    else:
+        raise ValueError("start specification requires diagnostic_intake or diagnostic_plan")
+    plan_audit = audit_database_deep_map_plan(diagnostic_plan)
+    if plan_audit["errors"]:
+        raise ValueError("diagnostic plan failed audit: " + "; ".join(plan_audit["errors"]))
+    if diagnostic_plan["source"].get("source_id") not in {None, spec["source_id"]}:
+        raise ValueError("diagnostic plan source_id does not match start specification")
+    if diagnostic_plan["plan_status"] not in {"ready", "ready_with_gates"}:
+        details = "; ".join(diagnostic_plan["unresolved_critical"]) or diagnostic_plan["plan_status"]
+        raise ValueError(f"diagnostic plan is not executable; resolve the preflight diagnosis first: {details}")
+    if spec["scope"]["mode"] != diagnostic_plan["goal"]["scope_mode"]:
+        raise ValueError("start scope mode does not match the diagnostic plan")
+    if spec["scope"]["boundary_type"] != diagnostic_plan["scope"]["boundary_type"]:
+        raise ValueError("start boundary type does not match the diagnostic plan")
+    plan_expected = diagnostic_plan["work_unit_strategy"]["expected_count"]
+    if plan_expected is not None and spec["scope"]["expected_work_unit_count"] != plan_expected:
+        raise ValueError("start expected work-unit count does not match the diagnostic plan")
     project = {
-        "schema_version": "1.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
-        "database_profile": spec["database_profile"], "scope": spec["scope"],
+        "schema_version": "1.1.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
+        "database_profile": {**spec["database_profile"], "route_modules": diagnostic_plan["selected_route_modules"]},
+        "diagnostic_plan": diagnostic_plan, "scope": spec["scope"],
         "phase_states": {
             "identity": phase_state("verified_complete" if source["verification"]["status"] == "verified" else "mapped_complete", timestamp, "Canonical GRDR Source identity and official evidence are registered.", source_evidence),
-            "classification": phase_state("mapped_complete", timestamp, "Database origin, provenance role, production modes, structural archetypes, access regime, and routes were classified in the start specification.", source_evidence),
+            "classification": phase_state("in_progress" if diagnostic_plan["unresolved_critical"] else "mapped_complete", timestamp, None if diagnostic_plan["unresolved_critical"] else "Open-world diagnostic dimensions, route contracts, risk flags, and human gates were generated and audited.", [] if diagnostic_plan["unresolved_critical"] else (diagnostic_plan["evidence"] or source_evidence)),
             "boundary": phase_state("mapped_complete", timestamp, spec["scope"]["boundary_statement"], boundary_evidence),
             "inventory": phase_state("in_progress", timestamp),
             "deep_mapping": phase_state("in_progress", timestamp),
@@ -424,17 +660,132 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
         "created_at": timestamp, "updated_at": timestamp,
     }
     units = [build_unit(item, project, timestamp, records, index) for index, item in enumerate(spec["units"], 1)]
+    checks = materialize_checks(project, units, timestamp)
     expected = project["scope"]["expected_work_unit_count"]
     if expected is not None and expected == len(units) and boundary_evidence:
         project["phase_states"]["inventory"] = phase_state("mapped_complete", timestamp, f"The bounded inventory contains {len(units)} work units, matching the declared expected count.", boundary_evidence)
         project["current_phase"] = "deep_mapping"
     target.mkdir(parents=True)
-    write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units)
+    write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
     audit = audit_database_deep_map(target)
     if audit["errors"]:
         raise ValueError("created project failed audit: " + "; ".join(audit["errors"]))
     sync_report(target, project, audit)
     return {"operation": "start_database_deep_map", "project_id": project_id, "project_dir": str(target), "work_units": len(units), "audit": audit}
+
+
+def infer_content_modalities(archetypes: list[str]) -> list[str]:
+    mapping = {
+        "statistical_cube": "multidimensional", "relational_database": "tabular",
+        "flat_table_collection": "tabular", "json_or_xml_api": "tabular",
+        "survey_microdata": "tabular", "questionnaire_or_instrument": "document",
+        "administrative_event_system": "event", "geospatial_vector": "geospatial_vector",
+        "geospatial_raster": "geospatial_raster", "scientific_array": "multidimensional",
+        "sensor_time_series": "time_series", "biological_sequence_or_structure": "sequence",
+        "knowledge_graph": "graph", "document_corpus": "text",
+        "image_audio_video_collection": "composite",
+    }
+    result = list(dict.fromkeys(mapping[item] for item in archetypes if item in mapping))
+    return result or ["composite"]
+
+
+def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir)
+    for name in (PROJECT_FILE, UNIT_FILE):
+        if not (target / name).is_file():
+            raise ValueError(f"cannot upgrade incomplete project; missing {name}")
+    project = read_json(target / PROJECT_FILE)
+    units = read_jsonl(target / UNIT_FILE)
+    if project.get("schema_version") == "1.1.0" and (target / CHECK_FILE).is_file():
+        checks = read_jsonl(target / CHECK_FILE)
+        original_checks = json.loads(json.dumps(checks))
+        original_project = json.loads(json.dumps(project))
+        timestamp = now()
+        synchronized = synchronize_blocked_stage_checks(units, checks, timestamp)
+        if synchronized:
+            write_jsonl(target / CHECK_FILE, checks)
+            append_history(project, "reconcile-database-deep-map-blockers", f"Propagated {synchronized} blocked stage obligations into route checks.")
+            write_json(target / PROJECT_FILE, project)
+            audit = audit_database_deep_map(target)
+            if audit["errors"]:
+                write_jsonl(target / CHECK_FILE, original_checks)
+                write_json(target / PROJECT_FILE, original_project)
+                raise ValueError("current-project blocker reconciliation failed audit: " + "; ".join(audit["errors"]))
+            sync_report(target, project, audit)
+            return {"operation": "upgrade_database_deep_map", "status": "reconciled", "synchronized_checks": synchronized, "audit": audit}
+        return {"operation": "upgrade_database_deep_map", "status": "already_current", "audit": audit_database_deep_map(target)}
+    original_project = json.loads(json.dumps(project))
+    original_units = json.loads(json.dumps(units))
+    records = registry_index()
+    source = records.get(project["source_id"])
+    if source is None:
+        raise ValueError(f"cannot upgrade; unknown source {project['source_id']}")
+    scope_mode = project["scope"]["mode"]
+    claim_map = {
+        "representative_chain": "representative_only", "question_driven": "question_fit",
+        "priority_catalog": "bounded_partition", "catalog_level": "catalog_only",
+        "exhaustive_snapshot": "exhaustive_snapshot", "rolling_window": "rolling_current",
+        "bounded_partition": "bounded_partition",
+    }
+    profile = project["database_profile"]
+    plan_evidence = project["phase_states"]["classification"]["evidence"] or evidence_from(source)
+    intake = {
+        "schema_version": "1.0.0",
+        "source": {"source_id": project["source_id"], "name": source["name"], "url": source["canonical_url"]},
+        "goal": {"scope_mode": scope_mode, "completion_claim": claim_map[scope_mode], "research_question": None},
+        "observations": {
+            "disciplines": profile["disciplines"], "origin_types": [profile["origin_type"]],
+            "provenance_roles": [profile["provenance_role"]], "production_modes": profile["production_modes"],
+            "structural_archetypes": profile["structural_archetypes"],
+            "content_modalities": infer_content_modalities(profile["structural_archetypes"]),
+            "lifecycle_modes": ["versioned_release"], "versioning_models": ["dated_release"],
+            "access_regimes": [profile["access_regime"]], "sensitivity_classes": ["public"],
+            "scale_classes": ["large" if len(units) > 20 else "medium"],
+            "metadata_maturity": "machine_readable" if "api_schema" in profile["route_modules"] or "sdmx_cube" in profile["route_modules"] else "human_documented",
+            "languages": ["en"],
+        },
+        "scope": {"boundary_type": project["scope"]["boundary_type"], "boundary_statement": project["scope"]["boundary_statement"], "snapshot_at": project["scope"]["snapshot_at"]},
+        "work_unit_strategy": {
+            "unit_types": ["dataset"], "identity_rule": "Preserve the bounded upstream dataset or collection identifier.",
+            "partition_rule": "One bounded upstream dataset or equivalent collection per work unit.",
+            "ordering_rule": project["scope"]["enumeration_method"],
+            "denominator_strategy": "explicit_count" if project["scope"]["expected_work_unit_count"] is not None else "unknown",
+            "expected_count": project["scope"]["expected_work_unit_count"],
+        },
+        "constraints": {"authorized_access": ["public_metadata"], "prohibited_actions": [], "compute_limit": None, "notes": "Migrated from GRDR deep-map schema 1.0.0."},
+        "explicit_route_modules": [item for item in profile["route_modules"] if item != "other"],
+        "evidence": plan_evidence,
+    }
+    diagnostic_plan = build_database_deep_map_plan_from_intake(intake)
+    project["schema_version"] = "1.1.0"
+    project["diagnostic_plan"] = diagnostic_plan
+    project["database_profile"]["route_modules"] = diagnostic_plan["selected_route_modules"]
+    timestamp = now()
+    for unit in units:
+        unit["schema_version"] = "1.1.0"
+        unit["unit_type"] = "dataset"
+        unit["content_modalities"] = infer_content_modalities(unit["structural_archetypes"])
+        unit["lifecycle_modes"] = ["versioned_release"]
+        unit["versioning_model"] = "dated_release"
+        unit["sensitivity_classes"] = ["public"]
+        unit["route_modules"] = list(dict.fromkeys(["core_metadata", *unit["route_modules"]]))
+        unit["updated_at"] = timestamp
+    checks = materialize_checks(project, units, timestamp)
+    synchronize_blocked_stage_checks(units, checks, timestamp)
+    boundary_evidence = project["phase_states"]["boundary"]["evidence"] or evidence_from(source)
+    for check in checks:
+        if check["facet_id"] == "core.boundary_denominator" and project["phase_states"]["boundary"]["state"] == "verified_complete" and project["phase_states"]["inventory"]["state"] == "verified_complete":
+            check.update({"state": "passed", "completion_basis": "The dated boundary and work-unit denominator were verified before migration.", "evidence": boundary_evidence, "updated_at": timestamp})
+    write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+    audit = audit_database_deep_map(target)
+    if audit["errors"]:
+        write_json(target / PROJECT_FILE, original_project); write_jsonl(target / UNIT_FILE, original_units)
+        (target / CHECK_FILE).unlink(missing_ok=True)
+        raise ValueError("upgraded project failed audit: " + "; ".join(audit["errors"]))
+    append_history(project, "upgrade-database-deep-map", "Upgraded to open-world diagnostic plan and route-contract checks.")
+    write_json(target / PROJECT_FILE, project)
+    audit = audit_database_deep_map(target); sync_report(target, project, audit)
+    return {"operation": "upgrade_database_deep_map", "status": "upgraded", "check_count": len(checks), "audit": audit}
 
 
 def record_database_deep_map_phase(project_dir: str | Path, update_file: str | Path) -> dict[str, Any]:
@@ -465,6 +816,7 @@ def record_database_deep_map_stage(project_dir: str | Path, update_file: str | P
     update = read_json(Path(update_file).expanduser().resolve())
     validate_update(update, "database_deep_map_stage_update.schema.json", "stage_update")
     units = read_jsonl(target / UNIT_FILE); original_units = json.loads(json.dumps(units)); by_id = {item["id"]: item for item in units}
+    checks = read_jsonl(target / CHECK_FILE); original_checks = json.loads(json.dumps(checks))
     unit = by_id.get(update["unit_id"])
     if unit is None:
         raise ValueError(f"unknown unit_id {update['unit_id']}")
@@ -473,7 +825,8 @@ def record_database_deep_map_stage(project_dir: str | Path, update_file: str | P
     if update["stage"] == "dataset" and unit["dataset_id"] is None and len(update["registered_ids"]) == 1:
         unit["dataset_id"] = update["registered_ids"][0]
     unit["updated_at"] = timestamp
-    write_jsonl(target / UNIT_FILE, units)
+    synchronize_blocked_stage_checks(units, checks, timestamp)
+    write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
     project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
     project["workflow_status"] = "blocked" if update["state"] == "blocked" else "in_progress"
     project["current_phase"] = "deep_mapping"; project["next_actions"] = ["resume-database-deep-map"]
@@ -482,14 +835,108 @@ def record_database_deep_map_stage(project_dir: str | Path, update_file: str | P
     audit = audit_database_deep_map(target)
     if audit["errors"]:
         write_jsonl(target / UNIT_FILE, original_units)
+        write_jsonl(target / CHECK_FILE, original_checks)
         write_json(target / PROJECT_FILE, original_project)
         raise ValueError("stage update failed audit: " + "; ".join(audit["errors"]))
     sync_report(target, project, audit)
     return {"operation": "record_database_deep_map_stage", "unit_id": unit["id"], "stage": update["stage"], "state": update["state"], "audit": audit}
 
 
-def action_queue(project: dict[str, Any], units: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def record_database_deep_map_check(project_dir: str | Path, update_file: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir); require_project(target)
+    update = read_json(Path(update_file).expanduser().resolve())
+    validate_update(update, "database_deep_map_check_update.schema.json", "check_update")
+    if update["state"] in CHECK_CLOSED_STATES and (not update["completion_basis"] or not update["evidence"]):
+        raise ValueError("passed or not-applicable check update requires completion_basis and evidence")
+    if update["state"] in {"blocked", "failed", "needs_human_review"} and not update["blockers"]:
+        raise ValueError(f"{update['state']} check update requires typed blockers")
+    checks = read_jsonl(target / CHECK_FILE); original_checks = json.loads(json.dumps(checks))
+    by_id = {item["id"]: item for item in checks}
+    check = by_id.get(update["check_id"])
+    if check is None:
+        raise ValueError(f"unknown check_id {update['check_id']}")
+    timestamp = now()
+    for key in ("state", "completion_basis", "evidence", "blockers", "notes"):
+        check[key] = update[key]
+    check["updated_at"] = timestamp
+    write_jsonl(target / CHECK_FILE, checks)
+    project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
+    if update["state"] in {"blocked", "failed"}:
+        project["workflow_status"] = "blocked"
+    elif update["state"] == "needs_human_review":
+        project["workflow_status"] = "needs_human_review"
+    else:
+        project["workflow_status"] = "in_progress"
+    project["current_phase"] = "deep_mapping"
+    project["next_actions"] = ["database-deep-map-status"]
+    append_history(project, "record-database-deep-map-check", f"Set {check['facet_id']} to {update['state']}.")
+    write_json(target / PROJECT_FILE, project)
+    audit = audit_database_deep_map(target)
+    if audit["errors"]:
+        write_jsonl(target / CHECK_FILE, original_checks)
+        write_json(target / PROJECT_FILE, original_project)
+        raise ValueError("check update failed audit: " + "; ".join(audit["errors"]))
+    sync_report(target, project, audit)
+    return {"operation": "record_database_deep_map_check", "check_id": check["id"], "facet_id": check["facet_id"], "state": check["state"], "audit": audit}
+
+
+def record_database_deep_map_human_gate(
+    project_dir: str | Path,
+    gate_id: str,
+    decision: str,
+    reviewer: str,
+    notes: str,
+) -> dict[str, Any]:
+    if decision not in {"approved", "rejected", "not_applicable"}:
+        raise ValueError("human-gate decision must be approved, rejected, or not_applicable")
+    if not reviewer.strip() or not notes.strip():
+        raise ValueError("human-gate decision requires reviewer and notes")
+    target = resolve_project_dir(project_dir); require_project(target)
+    project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
+    gate = next((item for item in project["diagnostic_plan"]["human_gates"] if item["gate"] == gate_id), None)
+    if gate is None:
+        raise ValueError(f"unknown human gate {gate_id}")
+    timestamp = now()
+    gate.update({"status": decision, "reviewer": reviewer, "decided_at": timestamp, "notes": notes})
+    gates = project["diagnostic_plan"]["human_gates"]
+    if any(item["status"] == "rejected" for item in gates):
+        project["diagnostic_plan"]["plan_status"] = "blocked"
+        project["workflow_status"] = "blocked"
+    elif any(item["status"] == "pending" for item in gates):
+        project["diagnostic_plan"]["plan_status"] = "ready_with_gates"
+        project["workflow_status"] = "needs_human_review"
+    elif project["diagnostic_plan"]["unresolved_critical"]:
+        project["diagnostic_plan"]["plan_status"] = "needs_evidence"
+        project["workflow_status"] = "in_progress"
+    else:
+        project["diagnostic_plan"]["plan_status"] = "ready"
+        project["workflow_status"] = "in_progress"
+    project["next_actions"] = ["database-deep-map-status"]
+    append_history(project, "record-database-deep-map-human-gate", f"Human reviewer {reviewer} recorded {decision} for {gate_id}.")
+    write_json(target / PROJECT_FILE, project)
+    audit = audit_database_deep_map(target)
+    if audit["errors"]:
+        write_json(target / PROJECT_FILE, original_project)
+        raise ValueError("human-gate update failed audit: " + "; ".join(audit["errors"]))
+    sync_report(target, project, audit)
+    return {"operation": "record_database_deep_map_human_gate", "gate": gate_id, "decision": decision, "reviewer": reviewer, "audit": audit}
+
+
+def action_queue(project: dict[str, Any], units: list[dict[str, Any]], checks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     queue = []
+    pending_gates = [item for item in project["diagnostic_plan"]["human_gates"] if item["status"] == "pending"]
+    protected_observation_access = any(item["required_before"] == "observation_access" for item in pending_gates)
+    gate_priorities = {"metadata_access": 1, "local_storage": 1, "semantic_promotion": 3, "observation_access": 3, "publication": 7}
+    for gate in pending_gates:
+        queue.append({
+            "priority": gate_priorities[gate["required_before"]],
+            "target_type": "human_gate", "gate": gate["gate"], "state": gate["status"],
+            "required_before": gate["required_before"], "reason": gate["reason"],
+            "command": "record-database-deep-map-human-gate",
+        })
+    checks_by_stage: dict[tuple[str | None, str], list[dict[str, Any]]] = {}
+    for check in checks:
+        checks_by_stage.setdefault((check["unit_id"], check["stage"]), []).append(check)
     for phase in EARLY_PHASES:
         value = project["phase_states"][phase]
         if value["state"] in ACTIVE_STATES:
@@ -498,34 +945,56 @@ def action_queue(project: dict[str, Any], units: list[dict[str, Any]]) -> list[d
         for stage in unit["required_stages"]:
             value = unit["stages"][stage]
             if value["state"] in ACTIVE_STATES:
-                queue.append({"priority": 5 if value["state"] == "blocked" else 2, "sequence": unit["sequence"], "target_type": "work_unit_stage", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "checkpoint": value["notes"], "blockers": value["blockers"], "command": "record-database-deep-map-stage"})
+                related_checks = checks_by_stage.get((unit["id"], stage), [])
+                stage_priority = 4 if stage == "access" and protected_observation_access else 2
+                queue.append({"priority": 8 if value["state"] == "blocked" else stage_priority, "sequence": unit["sequence"], "target_type": "work_unit_stage", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks], "checkpoint": value["notes"], "blockers": value["blockers"], "command": "record-database-deep-map-stage"})
+    for check in checks_by_stage.get((None, "project"), []):
+        if check["state"] in CHECK_ACTIVE_STATES:
+            queue.append({"priority": 8 if check["state"] in {"blocked", "failed", "needs_human_review"} else 3, "target_type": "route_contract_check", "check_id": check["id"], "facet_id": check["facet_id"], "stage": "project", "state": check["state"], "route_modules": check["route_modules"], "checkpoint": check["notes"], "blockers": check["blockers"], "requirement": check["requirement"], "command": "record-database-deep-map-check"})
     for phase in EARLY_PHASES:
         value = project["phase_states"][phase]
         if value["state"] == "mapped_complete":
-            queue.append({"priority": 3, "target_type": "project_phase_verification", "phase": phase, "state": value["state"], "command": "record-database-deep-map-phase"})
+            queue.append({"priority": 4, "target_type": "project_phase_verification", "phase": phase, "state": value["state"], "command": "record-database-deep-map-phase"})
     for unit in units:
         for stage in unit["required_stages"]:
             value = unit["stages"][stage]
             if value["state"] == "mapped_complete":
-                queue.append({"priority": 4, "sequence": unit["sequence"], "target_type": "work_unit_verification", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "checkpoint": value["notes"], "command": "record-database-deep-map-stage"})
+                related_checks = checks_by_stage.get((unit["id"], stage), [])
+                queue.append({"priority": 5, "sequence": unit["sequence"], "target_type": "work_unit_verification", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks], "checkpoint": value["notes"], "command": "record-database-deep-map-stage"})
+    unit_by_id = {item["id"]: item for item in units}
+    for check in checks:
+        if check["unit_id"] is None or check["state"] not in CHECK_ACTIVE_STATES:
+            continue
+        unit = unit_by_id[check["unit_id"]]
+        stage_state = unit["stages"][check["stage"]]["state"]
+        if stage_state not in MAPPED_STATES:
+            continue
+        queue.append({"priority": 8 if check["state"] in {"blocked", "failed", "needs_human_review"} else 6, "sequence": unit["sequence"], "target_type": "route_contract_check", "check_id": check["id"], "facet_id": check["facet_id"], "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": check["stage"], "state": check["state"], "route_modules": check["route_modules"], "checkpoint": check["notes"], "blockers": check["blockers"], "requirement": check["requirement"], "command": "record-database-deep-map-check"})
     return sorted(queue, key=lambda item: (item["priority"], item.get("sequence", 0), UNIT_STAGES.index(item["stage"]) if item.get("stage") in UNIT_STAGES else -1))
 
 
 def resume_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     target = resolve_project_dir(project_dir); require_project(target)
-    project = read_json(target / PROJECT_FILE); units = read_jsonl(target / UNIT_FILE)
+    project = read_json(target / PROJECT_FILE); units = read_jsonl(target / UNIT_FILE); checks = read_jsonl(target / CHECK_FILE)
     audit = audit_database_deep_map(target)
     if audit["errors"]:
         project["workflow_status"] = "blocked"; project["next_actions"] = ["repair-deep-map-project"]
         summary = f"Blocked by {len(audit['errors'])} audit errors."
         queue = []
     else:
-        queue = action_queue(project, units)
+        queue = action_queue(project, units, checks)
         if queue:
-            project["workflow_status"] = "blocked" if queue[0]["state"] == "blocked" else "in_progress"
+            if queue[0]["target_type"] == "human_gate" or queue[0]["state"] == "needs_human_review":
+                project["workflow_status"] = "needs_human_review"
+            elif queue[0]["state"] in {"blocked", "failed"}:
+                project["workflow_status"] = "blocked"
+            else:
+                project["workflow_status"] = "in_progress"
             project["current_phase"] = queue[0].get("phase", "deep_mapping")
             project["next_actions"] = [queue[0]["command"]]
-            summary = f"Next target: {queue[0].get('upstream_id', queue[0].get('phase'))} / {queue[0].get('stage', queue[0].get('phase'))}."
+            target_label = queue[0].get("upstream_id") or queue[0].get("phase") or queue[0].get("facet_id") or queue[0].get("gate")
+            target_stage = queue[0].get("stage") or queue[0].get("phase") or queue[0].get("required_before")
+            summary = f"Next target: {target_label} / {target_stage}."
         elif audit["completion_ready"]:
             project["workflow_status"] = "ready_for_completion"; project["current_phase"] = "validation"
             project["next_actions"] = ["complete-database-deep-map"]
@@ -550,8 +1019,8 @@ def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     early_open = [name for name in EARLY_PHASES if project["phase_states"][name]["state"] not in CLOSED_STATES]
     if early_open:
         raise ValueError("cannot complete; unclosed project phases: " + ", ".join(early_open))
-    if audit["errors"] or audit["progress"]["closed_unit_stages"] != audit["progress"]["required_unit_stages"] or audit["progress"]["blocked_unit_stages"]:
-        raise ValueError("cannot complete; strict unit-stage contract is not satisfied")
+    if not audit["completion_ready"]:
+        raise ValueError("cannot complete; strict unit-stage, route-contract, diagnostic-plan, or human-gate requirements are not satisfied")
     try:
         import jsonschema  # noqa: F401
     except ImportError as exc:

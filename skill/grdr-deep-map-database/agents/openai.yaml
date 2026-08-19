@@ -1,4 +1,4 @@
 interface:
-  display_name: "GRDR Database Deep Mapper"
-  short_description: "Run strict, resumable database deep-mapping projects"
-  default_prompt: "Use $grdr-deep-map-database to classify this database, create or resume its persistent work-unit ledger, map every required stage, and enforce strict bounded completion."
+  display_name: "GRDR Open-World Database Deep Mapper"
+  short_description: "Diagnose and deeply map any database into GRDR"
+  default_prompt: "Use $grdr-deep-map-database to diagnose this database, compose an evidence-backed route plan, and execute or resume its strict bounded deep map."

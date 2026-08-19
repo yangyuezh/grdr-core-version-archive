@@ -17,7 +17,7 @@ The canonical version is stored in `VERSION`.
 1. Complete one coherent development batch.
 2. Update `VERSION`.
 3. Add a dated entry to `CHANGELOG.md`.
-4. Run the registry validator and all tests.
+4. Create `.venv` if needed, install `requirements-validation.txt`, and run the strict registry validator and all tests with `.venv/bin/python`.
 5. Inspect the Git diff and stage only GRDR files.
 6. Commit with the version and concise scope.
 7. Create an annotated `vX.Y.Z` Git tag.

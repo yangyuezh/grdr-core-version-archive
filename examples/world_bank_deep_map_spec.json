@@ -2,6 +2,40 @@
   "source_id": "grdr:source:world-bank-open-data",
   "title": "World Bank Open Data bounded deep-map example",
   "project_slug": "world-bank-example",
+  "diagnostic_intake": {
+    "schema_version": "1.0.0",
+    "source": {"source_id": "grdr:source:world-bank-open-data", "name": "World Bank Open Data", "url": "https://data.worldbank.org/"},
+    "goal": {"scope_mode": "priority_catalog", "completion_claim": "bounded_partition", "research_question": null},
+    "observations": {
+      "disciplines": ["multidisciplinary"],
+      "origin_types": ["hybrid"],
+      "provenance_roles": ["official_harmonizer"],
+      "production_modes": ["official_statistics", "administrative", "survey"],
+      "structural_archetypes": ["hierarchical_catalog", "json_or_xml_api", "statistical_cube"],
+      "content_modalities": ["tabular", "multidimensional"],
+      "lifecycle_modes": ["versioned_release", "mutable"],
+      "versioning_models": ["revision_chain"],
+      "access_regimes": ["open"],
+      "sensitivity_classes": ["public"],
+      "scale_classes": ["large"],
+      "metadata_maturity": "machine_readable",
+      "languages": ["en"]
+    },
+    "scope": {"boundary_type": "collection", "boundary_statement": "The registered World Development Indicators collection only.", "snapshot_at": "2026-08-19T00:00:00Z"},
+    "work_unit_strategy": {
+      "unit_types": ["dataset"],
+      "identity_rule": "Use the official WDI catalog identity.",
+      "partition_rule": "One WDI collection work unit.",
+      "ordering_rule": "Official catalog identity.",
+      "denominator_strategy": "explicit_count",
+      "expected_count": 1
+    },
+    "constraints": {"authorized_access": ["public_metadata", "public_observations"], "prohibited_actions": [], "compute_limit": null, "notes": null},
+    "explicit_route_modules": ["catalog", "api_schema", "table_schema", "derived_provenance"],
+    "evidence": [
+      {"url": "https://datacatalog.worldbank.org/search/dataset/0037712/World-Development-Indicators", "title": "World Development Indicators catalog record", "evidence_type": "official_catalog", "supports": ["identity", "scope", "structure"], "retrieved_at": "2026-08-14T00:00:00Z"}
+    ]
+  },
   "database_profile": {
     "disciplines": ["multidisciplinary"],
     "origin_type": "hybrid",

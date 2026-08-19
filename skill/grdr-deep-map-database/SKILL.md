@@ -1,122 +1,144 @@
 ---
 name: grdr-deep-map-database
-description: "Deep-read one authoritative database into GRDR through a persistent, resumable, evidence-backed workflow with database-shape classification, primary/secondary provenance tracing, bounded work-unit inventory, route-specific extraction, counted six-layer mapping, progress reporting, blockers, and strict completion gates. Use when Codex receives a database name, URL, catalog, or GRDR source ID and must start, resume, audit, or complete exhaustive or bounded database mapping; recover native schemas; enumerate data elements and variables; map constructs; attach access routes; or write canonical GRDR records and human catalog pages."
+description: "Deep-read any authoritative database into GRDR through an open-world, evidence-backed execution system that diagnoses source shape before acting, composes route-specific contracts, fixes bounded work units, traces primary and secondary provenance, maps the six content stages, survives heterogeneous, dynamic, restricted, large, legacy, federated, or unknown systems, and enforces machine-audited completion. Use when Codex receives a database name, URL, catalog, GRDR source ID, or existing deep-map project and must plan, start, resume, repair, audit, or complete database ingestion and mapping."
 ---
 
 # GRDR Deep-Map Database
 
-## Use the persistent workflow
+## Mission and boundaries
 
-Turn one database into a verified, traversable GRDR map. Use `$grdr` for registry-wide discovery and question-to-data matching. Use `$grdr-indicator-builder` for question- or literature-derived indicators.
+Turn one database into a verified, traversable GRDR map. The database may contain many datasets and may combine multiple structures, producers, modalities, versions, access regimes, or disciplines.
 
-Do not perform a nontrivial database pass as an untracked sequence of browsing and edits. Create or resume a persistent project under `deep_map_projects/<source-slug>/`. The project must contain:
+Use `$grdr` for registry-wide discovery and research-question matching. Use `$grdr-indicator-builder` for question- or literature-derived indicator systems. This Skill owns the source-side process: fully understand a database inside a declared boundary, convert it into canonical GRDR records, and preserve enough evidence for another Agent or human to audit every claim.
 
-- `project.json`: database classification, bounded scope, phase state, history, and next actions;
-- `units.jsonl`: one work unit per bounded upstream dataset or equivalent collection, with counted stage states;
-- `README.md`: generated human-readable progress.
+Never treat a finite archetype list as complete. Diagnose first, compose known route contracts, and use the open-world route when the source does not fit. Unknown means unresolved, not absent.
 
-Locate GRDR at `${GRDR_ROOT}` or `/Users/jasper/Documents/codex/grdr`. Before writing, read `docs/DATABASE_DEEP_MAP_WORKFLOW.md`, the relevant canonical schemas, and these references:
+Locate GRDR at `${GRDR_ROOT}` or `/Users/jasper/Documents/codex/grdr`. Before a write, read `docs/DATABASE_DEEP_MAP_WORKFLOW.md` and only the task-relevant references:
 
-- [references/six-layer-standard.md](references/six-layer-standard.md) for entity meaning;
-- [references/database-archetypes.md](references/database-archetypes.md) to select routes by storage form and discipline;
-- [references/completion-contract.md](references/completion-contract.md) before changing a stage to complete;
-- [references/within-stage-enumeration.md](references/within-stage-enumeration.md) to select the next native item and preserve a batch cursor;
-- [references/multidimensional-data.md](references/multidimensional-data.md) for cubes and other multidimensional systems.
+- [diagnostic-matrix.md](references/diagnostic-matrix.md): mandatory preflight dimensions;
+- [route-contracts.md](references/route-contracts.md): route composition and check execution;
+- [six-layer-standard.md](references/six-layer-standard.md): canonical content meaning;
+- [lifecycle-boundaries.md](references/lifecycle-boundaries.md): exhaustive, rolling, versioned, federated, and question-bounded scopes;
+- [within-stage-enumeration.md](references/within-stage-enumeration.md): deterministic counts, partitions, and cursors;
+- [exception-recovery.md](references/exception-recovery.md): access, scale, drift, format, ambiguity, and human-gate recovery;
+- [completion-contract.md](references/completion-contract.md): strict completion.
 
-The machine contracts are `schemas/database_deep_map_project.schema.json`, `schemas/database_deep_map_unit.schema.json`, `schemas/database_deep_map_phase_update.schema.json`, and `schemas/database_deep_map_stage_update.schema.json`. Copy [references/phase-update.example.json](references/phase-update.example.json) or [references/stage-update.example.json](references/stage-update.example.json) before constructing an update; do not invent field names from memory.
-
-## Start or resume; never improvise progress
-
-Search and audit the source first:
+Strict planning and auditing require `jsonschema`; never accept a skipped validator as success. From the repository root, prepare and select a project-local interpreter when needed:
 
 ```bash
-python3 scripts/grdr.py audit-source-depth <source-id>
-python3 scripts/grdr.py start-database-deep-map <spec.json>
-python3 scripts/grdr.py database-deep-map-status <project>
-python3 scripts/grdr.py resume-database-deep-map <project>
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-validation.txt
+GRDR_PYTHON="${GRDR_PYTHON:-$PWD/.venv/bin/python}"
+"$GRDR_PYTHON" -c "import jsonschema"
 ```
 
-`database-deep-map-status` and `audit-database-deep-map` are read-only and return `next_target` plus `queue_preview`. Use them for inspection. `resume-database-deep-map` records a history event and refreshes the human report, so use it only when actually resuming work.
+If dependency installation is outside the authorized task, stop and report the dependency blocker. Use `$GRDR_PYTHON` for every GRDR command below.
 
-Generate the start specification from official source evidence. Classify:
+## 1. Diagnose before starting
 
-- disciplines;
-- `primary`, `secondary`, or `hybrid` origin;
-- original producer, official harmonizer, curated repository, mirror, or derivative aggregator role;
-- production modes;
-- structural archetypes;
-- access regime;
-- required route modules.
-
-Classify each work unit independently when a portal mixes different producers or storage forms. Preserve original producers and transformations for secondary data.
-
-## Fix the bounded universe
-
-Declare the scope, snapshot time, enumeration method, expected work-unit count, and evidence. Use one work unit per Dataset or equivalent upstream collection. Do not report a percentage while the expected work-unit count is unknown.
-
-For an exhaustive claim, enumerate every item inside the dated boundary, including deprecated, restricted, empty, and inaccessible entries. These may later be evidenced as not applicable or blocked; they may not silently disappear.
-
-## Execute each unit in order
-
-For every work unit, execute all required stages:
-
-1. `dataset`: identity, producer, methodology, population, observation unit, coverage, version, limitations, citation;
-2. `data_structure`: source-native hierarchy, schema, table, dataflow, instrument, array, graph, file layout, or corpus organization;
-3. `data_element`: every required field, dimension, measure, identifier, item, attribute, weight, flag, code list, coordinate, or annotation class;
-4. `variable`: the complete declared operational-variable universe, with definition, unit, population, resolutions, comparability, and joins;
-5. `construct`: research meaning, measurement class, directness, proxy/model boundary, and disciplinary semantics;
-6. `access`: API, query, file, bulk download, secure environment, authentication, limits, license, and separate metadata/observation tests.
-
-Select route modules from the unit's actual shape. The six stages stay fixed; the extraction route changes. For example, use `sdmx_cube` for a statistical cube, `survey_instrument` for questionnaires and microdata, `scientific_array` for NetCDF/HDF/Zarr, `biomedical` for sample/assay/sequence structures, and `corpus_multimodal` for document or media collections.
-
-Write facts and relationships to canonical `registry/*.jsonl`. Then record the stage through an update file:
+Build a standalone diagnostic intake or embed `diagnostic_intake` in a start specification. Do not infer the plan from a source label alone.
 
 ```bash
-python3 scripts/grdr.py record-database-deep-map-stage <project> <stage-update.json>
-python3 scripts/grdr.py record-database-deep-map-phase <project> <phase-update.json>
+"$GRDR_PYTHON" scripts/grdr.py list-database-route-modules
+"$GRDR_PYTHON" scripts/grdr.py plan-database-deep-map <intake-or-start-spec.json> --output <plan.json>
+"$GRDR_PYTHON" scripts/grdr.py audit-database-deep-map-plan <plan.json>
 ```
 
-The command rejects unknown GRDR IDs, wrong entity types, missing counts, count mismatches, unsupported completion claims, and blocked states without blockers.
+The intake must describe evidence-backed identity, research goal and completion claim, origin and provenance roles, production modes, internal structures, modalities, lifecycle, versioning, access, sensitivity, scale, metadata maturity, languages, scope boundary, work-unit identity and denominator, authorized actions, prohibited actions, and known evidence.
 
-After each update, run read-only `database-deep-map-status` and work on its returned next target. Run `resume-database-deep-map` once when a new work session actually resumes and its history event is desired. Do not choose a convenient example while earlier required work remains invisible.
+Interpret `plan_status` literally:
 
-Inside the selected stage, follow [the deterministic enumeration rule](references/within-stage-enumeration.md). Preserve official order where available; otherwise use complete source-native ID order. Record the current native cursor in `notes`, and update it after every batch. A stage-level count without a reproducible native universe and cursor is not enough for completion.
+- `ready`: executable;
+- `ready_with_gates`: executable only outside protected operations until named humans decide the listed gates;
+- `needs_evidence`: continue read-only diagnosis; do not start execution;
+- `blocked`: the declared constraints prohibit the required work.
 
-For SDMX 2.1 systems, use the bundled inspector instead of writing a new parser:
+The planner selects `core_metadata` plus applicable route modules and produces mandatory facets. It may select several routes for one database. A portal-wide plan is not permission to apply every route to every work unit; classify mixed work units independently.
+
+## 2. Fix the completion boundary and inventory
+
+Register or resolve the canonical Source, then define what this pass can honestly complete. Use a Dataset or stable equivalent—collection, study, site extract, graph, corpus, instrument, model experiment, catalog partition, or rolling-window partition—as the work unit.
+
+For enumerable scopes, preserve a dated/versioned manifest, stable identities, official or deterministic ordering, and expected count. Include deprecated, empty, inaccessible, and restricted entries in an exhaustive denominator. For rolling, federated, virtual, or non-enumerable systems, use the boundary rules in [lifecycle-boundaries.md](references/lifecycle-boundaries.md); never convert “currently reachable” into “the whole database.”
+
+Start only with an audited executable plan:
 
 ```bash
-python3 skill/grdr-deep-map-database/scripts/inspect_sdmx.py list-dataflows <base-url>
-python3 skill/grdr-deep-map-database/scripts/inspect_sdmx.py describe-structure <base-url> <agency> <dsd-id> <version>
-python3 skill/grdr-deep-map-database/scripts/inspect_sdmx.py list-codelist <base-url> <agency> <codelist-id> <version>
-python3 skill/grdr-deep-map-database/scripts/inspect_sdmx.py probe-data <base-url> <dataflow-id> <ordered-key>
+"$GRDR_PYTHON" scripts/grdr.py start-database-deep-map <start-spec.json>
+"$GRDR_PYTHON" scripts/grdr.py upgrade-database-deep-map <legacy-project>
 ```
 
-## Use states literally
+Every project under `deep_map_projects/<source-or-pass>/` contains:
 
-- `not_started`, `enumerating`, `in_progress`: open work;
-- `mapped_complete`: the bounded expected count is fully registered, but verification remains incomplete;
-- `verified_complete`: expected count, registered count, verified count, completion basis, and evidence all agree;
-- `not_applicable`: expected count is zero and evidence proves why;
-- `blocked`: work is unresolved and blockers are recorded.
+- `project.json`: plan, scope, phases, gates, history, and current state;
+- `units.jsonl`: ordered work-unit ledger and six stage states;
+- `checks.jsonl`: route-contract obligations and typed blockers;
+- `README.md`: generated human-readable progress and next target.
 
-Never use `mapped_complete` merely because several examples exist. Never use `verified_complete` while the expected count is unknown. A restricted database can have complete metadata and access documentation, but an unresolved required stage remains blocked.
-
-## Enforce strict completion
-
-Two percentages are reported:
-
-- mapping progress includes `mapped_complete`;
-- strict completion counts only `verified_complete` and evidenced `not_applicable`.
-
-Only `complete-database-deep-map` may declare completion:
+## 3. Follow the deterministic queue
 
 ```bash
-python3 scripts/grdr.py audit-database-deep-map <project>
-python3 scripts/grdr.py complete-database-deep-map <project>
+"$GRDR_PYTHON" scripts/grdr.py database-deep-map-status <project>
+"$GRDR_PYTHON" scripts/grdr.py resume-database-deep-map <project>
 ```
 
-Completion requires a fixed work-unit universe, verified identity/classification/boundary/inventory phases, every required unit stage closed, no blockers, valid canonical references, registry Schema validation, and a current human catalog. “Six-layer chain present” and “variable matching ready” are never completion claims.
+`status` and `audit` are read-only. `resume` writes a history event, so call it once when genuinely resuming. Work on the returned `next_target`; do not substitute a convenient example.
+
+For each work unit, preserve the fixed content stages:
+
+1. `dataset`: identity, producer, method, population/universe, observation unit, coverage, release, quality, limitations, and citation;
+2. `data_structure`: source-native catalog/schema/table/dataflow/instrument/array/graph/corpus/run/file topology;
+3. `data_element`: source-native fields, measures, dimensions, identifiers, items, attributes, codes, weights, flags, coordinates, segments, or annotations;
+4. `variable`: research-matchable operational quantities with units, population, resolution, dimension selections, comparability, identity, and joins;
+5. `construct`: evidenced research meaning and direct, subjective, administrative, constructed, modelled, forecast, proxy, or latent status;
+6. `access`: metadata and observations tested separately, with API/file/query/environment, authentication, limits, license, and reproducibility.
+
+Resource access remains a sidecar to Dataset or DataStructure; it is not a content layer. Write canonical `registry/*.jsonl` records and relationships before claiming a stage has mapped them.
+
+## 4. Satisfy both stage and route contracts
+
+Copy `references/stage-update.example.json`, `references/phase-update.example.json`, or `references/check-update.example.json` rather than inventing fields:
+
+```bash
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-stage <project> <stage-update.json>
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-phase <project> <phase-update.json>
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
+```
+
+A stage answers “which canonical objects are mapped and counted.” A route check answers “were the obligations specific to this database shape actually discharged.” Both must close. For example, a statistical cube must resolve ordered dimensions/codelists and prove observation access; a simulation archive must recover run/configuration lineage; a qualitative archive must preserve case/document/code provenance.
+
+Use [within-stage-enumeration.md](references/within-stage-enumeration.md) inside every open stage. For SDMX, prefer the bundled inspector:
+
+```bash
+"$GRDR_PYTHON" skill/grdr-deep-map-database/scripts/inspect_sdmx.py list-dataflows <base-url>
+"$GRDR_PYTHON" skill/grdr-deep-map-database/scripts/inspect_sdmx.py describe-structure <base-url> <agency> <dsd-id> <version>
+"$GRDR_PYTHON" skill/grdr-deep-map-database/scripts/inspect_sdmx.py list-codelist <base-url> <agency> <codelist-id> <version>
+"$GRDR_PYTHON" skill/grdr-deep-map-database/scripts/inspect_sdmx.py probe-data <base-url> <dataflow-id> <ordered-key>
+```
+
+## 5. Handle gates and failures without guessing
+
+Agents may diagnose and prepare evidence, but may not approve privacy, ethics, sovereignty, access authorization, contested semantics, or question-bounded publication gates. A named human records the decision:
+
+```bash
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-human-gate <project> <gate-id> --decision <approved|rejected|not_applicable> --reviewer <name> --notes <decision-basis>
+```
+
+Record failures as typed check blockers: retryable, alternative route, authorization required, human decision required, upstream-only, or unknown. Continue all lawful independent work. Never bypass access controls, infer inaccessible observations, expose secrets or personal data, or treat failure as non-applicability. Follow [exception-recovery.md](references/exception-recovery.md).
+
+If a new source shape is not explained by existing contracts, select `open_world_custom`, record observed structure and unresolved obligations, and propose a reusable route only after evidence and regression tests. Do not silently force the source into the nearest familiar type.
+
+## 6. Complete only through the gate
+
+```bash
+"$GRDR_PYTHON" scripts/grdr.py audit-database-deep-map <project>
+"$GRDR_PYTHON" scripts/grdr.py complete-database-deep-map <project>
+```
+
+Completion requires an executable resolved plan, all human gates resolved without rejection, every required project phase closed, every required unit stage verified or evidenced not applicable, every route check passed or evidenced not applicable, no blockers or failed checks, valid canonical references, strict Schema validation, and synchronized human catalog output.
+
+Report the exact completion claim and boundary, not a universal “100%.” A representative chain, catalog-only pass, question-bounded pass, rolling-current window, and exhaustive snapshot are different achievements.
 
 ## Report
 
-Return project and source IDs, boundary and snapshot, classification and routes, work-unit counts, mapping and strict-completion percentages, per-stage state counts, next target, blockers, changed canonical IDs, validation results, version, and GitHub release status.
+Return project/source IDs, plan status, completion claim, boundary and snapshot/version/window, diagnostic dimensions and selected routes, work-unit denominator, stage and route-check progress, human gates, typed blockers, next target and cursor, changed canonical IDs, validation results, installed Skill version, Git commit/tag, GitHub release, and CI result.
