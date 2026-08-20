@@ -2,7 +2,7 @@
 
 GRDR is AI-agent-native, all-discipline infrastructure for global data-source registration, discovery, assessment, connection, and research design.
 
-**Current status:** foundation, an open-world database deep-reading execution system, the first persistent real database project, and the first executable research-question closed loop. The repository provides evidence models, ontology, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG examples, preflight diagnosis, 29 composable database-route contracts, route-specific checks, resumable work-unit ledgers, strict completion gates, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
+**Current status:** foundation, a locked and resumable database deep-reading execution system, the first persistent real database project, and the first executable research-question closed loop. The repository provides evidence models, ontology, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG examples, preflight diagnosis, 29 composable database-route contracts, route-specific checks, plan/scope/manifest locks, source-native and scientific-semantic spines, a Variable-to-Construct bridge, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
 
 It is not primarily a website and does not initially copy every upstream dataset. It combines:
 
@@ -18,13 +18,16 @@ Research-question matching, source combination, and data-gap diagnosis are centr
 
 GRDR uses the dedicated `$grdr-deep-map-database` Skill to deep-read a registered database into Institution → Source → Dataset → DataStructure → 5A DataElement / 5B Variable → Construct records. `DataStructure` restores the database's own catalog, schema, table, dataflow, questionnaire, array, or other internal organization before variables are formed. API、CSV、下载、认证与许可作为 Resource 旁路挂接，不占第4层。The workflow declares whether a pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive; one populated chain is never reported as a complete upstream inventory. See [the database deep-mapping protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
 
-Every nontrivial pass is a persistent engineering project under `deep_map_projects/<source-or-pass>/`. Before execution, the planner diagnoses origin, data-generating process, internal structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, language, boundary, denominator, and constraints. It then composes machine route contracts for the observed database shape; unknown structures enter an explicit open-world route instead of being forced into a closed taxonomy. Every project tracks six content stages and separate route obligations, and rejects completion while a required stage, route check, diagnostic issue, human gate, or blocker remains open. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
+These records close two trunks and one bridge: the source-native structure spine preserves Dataset → DataStructure → DataElement → Variable topology; the multi-parent scientific-semantic spine places Constructs under evidenced disciplines, fields, objects, systems, phenomena, populations, units, applications, and methods; the Variable → Construct bridge records what each operational quantity can legitimately measure. Object counts, graph closure, and database-shape route checks are audited separately.
+
+Every nontrivial pass is a persistent engineering project under `deep_map_projects/<source-or-pass>/`. Before execution, the planner diagnoses origin, data-generating process, internal structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, language, boundary, denominator, and constraints. It then locks the audited plan, scope, work-unit manifest, and a deterministic dependency-aware queue. Unknown structures enter an explicit open-world route instead of being forced into a closed taxonomy. Completion is rejected while a required stage, graph spine, bridge, route check, diagnostic issue, human gate, lock, or blocker remains open. Upstream inaccessibility or genuine non-enumerability remains an explicit boundary—not an invented promise of completeness. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
 
 ```bash
 python3 scripts/grdr.py list-database-route-modules
 python3 scripts/grdr.py plan-database-deep-map examples/intakes/sensor_stream.json
 python3 scripts/grdr.py database-deep-map-status deep_map_projects/undata
 python3 scripts/grdr.py resume-database-deep-map deep_map_projects/undata
+python3 scripts/grdr.py record-database-deep-map-spine deep_map_projects/<source-slug> <spine-update.json>
 python3 scripts/grdr.py audit-database-deep-map deep_map_projects/undata
 ```
 
@@ -229,7 +232,7 @@ grdr/
 
 ## Current phase
 
-Version `1.2.0` turns `$grdr-deep-map-database` into an open-world execution system. A database is now diagnosed before execution, assigned a composed plan from 29 route modules and 70 machine-audited facets, and then tracked through both canonical object stages and database-shape-specific checks. Restricted, federated, dynamic, streaming, large, legacy, experimental, instrument, simulated, physical-collection, qualitative, scholarly, platform, multimodal, ML, software, derived, and unknown systems have explicit continuation or recovery behavior. UNdata remains the first real project: 36 bounded datamarts, 216 required unit stages, 19.44% mapped and 0.93% strictly complete; migration now also exposes 617 route obligations, of which one is closed and six inherit the two documented blocked Access stages. These figures deliberately expose remaining work instead of treating deep examples as a finished database. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
+Version `2.0.0` hardens `$grdr-deep-map-database` as a database deep-map engineering system. Every executable project locks its audited plan, declared scope, and ordered work-unit manifest; resumes through a deterministic dependency-aware queue; and must close six content stages, a source-native structural spine, a multi-parent scientific-semantic spine, a Variable-to-Construct bridge, and database-shape-specific route checks. The registry now includes first-class SemanticNodes and richer DataStructure topology. UNdata remains the first real project: 36 bounded datamarts, 216 required unit stages, 19.44% mapped and 0.93% strictly complete; its upgraded contract exposes 108 graph products and 727 route obligations, with no graph product falsely declared complete. These figures deliberately expose remaining work instead of treating deep examples as a finished database. The engineering guarantee applies to GRDR's locked, resumable, auditable process; upstream inaccessibility or genuine non-enumerability remains an explicit blocker or boundary. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -264,6 +267,8 @@ python3 scripts/grdr.py get-dataset grdr:dataset:world-development-indicators
 python3 scripts/grdr.py get-data-structure grdr:data-structure:undata-energy-sdmx
 python3 scripts/grdr.py get-data-element grdr:data-element:undata-energy-transaction
 python3 scripts/grdr.py get-variable grdr:variable:undata-energy-ga
+python3 scripts/grdr.py search-semantic-nodes --query energy
+python3 scripts/grdr.py get-semantic-node <semantic-node-id>
 python3 scripts/grdr.py trace-provenance grdr:variable:wdi-sp-pop-totl
 python3 scripts/grdr.py list-adapters --status operational
 python3 scripts/grdr.py list-storage --mode federated_access
@@ -279,6 +284,7 @@ python3 scripts/grdr.py upgrade-database-deep-map deep_map_projects/<legacy-proj
 python3 scripts/grdr.py database-deep-map-status deep_map_projects/undata
 python3 scripts/grdr.py resume-database-deep-map deep_map_projects/undata
 python3 scripts/grdr.py audit-database-deep-map deep_map_projects/undata
+python3 scripts/grdr.py record-database-deep-map-spine deep_map_projects/<source-slug> <spine-update.json>
 python3 scripts/grdr.py record-database-deep-map-check deep_map_projects/<source-slug> <check-update.json>
 python3 scripts/grdr.py complete-database-deep-map deep_map_projects/<source-slug>
 python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>

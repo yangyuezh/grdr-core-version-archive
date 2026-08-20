@@ -17,6 +17,7 @@ The following are not completion:
 - an unknown expected count;
 - an Agent assertion without reproducible enumeration evidence.
 - all six stages closed while one or more route-contract facets remain open;
+- all entity counts closed while the structural spine, disciplinary spine, or variable bridge remains open or disconnected;
 - unresolved or Agent-self-approved human gates;
 - a rolling window presented as all-time coverage;
 - a stale plan whose route-contract version no longer matches the registry.
@@ -42,6 +43,24 @@ Every applicable facet materialized in `checks.jsonl` must be `passed` or eviden
 
 `failed`, `blocked`, and `needs_human_review` remain open. A fallback route may produce new evidence, but it does not erase the original obligation until equivalence or non-applicability is evidenced.
 
+## Dual-spine and bridge gates
+
+Every work unit has `structural`, `disciplinary`, and `variable_bridge` graph states. A mapped or verified graph requires:
+
+- known node and edge denominators;
+- canonical node and relationship IDs of allowed types;
+- nodes owned by the current work-unit Dataset where ownership applies;
+- declared roots and leaves contained in the graph;
+- every node connected to a declared root;
+- the required node types for that graph;
+- an evidence-backed completion basis;
+- a dated deterministic enumeration checkpoint with no remaining next item;
+- a valid checkpoint checksum and topology fingerprint;
+- prerequisite content stages already mapped;
+- canonical verification counts recomputed from registry records rather than trusted from the update payload.
+
+`verified_complete` additionally requires every declared node and edge to be canonically verified. `not_applicable` requires zero denominators, no nodes or edges, and positive evidence that the graph does not apply.
+
 ## Project gates
 
 Before `complete-database-deep-map`:
@@ -52,10 +71,12 @@ Before `complete-database-deep-map`:
 - boundary and snapshot are reproducible;
 - work-unit count equals the expected count;
 - all required unit stages are closed;
+- all required structural spines, disciplinary spines, and variable bridges are closed;
 - no required stage is blocked;
 - every required route-contract check is passed or evidenced not applicable;
 - every human gate is resolved by a named human, with no rejection;
 - all registered IDs exist and have the correct entity type;
+- plan, scope, and unit-manifest fingerprints still match their start-time locks;
 - canonical registry validation passes with the `jsonschema` package present; a skipped Schema pass is not strict validation;
 - the generated catalog is current.
 

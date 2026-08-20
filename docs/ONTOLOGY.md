@@ -14,11 +14,24 @@ Institution
                     └── Variable
                           └── Construct
 
+SemanticNode graph (multi-parent scientific map)
+  └── discipline / field / object / system / phenomenon / process /
+      population / units / application / method
+        └── Construct
+
 Resource (API/download/query/auth/license) attaches to Dataset or DataStructure
 as an access sidecar and does not occupy a content layer.
 ```
 
 The hierarchy expresses containment, not provenance. Provenance and other semantics are represented by typed relationships.
+
+Strict database deep maps close three related graph products:
+
+- the source-native structure spine from Dataset through DataStructure and DataElement to Variable, under project-level Institution and Source context;
+- the multi-parent scientific-semantic spine from SemanticNode classifications to Construct;
+- the Variable-to-Construct bridge connecting operational quantities to research meaning.
+
+Entity counts, graph topology, and database-shape route checks are separately audited.
 
 Question-specific research projects form a separate linked graph:
 
@@ -65,6 +78,10 @@ A research-matchable recorded or computable field with a definition, unit, popul
 ### Construct
 
 A theoretical or substantive concept that may have one or more operational measurements. Examples include socioeconomic status, biodiversity, temperature, institutional trust, gene expression, and firm productivity.
+
+### SemanticNode
+
+An evidenced node in the multi-parent scientific map. Nodes may represent disciplines, subdisciplines, fields, research objects, systems, phenomena, processes, states, populations, observation units, analysis units, application areas, or methods. A node can have several parents and mappings to external classification schemes; it must not be forced into one mutually exclusive discipline branch.
 
 ### Relationship
 
@@ -119,6 +136,15 @@ Initial relationship types are:
 - `documents`
 - `measures`
 - `proxy_for`
+- `classified_as`
+- `broader_than`
+- `narrower_than`
+- `describes`
+- `observes`
+- `has_population`
+- `has_observation_unit`
+- `has_analysis_unit`
+- `operationalizes`
 - `joinable_with`
 - `complements`
 - `overlaps_with`

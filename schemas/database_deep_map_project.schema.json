@@ -4,9 +4,9 @@
   "title": "GRDR persistent database deep-map project",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
+  "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "execution_contract", "locks", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"const": "1.1.0"},
+    "schema_version": {"const": "2.0.0"},
     "id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "title": {"type": "string", "minLength": 1},
@@ -37,6 +37,33 @@
         "snapshot_at": {"type": "string", "format": "date-time"},
         "enumeration_method": {"type": "string", "minLength": 1},
         "expected_work_unit_count": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "execution_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "unknown_database_diagnosis", "scope_lock", "deterministic_queue", "checkpoint_resume", "deviation_rejection", "dual_spine_completion", "evidence_only_completion", "external_blocker_transparency"],
+      "properties": {
+        "contract_version": {"const": "2.0.0"},
+        "unknown_database_diagnosis": {"const": true},
+        "scope_lock": {"const": true},
+        "deterministic_queue": {"const": true},
+        "checkpoint_resume": {"const": true},
+        "deviation_rejection": {"const": true},
+        "dual_spine_completion": {"const": true},
+        "evidence_only_completion": {"const": true},
+        "external_blocker_transparency": {"const": true}
+      }
+    },
+    "locks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_fingerprint", "scope_fingerprint", "unit_manifest_fingerprint", "locked_at"],
+      "properties": {
+        "plan_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "scope_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "unit_manifest_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "locked_at": {"type": "string", "format": "date-time"}
       }
     },
     "phase_states": {

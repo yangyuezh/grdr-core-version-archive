@@ -4,9 +4,9 @@
   "title": "GRDR database deep-map work unit",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "project_id", "sequence", "upstream_id", "label", "dataset_id", "unit_type", "disciplines", "origin_type", "structural_archetypes", "content_modalities", "lifecycle_modes", "versioning_model", "sensitivity_classes", "route_modules", "required_stages", "stages", "created_at", "updated_at"],
+  "required": ["schema_version", "id", "project_id", "sequence", "upstream_id", "label", "dataset_id", "unit_type", "disciplines", "origin_type", "structural_archetypes", "content_modalities", "lifecycle_modes", "versioning_model", "sensitivity_classes", "route_modules", "required_stages", "stages", "spines", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"const": "1.1.0"},
+    "schema_version": {"const": "2.0.0"},
     "id": {"type": "string", "pattern": "^grdr:deep-map-unit:[a-z0-9][a-z0-9-]*$"},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "sequence": {"type": "integer", "minimum": 1},
@@ -30,6 +30,15 @@
         "dataset": {"$ref": "#/$defs/stage"}, "data_structure": {"$ref": "#/$defs/stage"},
         "data_element": {"$ref": "#/$defs/stage"}, "variable": {"$ref": "#/$defs/stage"},
         "construct": {"$ref": "#/$defs/stage"}, "access": {"$ref": "#/$defs/stage"}
+      }
+    },
+    "spines": {
+      "type": "object", "additionalProperties": false,
+      "required": ["structural", "disciplinary", "variable_bridge"],
+      "properties": {
+        "structural": {"$ref": "#/$defs/spine"},
+        "disciplinary": {"$ref": "#/$defs/spine"},
+        "variable_bridge": {"$ref": "#/$defs/spine"}
       }
     },
     "created_at": {"type": "string", "format": "date-time"},
@@ -57,6 +66,39 @@
         "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
         "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
         "notes": {"type": ["string", "null"]},
+        "updated_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "checkpoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enumeration_rule", "completed_native_count", "last_native_id", "next_native_id", "snapshot", "cursor_checksum"],
+      "properties": {
+        "enumeration_rule": {"type": ["string", "null"]},
+        "completed_native_count": {"type": "integer", "minimum": 0},
+        "last_native_id": {"type": ["string", "null"]},
+        "next_native_id": {"type": ["string", "null"]},
+        "snapshot": {"type": ["string", "null"], "format": "date-time"},
+        "cursor_checksum": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "spine": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "expected_node_count", "node_ids", "verified_node_count", "expected_edge_count", "edge_ids", "verified_edge_count", "root_node_ids", "leaf_node_ids", "topology_fingerprint", "completion_basis", "evidence", "blockers", "checkpoint", "updated_at"],
+      "properties": {
+        "state": {"enum": ["not_started", "enumerating", "in_progress", "mapped_complete", "verified_complete", "not_applicable", "blocked"]},
+        "expected_node_count": {"type": ["integer", "null"], "minimum": 0},
+        "node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:[a-z-]+:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+        "verified_node_count": {"type": "integer", "minimum": 0},
+        "expected_edge_count": {"type": ["integer", "null"], "minimum": 0},
+        "edge_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:relationship:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+        "verified_edge_count": {"type": "integer", "minimum": 0},
+        "root_node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:[a-z-]+:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+        "leaf_node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:[a-z-]+:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+        "topology_fingerprint": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "completion_basis": {"type": ["string", "null"]},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
+        "checkpoint": {"$ref": "#/$defs/checkpoint"},
         "updated_at": {"type": "string", "format": "date-time"}
       }
     }

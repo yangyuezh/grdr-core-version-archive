@@ -2,6 +2,28 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [2.0.0] - 2026-08-20
+
+### Added
+
+- A hard execution contract for database deep maps: mandatory unknown-database diagnosis, immutable plan/scope/work-unit locks, deterministic dependency-aware queues, persisted checkpoint recovery, silent-drift rejection, evidence-only completion, and explicit external-blocker transparency.
+- Two machine-audited graph trunks and one bridge for every work unit: the source-native structural spine, multi-parent scientific-semantic spine, and Variable-to-Construct bridge.
+- `SemanticNode` as a first-class canonical registry entity for disciplines, fields, research objects, systems, phenomena, processes, states, populations, observation/analysis units, applications, and methods, including multi-parent and external-classification mappings.
+- `record-database-deep-map-spine`, a strict update operation that verifies prerequisite stages, canonical ownership, allowed node types, relationship endpoints, roots, leaves, connectedness, denominators, canonical verification counts, checkpoints, checksums, and topology fingerprints.
+- Structure-native `DataStructure` fields for family, native type/path, hierarchy level, grain, ordering, key elements, child structures, semantic links, and lineage.
+- A dedicated engineering contract, dual-spine completion rules, spine-update example, human-readable catalog output, semantic-node search/get commands, and regression tests for lock drift, deterministic recovery, dependency-valid scheduling, and premature spine rejection.
+
+### Changed
+
+- Database deep mapping is no longer considered complete when six entity inventories and route checks alone close; all three graph products must also be verified or evidenced not applicable.
+- Route modules now declare independent `module_kinds`, separating structural templates, generation-process templates, disciplinary semantic extensions, access/lifecycle/governance/provenance sidecars, technical recovery, and open-world fallback instead of presenting a flat mixed taxonomy.
+- The core route contract now has 75 facets, including execution-lock, resume-integrity, structural-spine, disciplinary-spine, and variable-bridge obligations. The migrated UNdata project therefore exposes 727 required checks and 108 required graph products while preserving its honest 42/216 mapped-stage and 2/216 strictly closed-stage progress.
+- State-file replacement is atomic, rejected stage/check/spine updates roll back, and graph tasks are withheld from the queue until their content-stage prerequisites are mapped.
+
+### Boundary clarification
+
+- The engineering guarantee concerns GRDR-controlled execution and validation. It does not promise that an upstream owner will expose paid, restricted, deleted, changing, undocumented, or genuinely non-enumerable content; those conditions remain explicit blockers or bounded completion claims and can never be converted into false completeness.
+
 ## [1.2.0] - 2026-08-19
 
 ### Added

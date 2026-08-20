@@ -7,14 +7,18 @@
 ```text
 证据化预诊断
   → 生成可审计执行计划
-  → 固定完成声明与边界
+  → 锁定计划、完成声明、边界和工作单元清单
   → 建立稳定工作单元清单
-  → 六个内容阶段 × 可组合路线契约
+  → 六个内容阶段
+  → 数据库原生结构主干 + 学科语义主干 + 变量—构念桥梁
+  → 可组合路线契约
   → 异常恢复与人工门控
   → 严格完成审计
 ```
 
 每个非平凡数据库建立一个 `deep_map_projects/<source-or-pass>/` 持久工程，避免 Agent 只做方便样例、遗漏异构结构、在会话切换后丢失进度，或者把局部链条误报为完整数据库。
+
+工程化硬约束只针对 GRDR 能控制的执行过程：可执行项目必须锁定计划、范围和工作单元清单；任务队列确定且满足依赖；检查点可恢复；静默漂移被审计拒绝；所有对象、双主干、桥梁和路线义务通过后才能完成。它不承诺上游机构会开放受限或付费内容，也不把动态、删除、缺文档或真实不可枚举的内容伪造为完整；这些情况保留为明确 blocker 或有边界的完成声明。
 
 严格规划与审计要求 `jsonschema`。首次运行先创建项目本地环境：
 
@@ -71,7 +75,7 @@ python3 scripts/grdr.py upgrade-database-deep-map <legacy-project>
 工程含四个核心文件：
 
 - `project.json`：诊断计划、范围、阶段、门槛、历史和状态；
-- `units.jsonl`：有顺序的工作单元及六阶段状态；
+- `units.jsonl`：有顺序的工作单元、六阶段状态、双主干和桥梁状态；
 - `checks.jsonl`：数据库形态特有的路线义务、证据和类型化阻塞；
 - `README.md`：供人查看的自动生成进度报告。
 
@@ -97,15 +101,26 @@ python3 scripts/grdr.py resume-database-deep-map <project>
 
 Resource 仍是 Dataset 或 DataStructure 的访问旁路，不占内容层级。
 
-## 第五阶段：同时闭合“对象阶段”和“路线契约”
+六个内容阶段不是平铺清单，而是为两根主干和一座桥梁提供对象：
+
+1. **数据库原生结构主干**：Institution → Source → Dataset → DataStructure → DataElement → Variable。Institution 与 Source 属于项目级来源上下文，每个工作单元从 Dataset 起闭合。必须保留数据库真实层级、粒度、顺序、键、血缘和原生标识，不能把不同数据库一律压扁成“表”。
+2. **学科与科学语义主干**：多父节点 SemanticNode 图 → Construct。节点可表达学科、研究领域、研究对象、系统、现象、过程、状态、总体、观察单位、分析单位、应用领域和方法。跨学科归属在登记时保留多父节点，研究时再组合遍历。
+3. **变量—构念桥梁**：Variable → Construct，并保留必要的 DataElement/DataStructure 上下文。它明确数据库实际存储的操作量与研究意义之间的测量、代理、模型或预测关系。
+
+阶段回答“对象是否完整登记”；主干和桥梁回答“对象是否形成可遍历、连通且有证据的映射脉络”；路线契约回答“这种数据库形态的专属义务是否完成”。三者缺一不可。
+
+## 第五阶段：同时闭合对象、双主干、桥梁和路线契约
 
 ```bash
 python3 scripts/grdr.py record-database-deep-map-stage <project> <stage-update.json>
+python3 scripts/grdr.py record-database-deep-map-spine <project> <spine-update.json>
 python3 scripts/grdr.py record-database-deep-map-phase <project> <phase-update.json>
 python3 scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
 ```
 
-阶段记录回答“登记了哪些规范对象，数量是否闭合”；路线检查回答“该数据库形态独有的义务是否完成”。例如，统计立方体必须恢复有序维度和代码表；实验库必须恢复设计、对照、样品、运行与校准；模拟库必须恢复模型版本、情景、集合、参数与输出链；定性档案必须保存个案、文本片段、编码和构念来源。两者缺一不可。
+阶段记录回答“登记了哪些规范对象，数量是否闭合”；主干记录回答“这些对象是否组成完整连通拓扑”；路线检查回答“该数据库形态独有的义务是否完成”。例如，统计立方体必须恢复有序维度和代码表；实验库必须恢复设计、对照、样品、运行与校准；模拟库必须恢复模型版本、情景、集合、参数与输出链；定性档案必须保存个案、文本片段、编码和构念来源。
+
+主干任务只有在依赖的对象阶段已经映射后才进入队列。记录时，系统根据规范注册表重新计算节点和边的验证数、检查节点归属和边端点、验证根叶和连通性，并生成检查点校验值与拓扑指纹；Agent 自报的数字不能替代机器核验。
 
 路线契约保存在 `config/database_route_contracts.json`。当前覆盖通用元数据、目录、文件、表、API、SDMX、多阶段调查、行政事件、空间数据、科学数组、流、生命医学、临床、知识图谱、多模态语料、实验、仪器测量、模拟、实体馆藏、定性档案、学术传播、数字平台、机器学习、软件流程、受限访问、二手来源、联邦、遗留格式和开放未知路线。它是可扩展注册表，不是封闭世界宣言。
 
@@ -128,6 +143,6 @@ python3 scripts/grdr.py audit-database-deep-map <project>
 python3 scripts/grdr.py complete-database-deep-map <project>
 ```
 
-完成要求：计划已解析且契约版本匹配，人工门槛全部由具名人工解决，项目阶段闭合，所有必需工作单元阶段均为 `verified_complete` 或有证据的 `not_applicable`，所有路线检查均为 `passed` 或有证据的 `not_applicable`，无阻塞或失败，规范 ID、Schema、外键和人类目录全部通过验证。
+完成要求：计划已解析且契约版本匹配；计划、范围和工作单元指纹未漂移；人工门槛全部由具名人工解决；项目阶段闭合；所有必需工作单元阶段、数据库原生结构主干、学科语义主干和变量—构念桥梁均为 `verified_complete` 或有证据的 `not_applicable`；所有路线检查均为 `passed` 或有证据的 `not_applicable`；无阻塞或失败；规范 ID、Schema、外键和人类目录全部通过验证。
 
 系统分别报告阶段映射进度、严格阶段完成度和路线契约完成度。任何百分比都必须和完成声明、边界、日期/版本/窗口同时解释。

@@ -75,7 +75,7 @@
         "properties": {
           "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
           "scope": {"enum": ["project", "unit"]},
-          "stage": {"enum": ["project", "dataset", "data_structure", "data_element", "variable", "construct", "access"]},
+          "stage": {"enum": ["project", "dataset", "data_structure", "data_element", "variable", "construct", "access", "structural_spine", "disciplinary_spine", "variable_bridge"]},
           "requirement": {"type": "string", "minLength": 1},
           "completion_evidence": {"type": "string", "minLength": 1},
           "source_routes": {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}, "minItems": 1, "uniqueItems": true}

@@ -17,6 +17,7 @@ from database_deep_map import (  # noqa: E402
     database_deep_map_status,
     record_database_deep_map_check,
     record_database_deep_map_human_gate,
+    record_database_deep_map_spine,
     record_database_deep_map_stage,
     resume_database_deep_map,
     start_database_deep_map,
@@ -39,6 +40,15 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
         self.assertEqual(audit["progress"]["mapping_percentage"], 19.44)
         self.assertEqual(audit["progress"]["strict_completion_percentage"], 0.93)
         self.assertEqual(audit["progress"]["blocked_contract_checks"], 6)
+        self.assertEqual(audit["progress"]["required_spines"], 108)
+        self.assertEqual(audit["progress"]["closed_spines"], 0)
+        self.assertEqual(audit["progress"]["required_contract_checks"], 727)
+        self.assertTrue(all(
+            value is True
+            for key, value in audit["execution_contract"].items()
+            if key != "contract_version"
+        ))
+        self.assertRegex(audit["execution_locks"]["plan_fingerprint"], r"^[a-f0-9]{64}$")
         self.assertFalse(audit["completion_ready"])
         self.assertEqual(audit["next_target"]["upstream_id"], "EDATA")
         self.assertEqual(audit["next_target"]["stage"], "variable")
@@ -54,6 +64,34 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
             self.assertEqual(target["upstream_id"], "EDATA")
             self.assertEqual(target["stage"], "variable")
             self.assertIn("sdmx_cube", target["route_modules"])
+
+    def test_resume_is_deterministic_across_repeated_session_recovery(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "undata"
+            shutil.copytree(ROOT / "deep_map_projects" / "undata", project)
+            first = resume_database_deep_map(project)["next_target"]
+            second = resume_database_deep_map(project)["next_target"]
+            identity = lambda item: (item["target_type"], item.get("unit_id"), item.get("stage"), item.get("facet_id"))
+            self.assertEqual(identity(first), identity(second))
+            self.assertEqual((first["upstream_id"], first["stage"]), ("EDATA", "variable"))
+
+    def test_execution_locks_reject_silent_scope_and_manifest_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "undata"
+            shutil.copytree(ROOT / "deep_map_projects" / "undata", project)
+            project_record = json.loads((project / "project.json").read_text(encoding="utf-8"))
+            project_record["scope"]["boundary_statement"] += " silently changed"
+            (project / "project.json").write_text(json.dumps(project_record), encoding="utf-8")
+            audit = audit_database_deep_map(project)
+            self.assertTrue(any("scope_fingerprint" in item for item in audit["errors"]))
+
+            shutil.rmtree(project)
+            shutil.copytree(ROOT / "deep_map_projects" / "undata", project)
+            units = [json.loads(line) for line in (project / "units.jsonl").read_text(encoding="utf-8").splitlines()]
+            units[0]["sequence"], units[1]["sequence"] = units[1]["sequence"], units[0]["sequence"]
+            (project / "units.jsonl").write_text("".join(json.dumps(item) + "\n" for item in units), encoding="utf-8")
+            audit = audit_database_deep_map(project)
+            self.assertTrue(any("unit_manifest_fingerprint" in item for item in audit["errors"]))
 
     def test_start_stage_update_rollback_and_completion_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -101,6 +139,54 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
             self.assertEqual(updated["audit"]["progress"]["strict_completion_percentage"], 16.67)
             with self.assertRaisesRegex(ValueError, "unclosed project phases"):
                 complete_database_deep_map(target)
+
+    def test_dual_spines_are_mandatory_and_cannot_close_early(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "world-bank"
+            start = start_database_deep_map(ROOT / "examples" / "world_bank_deep_map_spec.json", target)
+            self.assertEqual(start["audit"]["progress"]["required_spines"], 3)
+            self.assertEqual(start["audit"]["progress"]["dual_spine_percentage"], 0.0)
+            resumed = resume_database_deep_map(target)
+            self.assertEqual(resumed["next_target"]["stage"], "data_structure")
+            self.assertTrue(all(item["target_type"] != "work_unit_spine" for item in resumed["queue_preview"]))
+            unit_id = "grdr:deep-map-unit:world-bank-example-wdi"
+            evidence = [{
+                "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures",
+                "title": "API Basic Call Structures", "evidence_type": "api_documentation",
+                "supports": ["structure"], "retrieved_at": "2026-08-14T00:00:00Z",
+            }]
+            update = {
+                "unit_id": unit_id, "spine": "structural", "state": "verified_complete",
+                "expected_node_count": 3,
+                "node_ids": [
+                    "grdr:dataset:world-development-indicators",
+                    "grdr:data-structure:world-bank-indicators-api-v2",
+                    "grdr:variable:wdi-sp-pop-totl",
+                ],
+                "verified_node_count": 0,
+                "expected_edge_count": 2,
+                "edge_ids": [
+                    "grdr:relationship:world-development-indicators-organized-as-world-bank-indicators-api-v2",
+                    "grdr:relationship:wdi-contains-population-variable",
+                ],
+                "verified_edge_count": 0,
+                "root_node_ids": ["grdr:dataset:world-development-indicators"],
+                "leaf_node_ids": ["grdr:variable:wdi-sp-pop-totl"],
+                "topology_fingerprint": None,
+                "completion_basis": "Intentional premature closure used to prove the hard gate.",
+                "evidence": evidence, "blockers": [],
+                "checkpoint": {
+                    "enumeration_rule": "Three-node test fixture", "completed_native_count": 3,
+                    "last_native_id": "SP.POP.TOTL", "next_native_id": None,
+                    "snapshot": "2026-08-14T00:00:00Z", "cursor_checksum": None,
+                },
+            }
+            update_path = Path(temporary) / "spine.json"
+            update_path.write_text(json.dumps(update), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "cannot close before mapped prerequisite stages"):
+                record_database_deep_map_spine(target, update_path)
+            audit = audit_database_deep_map(target)
+            self.assertEqual(audit["spine_summary"]["structural"]["mapped_units"], 0)
 
     def test_route_check_cannot_pass_before_its_stage_is_mapped(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -108,6 +108,7 @@ def build_context() -> dict[str, Any]:
             "data_elements",
             "variables",
             "constructs",
+            "semantic_nodes",
             "relationships",
             "source_profiles",
         )
@@ -159,6 +160,22 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
     constructs = [
         item for item in context["constructs"] if item["id"] in construct_ids
     ]
+    semantic_index = {item["id"]: item for item in context["semantic_nodes"]}
+    semantic_ids = {
+        endpoint
+        for edge in context["relationships"]
+        if edge["subject_id"] in {source["id"], *dataset_ids, *{item["id"] for item in variables}, *construct_ids}
+        or edge["object_id"] in {source["id"], *dataset_ids, *{item["id"] for item in variables}, *construct_ids}
+        for endpoint in (edge["subject_id"], edge["object_id"])
+        if endpoint in semantic_index
+    }
+    pending = list(semantic_ids)
+    while pending:
+        current = semantic_index[pending.pop()]
+        for parent_id in current.get("parent_ids", []):
+            if parent_id not in semantic_ids and parent_id in semantic_index:
+                semantic_ids.add(parent_id); pending.append(parent_id)
+    semantic_nodes = [semantic_index[item] for item in sorted(semantic_ids)]
     institution_ids = set(source["maintainer_ids"])
     institution_ids.update(
         edge["object_id"]
@@ -184,6 +201,7 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
         "data_elements": data_elements,
         "variables": variables,
         "constructs": constructs,
+        "semantic_nodes": semantic_nodes,
         "source_profiles": source_profiles,
         "deep_map_projects": deep_map_projects,
     }
@@ -212,7 +230,7 @@ def deep_map_summary(linked: dict[str, list[dict[str, Any]]]) -> str:
     if not linked["deep_map_projects"]:
         return "尚未建立持久化深度映射工程"
     return "；".join(
-        f"{item['progress']['mapping_percentage']}% mapped / {item['progress']['strict_completion_percentage']}% strict"
+        f"{item['progress']['mapping_percentage']}% mapped / {item['progress']['strict_completion_percentage']}% strict / {item['progress']['dual_spine_percentage']}% dual-spine"
         for item in linked["deep_map_projects"]
     )
 
@@ -234,6 +252,7 @@ def render_deep_map_projects(records: list[dict[str, Any]]) -> str:
                     ("工作单元", f"{progress['work_units']} / {progress['expected_work_units']}"),
                     ("映射进度", f"{progress['mapping_percentage']}%"),
                     ("严格完成度", f"{progress['strict_completion_percentage']}%"),
+                    ("双主干与桥梁完成度", f"{progress['dual_spine_percentage']}%"),
                     ("完整闭合工作单元", f"{progress['fully_closed_work_units']} / {progress['work_units']}"),
                     ("阻塞阶段", progress["blocked_unit_stages"]),
                     ("可声明完成", item["completion_ready"]),
@@ -397,12 +416,21 @@ def render_data_structures(records: list[dict[str, Any]]) -> str:
                 [
                     ("GRDR ID", f"`{item['id']}`"),
                     ("结构类型", f"`{item['structure_type']}`"),
+                    ("结构家族", f"`{item['structure_family']}`"),
+                    ("上游原生类型", item["native_type"]),
+                    ("原生路径", item["native_path"]),
+                    ("结构层级", item["structural_level"]),
+                    ("结构粒度", item["grain"]),
+                    ("稳定排序", item["ordering"]),
                     ("上游系统", native["system"]),
                     ("发布机构标识", native.get("agency_id")),
                     ("上游对象类别", native["object_class"]),
                     ("上游对象 ID", native["object_id"]),
                     ("结构版本", native.get("version")),
                     ("父结构", item["parent_structure_ids"]),
+                    ("子结构", item["child_structure_ids"]),
+                    ("关键元素", item["key_element_ids"]),
+                    ("结构谱系", item["lineage"]),
                     ("附属访问资源", item["resource_ids"]),
                     ("结构说明", item["description"]),
                     ("验证状态", status(item)),
@@ -519,6 +547,32 @@ def render_constructs(records: list[dict[str, Any]]) -> str:
     return "\n\n".join(sections)
 
 
+def render_semantic_nodes(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return missing_layer("学科语义图")
+    sections = []
+    for item in records:
+        sections.append(
+            f"#### {item['preferred_label']}\n\n"
+            + table(
+                [
+                    ("GRDR ID", f"`{item['id']}`"),
+                    ("语义节点类型", f"`{item['node_type']}`"),
+                    ("别名", item["aliases"]),
+                    ("定义", item["definition"]),
+                    ("多父节点", item["parent_ids"]),
+                    ("权威分类映射", item["classification_mappings"]),
+                    ("数据库原生术语", item["source_native_terms"]),
+                    ("验证状态", status(item)),
+                    ("最后验证", last_verified(item)),
+                ]
+            )
+            + "\n\n**学科语义证据**\n\n"
+            + evidence_list(item)
+        )
+    return "\n\n".join(sections)
+
+
 def render_source_page(source: dict[str, Any], context: dict[str, Any], version: str) -> str:
     linked = linked_records(source, context)
     scope_mode, inventory_claim = declared_scope(linked)
@@ -550,6 +604,7 @@ def render_source_page(source: dict[str, Any], context: dict[str, Any], version:
             ("已登记数据元素", len(linked["data_elements"])),
             ("已登记变量", len(linked["variables"])),
             ("已关联构念", len(linked["constructs"])),
+            ("已登记学科语义节点", len(linked["semantic_nodes"])),
             ("当前拆解阶段", f"`{profile_stage(linked)}`"),
             ("持久化深度映射", deep_map_summary(linked)),
             ("已声明拆解范围", f"`{scope_mode}`"),
@@ -634,6 +689,10 @@ canonical_url: {json.dumps(source['canonical_url'])}
 ### 第6层：理论构念（Construct）
 
 {render_constructs(linked['constructs'])}
+
+## 学科语义主干（多父节点知识图谱）
+
+{render_semantic_nodes(linked['semantic_nodes'])}
 
 ## 访问方式与资源（旁路信息，不占内容层级）
 

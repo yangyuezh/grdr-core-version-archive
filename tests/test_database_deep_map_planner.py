@@ -26,10 +26,16 @@ class DatabaseDeepMapPlannerTests(unittest.TestCase):
         route_ids = [item["id"] for item in contracts["route_modules"]]
         facet_ids = [facet["id"] for item in contracts["route_modules"] for facet in item["facets"]]
         self.assertEqual(len(route_ids), 29)
-        self.assertEqual(len(facet_ids), 70)
+        self.assertEqual(len(facet_ids), 75)
         self.assertEqual(len(route_ids), len(set(route_ids)))
         self.assertEqual(len(facet_ids), len(set(facet_ids)))
         self.assertEqual(len(list_database_route_modules()["route_modules"]), len(route_ids))
+        self.assertTrue(all(item["module_kinds"] for item in contracts["route_modules"]))
+        kinds = {item["id"]: set(item["module_kinds"]) for item in contracts["route_modules"]}
+        self.assertEqual(kinds["core_metadata"], {"universal_core"})
+        self.assertEqual(kinds["api_schema"], {"access_sidecar"})
+        self.assertIn("structure_template", kinds["sdmx_cube"])
+        self.assertIn("open_world_fallback", kinds["open_world_custom"])
 
     def test_restricted_federated_clinical_plan_has_human_gates(self) -> None:
         plan = self.plan("clinical_federated.json")

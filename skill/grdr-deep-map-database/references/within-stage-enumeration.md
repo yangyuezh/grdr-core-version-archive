@@ -43,3 +43,13 @@ After each bounded batch:
 5. preserve the native cursor in notes even if the same stage remains active.
 
 For `mapped_complete`, `next_native` must be `none`, the expected count must equal the registered canonical count, and evidence must support the complete native universe. For `verified_complete`, every registered mapping must additionally have passed the declared verification rule.
+
+## Spine checkpoints
+
+After the prerequisite content stages are mapped, enumerate each graph product separately:
+
+- structural nodes and edges in source-native hierarchy/order;
+- semantic nodes, construct nodes, and classification edges in stable canonical-ID order unless an official classification supplies order;
+- variable-to-construct bridge nodes and edges in stable variable-native order.
+
+Record roots, leaves, node and edge denominators, completed node count, last/next native identity, snapshot, and evidence in `spines.<name>.checkpoint`. The recording command recomputes the checkpoint checksum, topology fingerprint, and canonical verification counts. A disconnected graph or stale fingerprint cannot close.

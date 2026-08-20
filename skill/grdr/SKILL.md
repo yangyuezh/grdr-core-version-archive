@@ -79,7 +79,7 @@ Separate institutional authority from task-specific fitness. Do not rank every f
 
 ## Route deep database profiling
 
-Use the installed `$grdr-deep-map-database` Skill when one database must be deep-read beyond source registration into Institution, Source, Dataset, DataStructure, DataElement & Variable, and Construct layers. DataElement and Variable are 5A and 5B inside the fifth layer. Resource is an access sidecar, not layer 4. Audit current depth first:
+Use the installed `$grdr-deep-map-database` Skill when one database must be deep-read beyond source registration into Institution, Source, Dataset, DataStructure, DataElement & Variable, and Construct layers. DataElement and Variable are 5A and 5B inside the fifth layer. Resource is an access sidecar, not layer 4. The deep map must also close a source-native structural spine, multi-parent scientific-semantic spine, and Variable-to-Construct bridge. Audit current depth first:
 
 ```bash
 python3 scripts/grdr.py audit-source-depth <source-id>
@@ -98,12 +98,13 @@ python3 scripts/grdr.py start-database-deep-map <spec.json>
 python3 scripts/grdr.py database-deep-map-status <project>
 python3 scripts/grdr.py resume-database-deep-map <project>
 python3 scripts/grdr.py record-database-deep-map-stage <project> <update.json>
+python3 scripts/grdr.py record-database-deep-map-spine <project> <spine-update.json>
 python3 scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
 python3 scripts/grdr.py audit-database-deep-map <project>
 python3 scripts/grdr.py complete-database-deep-map <project>
 ```
 
-Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Only the completion command may declare bounded completion; representative chains, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
+Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Enforce the plan, scope, and unit-manifest locks and follow the deterministic dependency-valid next target. Only the completion command may declare bounded completion; representative chains, open graph products, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
 
 ## Keep the human catalog synchronized
 

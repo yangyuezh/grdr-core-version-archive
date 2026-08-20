@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "1.2.0"
+registry_version: "2.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.un.org/"
 ---
@@ -28,8 +28,9 @@ canonical_url: "https://data.un.org/"
 | 已登记数据元素 | 16 |
 | 已登记变量 | 13 |
 | 已关联构念 | 13 |
+| 已登记学科语义节点 | 0 |
 | 当前拆解阶段 | `six_layer_chain_present` |
-| 持久化深度映射 | 19.44% mapped / 0.93% strict |
+| 持久化深度映射 | 19.44% mapped / 0.93% strict / 0.0% dual-spine |
 | 已声明拆解范围 | `catalog_level` |
 | 上游目录完整度 | `catalog_scope_complete`；存在六层链不等于完整枚举 |
 
@@ -60,6 +61,7 @@ canonical_url: "https://data.un.org/"
 | 工作单元 | 36 / 36 |
 | 映射进度 | 19.44% |
 | 严格完成度 | 0.93% |
+| 双主干与桥梁完成度 | 0.0% |
 | 完整闭合工作单元 | 0 / 36 |
 | 阻塞阶段 | 2 |
 | 可声明完成 | 否 |
@@ -1895,12 +1897,21 @@ canonical_url: "https://data.un.org/"
 |---|---|
 | GRDR ID | `grdr:data-structure:undata-energy-sdmx` |
 | 结构类型 | `multidimensional_schema` |
+| 结构家族 | `multidimensional` |
+| 上游原生类型 | SDMX dataflow-bound data structure definition |
+| 原生路径 | UNdata、Energy Statistics、DF_UNDATA_ENERGY、DSD_ENERGY 1.2 |
+| 结构层级 | 0 |
+| 结构粒度 | {"description": "One OBS_VALUE at the source-native REF_AREA × COMMODITY × TRANSACTION × FREQ × TIME_PERIOD coordinate, with unit and status attributes.", "kind": "coordinate_cell"} |
+| 稳定排序 | {"position": null, "rule": "Official SDMX DSD component order and source-native codelist order.", "stable": true} |
 | 上游系统 | SDMX 2.1 |
 | 发布机构标识 | UNSD |
 | 上游对象类别 | dataflow-bound data structure definition |
 | 上游对象 ID | DF_UNDATA_ENERGY / DSD_ENERGY |
 | 结构版本 | DSD 1.2 |
 | 父结构 | 未知 / 尚未登记 |
+| 子结构 | 未知 / 尚未登记 |
+| 关键元素 | grdr:data-element:undata-energy-commodity、grdr:data-element:undata-energy-freq、grdr:data-element:undata-energy-ref-area、grdr:data-element:undata-energy-time-period、grdr:data-element:undata-energy-transaction |
+| 结构谱系 | {"notes": "This native structure organizes the registered Energy Statistics Dataset.", "relation": "references", "target_id": "grdr:dataset:undata-energy-statistics"} |
 | 附属访问资源 | grdr:resource:undata-energy-dsd、grdr:resource:undata-dataflow-catalog、grdr:resource:undata-api-manual、grdr:resource:undata-energy-browser |
 | 结构说明 | The official multidimensional structure that organizes Energy Statistics observations by source-native dimensions and attributes around OBS_VALUE; it is the parent context for the registered Energy data elements and research variables. |
 | 验证状态 | 已验证 (`verified`) |
@@ -1916,12 +1927,21 @@ canonical_url: "https://data.un.org/"
 |---|---|
 | GRDR ID | `grdr:data-structure:undata-ghg-sdmx` |
 | 结构类型 | `multidimensional_schema` |
+| 结构家族 | `multidimensional` |
+| 上游原生类型 | SDMX dataflow-bound data structure definition |
+| 原生路径 | UNdata、Greenhouse Gas Inventory、DF_UNData_UNFCC、DSD_GHG_UNDATA 1.0 |
+| 结构层级 | 0 |
+| 结构粒度 | {"description": "One OBS_VALUE at the source-native REF_AREA × INDICATOR × FREQ × TIME_PERIOD coordinate, with unit metadata.", "kind": "coordinate_cell"} |
+| 稳定排序 | {"position": null, "rule": "Official SDMX DSD component order and source-native codelist order.", "stable": true} |
 | 上游系统 | SDMX 2.1 |
 | 发布机构标识 | UNSD |
 | 上游对象类别 | dataflow-bound data structure definition |
 | 上游对象 ID | DF_UNData_UNFCC / DSD_GHG_UNDATA |
 | 结构版本 | DSD 1.0 |
 | 父结构 | 未知 / 尚未登记 |
+| 子结构 | 未知 / 尚未登记 |
+| 关键元素 | grdr:data-element:undata-ghg-freq、grdr:data-element:undata-ghg-indicator、grdr:data-element:undata-ghg-ref-area、grdr:data-element:undata-ghg-time-period |
+| 结构谱系 | {"notes": "This native structure organizes the registered Greenhouse Gas Inventory Dataset.", "relation": "references", "target_id": "grdr:dataset:undata-greenhouse-gas-inventory"} |
 | 附属访问资源 | grdr:resource:undata-ghg-dsd、grdr:resource:undata-dataflow-catalog、grdr:resource:undata-api-manual、grdr:resource:undata-ghg-browser |
 | 结构说明 | The official multidimensional structure that organizes greenhouse-gas inventory observations by indicator, frequency, geography, unit and time around OBS_VALUE; it is the parent context for the registered GHG data elements and research variables. |
 | 验证状态 | 已验证 (`verified`) |
@@ -3005,6 +3025,10 @@ canonical_url: "https://data.un.org/"
 **构念层证据**
 
 - [UNdata official SDMX structure and codelist](https://data.un.org/ws/rest/codelist/UNSD/CL_TRANSACTION_NRG/1.1) — United Nations Statistics Division；证据类型：`controlled_vocabulary`；支持：construct_boundary、operationalization；检索于 2026-08-18T00:00:00Z。
+
+## 学科语义主干（多父节点知识图谱）
+
+> 尚未建立学科语义图层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关学科语义图。
 
 ## 访问方式与资源（旁路信息，不占内容层级）
 

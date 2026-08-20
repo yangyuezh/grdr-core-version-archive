@@ -83,6 +83,7 @@ The registry must also support direct source discovery and curation without requ
 - `resume_database_deep_map`
 - `record_database_deep_map_phase`
 - `record_database_deep_map_stage`
+- `record_database_deep_map_spine`
 - `audit_database_deep_map`
 - `complete_database_deep_map`
 
@@ -101,17 +102,19 @@ Every nontrivial database pass is persisted under `deep_map_projects/<source-slu
 
 ```text
 start-database-deep-map
-  → classify source and work-unit shapes
-  → fix dated boundary and expected unit count
+  → diagnose source and work-unit shapes
+  → lock plan, dated boundary, scope, unit manifest, and expected count
   → resume-database-deep-map
   → map and record each required unit stage
+  → close structural spine, disciplinary spine, and variable bridge
+  → close route-contract checks
   → audit-database-deep-map
   → complete-database-deep-map
 ```
 
-The six required unit stages are Dataset, DataStructure, DataElement, Variable, Construct, and Access. Their semantic requirements remain fixed, while route modules adapt extraction to statistical cubes, surveys, administrative systems, tables, APIs, geospatial stores, scientific arrays, biomedical repositories, knowledge graphs, corpora, and restricted environments.
+The six required unit stages are Dataset, DataStructure, DataElement, Variable, Construct, and Access. Their semantic requirements remain fixed. Each unit must additionally close a source-native structural spine, multi-parent disciplinary/scientific-semantic spine, and Variable-to-Construct bridge. Route modules adapt extraction to statistical cubes, surveys, administrative systems, tables, APIs, geospatial stores, scientific arrays, biomedical repositories, knowledge graphs, corpora, and restricted environments.
 
-`resume-database-deep-map` returns the next ordered open unit and stage; an Agent may not silently substitute a convenient sample. `complete-database-deep-map` is the only operation allowed to declare completion. It rejects unknown counts, open or blocked stages, invalid GRDR references, missing completion evidence, registry failures, and catalog drift. A 100% result is always limited to the project's explicit dated boundary.
+`resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. `complete-database-deep-map` is the only operation allowed to declare completion. It rejects unknown counts, open or blocked stages, unclosed or disconnected spines, invalid GRDR references, missing completion evidence, registry failures, and catalog drift. A 100% result is always limited to the project's explicit dated boundary.
 
 ## Executable research-project lifecycle
 

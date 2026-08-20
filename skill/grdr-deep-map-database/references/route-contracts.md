@@ -2,13 +2,15 @@
 
 ## Fixed stages, adaptable obligations
 
-Every work unit keeps the same six stages. Route contracts add database-shape-specific obligations to those stages and to the project. `config/database_route_contracts.json` is the machine source of truth; do not copy a static route list into Agent logic.
+Every work unit keeps the same six stages, source-native structure spine, scientific-semantic spine, and variable bridge. Route contracts add database-shape-specific obligations to those stages, graph products, and the project. `config/database_route_contracts.json` is the machine source of truth; do not copy a static route list into Agent logic.
 
 ```bash
 python3 scripts/grdr.py list-database-route-modules
 ```
 
 The registry includes a universal route plus composable modules for catalogs, files, tables, APIs, statistical cubes, surveys, administrative systems, geospatial data, scientific arrays, streams, biomedical and clinical systems, graphs, multimodal corpora, experiments, instrument measurements, simulations, physical collections, qualitative archives, scholarly communication, digital platforms, ML assets, software workflows, restricted access, secondary provenance, federations, legacy/proprietary systems, and unknown/custom structures.
+
+Route modules also declare a `module_kinds` dimension. Structural templates, generation-process templates, disciplinary semantic extensions, access/lifecycle/governance/provenance sidecars, technical recovery, and open-world fallback are different axes; do not present them as one mutually exclusive taxonomy.
 
 ## Selection
 

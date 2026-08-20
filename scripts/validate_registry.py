@@ -18,6 +18,7 @@ COLLECTIONS = {
     "sources": (REGISTRY / "sources.jsonl", SCHEMAS / "source.schema.json"),
     "datasets": (REGISTRY / "datasets.jsonl", SCHEMAS / "dataset.schema.json"),
     "data_structures": (REGISTRY / "data_structures.jsonl", SCHEMAS / "data_structure.schema.json"),
+    "semantic_nodes": (REGISTRY / "semantic_nodes.jsonl", SCHEMAS / "semantic_node.schema.json"),
     "resources": (REGISTRY / "resources.jsonl", SCHEMAS / "resource.schema.json"),
     "data_elements": (REGISTRY / "data_elements.jsonl", SCHEMAS / "data_element.schema.json"),
     "constructs": (REGISTRY / "constructs.jsonl", SCHEMAS / "construct.schema.json"),
@@ -86,6 +87,7 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
     data_structure_ids = {record["id"] for record in collections["data_structures"]}
     resource_ids = {record["id"] for record in collections["resources"]}
     data_element_ids = {record["id"] for record in collections["data_elements"]}
+    semantic_node_ids = {record["id"] for record in collections["semantic_nodes"]}
     construct_ids = {record["id"] for record in collections["constructs"]}
     for source in collections["sources"]:
         for maintainer_id in source.get("maintainer_ids", []):
@@ -116,6 +118,15 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
         for parent_id in structure.get("parent_structure_ids", []):
             if parent_id not in data_structure_ids:
                 errors.append(f"{structure.get('id')}: unknown parent_structure_id {parent_id}")
+        for child_id in structure.get("child_structure_ids", []):
+            if child_id not in data_structure_ids:
+                errors.append(f"{structure.get('id')}: unknown child_structure_id {child_id}")
+        for element_id in structure.get("key_element_ids", []):
+            if element_id not in data_element_ids:
+                errors.append(f"{structure.get('id')}: unknown key_element_id {element_id}")
+        for semantic_node_id in structure.get("semantic_node_ids", []):
+            if semantic_node_id not in semantic_node_ids:
+                errors.append(f"{structure.get('id')}: unknown semantic_node_id {semantic_node_id}")
         for resource_id in structure.get("resource_ids", []):
             if resource_id not in resource_ids:
                 errors.append(f"{structure.get('id')}: unknown resource_id {resource_id}")
@@ -154,6 +165,14 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
         for broader_id in construct.get("broader_construct_ids", []):
             if broader_id not in construct_ids:
                 errors.append(f"{construct.get('id')}: unknown broader_construct_id {broader_id}")
+
+    for node in collections["semantic_nodes"]:
+        for parent_id in node.get("parent_ids", []):
+            if parent_id not in semantic_node_ids:
+                errors.append(f"{node.get('id')}: unknown parent_id {parent_id}")
+        for term in node.get("source_native_terms", []):
+            if term.get("source_id") not in source_ids:
+                errors.append(f"{node.get('id')}: unknown source_native source_id {term.get('source_id')}")
 
     for adapter in collections["adapters"]:
         if adapter.get("source_id") not in source_ids:

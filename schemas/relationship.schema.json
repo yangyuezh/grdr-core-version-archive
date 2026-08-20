@@ -8,7 +8,7 @@
   "properties": {
     "schema_version": {"const": "0.1.0"},
     "id": {"type": "string", "pattern": "^grdr:relationship:[a-z0-9][a-z0-9-]*$"},
-    "subject_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|data-structure|resource|data-element|variable|construct|adapter|storage|monitor):"},
+    "subject_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|data-structure|resource|data-element|variable|construct|semantic-node|adapter|storage|monitor):"},
     "predicate": {
       "enum": [
         "produced_by",
@@ -27,6 +27,15 @@
         "documents",
         "measures",
         "proxy_for",
+        "classified_as",
+        "broader_than",
+        "narrower_than",
+        "describes",
+        "observes",
+        "has_population",
+        "has_observation_unit",
+        "has_analysis_unit",
+        "operationalizes",
         "joinable_with",
         "complements",
         "overlaps_with",
@@ -36,7 +45,7 @@
         "monitored_by"
       ]
     },
-    "object_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|data-structure|resource|data-element|variable|construct|adapter|storage|monitor):"},
+    "object_id": {"type": "string", "pattern": "^grdr:(institution|source|dataset|data-structure|resource|data-element|variable|construct|semantic-node|adapter|storage|monitor):"},
     "qualifiers": {"type": "object"},
     "verification": {
       "type": "object",

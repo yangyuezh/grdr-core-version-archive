@@ -1,9 +1,10 @@
 {
   "schema_version": "1.0.0",
-  "contract_version": "2026-08-19",
+  "contract_version": "2026-08-20-dual-spine",
   "route_modules": [
     {
       "id": "core_metadata",
+      "module_kinds": ["universal_core"],
       "label": "Universal database obligations",
       "description": "Checks required for every database regardless of discipline, modality, storage form, or access regime.",
       "triggers": {},
@@ -20,7 +21,12 @@
         {"id": "core.operational_semantics", "scope": "unit", "stage": "variable", "requirement": "Define research-matchable operational quantities without inferring them from topic labels.", "completion_evidence": "Official definitions plus structural selections, units, population, resolution, and comparability."},
         {"id": "core.construct_semantics", "scope": "unit", "stage": "construct", "requirement": "Link variables to constructs while distinguishing direct, subjective, administrative, constructed, modelled, forecast, proxy, and latent measures.", "completion_evidence": "Evidence-backed mappings with directness and scope limitations."},
         {"id": "core.identifiers_joinability", "scope": "unit", "stage": "variable", "requirement": "Document entity identifiers, time keys, spatial keys, version keys, linkage assumptions, collision risks, and identity resolution.", "completion_evidence": "Key definitions and a tested or explicitly limited joinability assessment."},
-        {"id": "core.access_reproducibility", "scope": "unit", "stage": "access", "requirement": "Test metadata and observation access separately and record authentication, limits, formats, environment, query, and reproducibility conditions.", "completion_evidence": "Dated access probes or evidenced controlled-access procedure covering every required route."}
+        {"id": "core.access_reproducibility", "scope": "unit", "stage": "access", "requirement": "Test metadata and observation access separately and record authentication, limits, formats, environment, query, and reproducibility conditions.", "completion_evidence": "Dated access probes or evidenced controlled-access procedure covering every required route."},
+        {"id": "core.execution_lock", "scope": "project", "stage": "project", "requirement": "Lock the audited plan, declared scope, and ordered work-unit manifest so an Agent cannot silently change the target, denominator, routes, or completion claim.", "completion_evidence": "Machine-recomputed SHA-256 fingerprints for the plan, scope, and unit manifest match the persisted execution locks."},
+        {"id": "core.resume_integrity", "scope": "project", "stage": "project", "requirement": "Persist deterministic checkpoints and resume the first unfinished target without skipping, substitution, or loss after process, network, or session interruption.", "completion_evidence": "Replay tests and current project history reproduce the same next target and validate every checkpoint checksum."},
+        {"id": "core.structural_spine", "scope": "unit", "stage": "structural_spine", "requirement": "Recover the complete source-native structural graph from Dataset through recursive DataStructure nodes and DataElements to operational Variables, including grain, keys, ordering, cardinality, lineage, roots, leaves, and edges.", "completion_evidence": "A bounded, counted, connected, fingerprinted canonical structural spine whose nodes and relationships are all verified or explicitly evidenced not applicable."},
+        {"id": "core.disciplinary_spine", "scope": "unit", "stage": "disciplinary_spine", "requirement": "Recover the multi-parent scientific-semantic graph from disciplines and subdisciplines through research objects, systems, phenomena, processes, populations and units to Constructs without reducing it to topic strings.", "completion_evidence": "A bounded, counted, connected, fingerprinted semantic spine using canonical SemanticNode and Construct records with source-native and external classification mappings preserved."},
+        {"id": "core.variable_bridge", "scope": "unit", "stage": "variable_bridge", "requirement": "Prove the canonical bridge connecting source-native DataElements and DataStructures to research-matchable Variables and evidenced Constructs or scientific-semantic nodes.", "completion_evidence": "Every bridge node and relationship is counted, verified, fingerprinted, and exposes measurement directness, units, population, resolution, comparability, and join conditions."}
       ],
       "recommended_tools": [],
       "standards": [
@@ -31,6 +37,7 @@
     },
     {
       "id": "catalog",
+      "module_kinds": ["structure_template"],
       "label": "Catalog and repository hierarchy",
       "description": "Catalogs, repositories, portals, collections, versions, and distributions.",
       "triggers": {"structural_archetypes": ["hierarchical_catalog", "repository", "data_portal"], "content_modalities": ["metadata_only"]},
@@ -44,6 +51,7 @@
     },
     {
       "id": "file_archive",
+      "module_kinds": ["structure_template", "access_sidecar"],
       "label": "File and object archive",
       "description": "Static or versioned directories, object stores, packages, compressed archives, and large file manifests.",
       "triggers": {"structural_archetypes": ["file_archive", "object_store", "flat_table_collection"], "content_modalities": ["composite"]},
@@ -57,6 +65,7 @@
     },
     {
       "id": "table_schema",
+      "module_kinds": ["structure_template"],
       "label": "Tabular and relational schema",
       "description": "Relational databases, tables, views, CSV/Parquet collections, and data packages.",
       "triggers": {"structural_archetypes": ["relational_database", "flat_table_collection", "data_warehouse"], "content_modalities": ["tabular"]},
@@ -70,6 +79,7 @@
     },
     {
       "id": "api_schema",
+      "module_kinds": ["access_sidecar"],
       "label": "Web API and query service",
       "description": "REST, GraphQL, SOAP, JSON/XML, OData, search, and query APIs.",
       "triggers": {"structural_archetypes": ["json_or_xml_api", "graphql_api", "query_service"], "access_regimes": ["api"]},
@@ -83,6 +93,7 @@
     },
     {
       "id": "sdmx_cube",
+      "module_kinds": ["structure_template"],
       "label": "SDMX or statistical cube",
       "description": "Multidimensional official-statistics dataflows and cube systems.",
       "trigger_mode": "structural_only",
@@ -98,6 +109,7 @@
     },
     {
       "id": "survey_instrument",
+      "module_kinds": ["generation_template", "structure_template"],
       "label": "Survey, study, questionnaire, and microdata",
       "description": "Studies, waves, samples, instruments, questions, response codes, weights, and derived scales.",
       "trigger_mode": "structural_only",
@@ -112,6 +124,7 @@
     },
     {
       "id": "administrative_provenance",
+      "module_kinds": ["generation_template", "provenance_sidecar"],
       "label": "Administrative, transactional, and event systems",
       "description": "Operational records generated by services, organizations, firms, and public administration.",
       "trigger_mode": "structural_only",
@@ -126,6 +139,7 @@
     },
     {
       "id": "geospatial",
+      "module_kinds": ["structure_template"],
       "label": "Geospatial vector, raster, tile, and coverage",
       "description": "Spatial layers, rasters, grids, tiles, coverages, and coordinate-aware observations.",
       "triggers": {"structural_archetypes": ["geospatial_vector", "geospatial_raster", "tile_service"], "content_modalities": ["geospatial_vector", "geospatial_raster"]},
@@ -139,6 +153,7 @@
     },
     {
       "id": "scientific_array",
+      "module_kinds": ["structure_template"],
       "label": "Scientific arrays and multidimensional files",
       "description": "NetCDF, HDF, Zarr, GRIB, FITS, and other dimensioned scientific data.",
       "trigger_mode": "structural_only",
@@ -153,6 +168,7 @@
     },
     {
       "id": "sensor_stream",
+      "module_kinds": ["generation_template", "lifecycle_sidecar", "structure_template"],
       "label": "Sensor, telemetry, and streaming events",
       "description": "Live or append-only observations whose universe grows or expires.",
       "trigger_mode": "structural_only",
@@ -167,6 +183,7 @@
     },
     {
       "id": "biomedical",
+      "module_kinds": ["discipline_semantic_extension", "generation_template", "structure_template"],
       "label": "Biomedical, genomic, proteomic, assay, and molecular structure",
       "description": "Studies, participants, specimens, assays, sequences, features, ontologies, and reference builds.",
       "triggers": {"structural_archetypes": ["biological_sequence_or_structure", "assay_repository"], "production_modes": ["biological_assay", "genomic_or_proteomic"], "content_modalities": ["sequence", "structure_3d"]},
@@ -180,6 +197,7 @@
     },
     {
       "id": "clinical_interoperability",
+      "module_kinds": ["discipline_semantic_extension", "generation_template", "governance_sidecar", "structure_template"],
       "label": "Clinical and health-record interoperability",
       "description": "Patients, encounters, observations, diagnoses, procedures, medications, claims, cohorts, and common data models.",
       "triggers": {"structural_archetypes": ["clinical_record_system", "common_data_model"], "production_modes": ["clinical"]},
@@ -193,6 +211,7 @@
     },
     {
       "id": "knowledge_graph",
+      "module_kinds": ["structure_template"],
       "label": "Knowledge graph and linked data",
       "description": "RDF/property graphs, ontologies, entity networks, SPARQL, graph dumps, and evolving identifiers.",
       "triggers": {"structural_archetypes": ["knowledge_graph", "rdf_store", "property_graph"], "content_modalities": ["graph"]},
@@ -206,6 +225,7 @@
     },
     {
       "id": "corpus_multimodal",
+      "module_kinds": ["structure_template"],
       "label": "Text, document, image, audio, and video corpus",
       "description": "Items, segments, transcriptions, OCR, annotations, labels, media, and rights.",
       "triggers": {"structural_archetypes": ["document_corpus", "image_audio_video_collection"], "content_modalities": ["text", "document", "image", "audio", "video"]},
@@ -219,6 +239,7 @@
     },
     {
       "id": "experimental_measurement",
+      "module_kinds": ["generation_template", "structure_template"],
       "label": "Laboratory and field experiment",
       "description": "Experiments, protocols, treatments, controls, experimental units, samples, randomization, repeated measurements, and processed outputs.",
       "triggers": {"structural_archetypes": ["experimental_repository", "laboratory_information_system"], "production_modes": ["experiment", "field_experiment"]},
@@ -232,6 +253,7 @@
     },
     {
       "id": "instrument_measurement",
+      "module_kinds": ["generation_template", "structure_template"],
       "label": "Instrument acquisition, calibration, and measurement run",
       "description": "Passive or active instrument measurements, devices, deployments, acquisition runs, firmware, calibration, detection limits, and processing levels.",
       "triggers": {"structural_archetypes": ["instrument_archive"], "production_modes": ["instrument_measurement"]},
@@ -245,6 +267,7 @@
     },
     {
       "id": "simulation_model_output",
+      "module_kinds": ["generation_template", "structure_template"],
       "label": "Simulation, scenario, ensemble, and computational model output",
       "description": "Model experiments, scenarios, ensembles, initial conditions, parameterizations, forcing data, runs, checkpoints, and outputs.",
       "triggers": {"structural_archetypes": ["simulation_archive", "ensemble_archive", "model_output_repository"], "production_modes": ["simulation", "computational_model", "forecasting"]},
@@ -258,6 +281,7 @@
     },
     {
       "id": "physical_collection",
+      "module_kinds": ["generation_template", "structure_template"],
       "label": "Physical specimen, object, and natural or cultural collection",
       "description": "Physical specimens or objects, accessions, collection events, custody, preparation, identification, digitization, and derived measurements.",
       "triggers": {"structural_archetypes": ["specimen_collection", "museum_collection", "biobank", "natural_history_collection"], "production_modes": ["collection", "field_collection", "curation"]},
@@ -271,6 +295,7 @@
     },
     {
       "id": "qualitative_archive",
+      "module_kinds": ["generation_template", "discipline_semantic_extension", "structure_template"],
       "label": "Qualitative, ethnographic, interview, and case-study archive",
       "description": "Cases, participants, interviews, fieldnotes, transcripts, documents, coding frameworks, analytic memos, consent, and contextual metadata.",
       "triggers": {"structural_archetypes": ["qualitative_archive", "interview_archive", "case_study_repository"], "production_modes": ["interview", "ethnography", "participant_observation", "qualitative_research"]},
@@ -284,6 +309,7 @@
     },
     {
       "id": "scholarly_communication",
+      "module_kinds": ["discipline_semantic_extension", "generation_template", "structure_template"],
       "label": "Scholarly works, citations, grants, patents, and research entities",
       "description": "Works and versions, authors, organizations, venues, references, citations, grants, patents, research objects, corrections, and retractions.",
       "triggers": {"structural_archetypes": ["bibliographic_database", "citation_index", "research_information_system", "patent_database"], "production_modes": ["bibliographic_indexing", "research_administration"]},
@@ -297,6 +323,7 @@
     },
     {
       "id": "digital_platform_trace",
+      "module_kinds": ["generation_template", "lifecycle_sidecar", "structure_template"],
       "label": "Web, app, social platform, and digital behavioral trace",
       "description": "Mutable platform objects, accounts, interactions, feeds, rankings, logs, crawls, deletions, moderation, and platform-mediated exposure.",
       "triggers": {"structural_archetypes": ["web_archive", "platform_api", "digital_trace_archive", "interaction_network"], "production_modes": ["web_crawl", "platform_trace", "digital_behavior"]},
@@ -310,6 +337,7 @@
     },
     {
       "id": "machine_learning_asset",
+      "module_kinds": ["generation_template", "provenance_sidecar", "structure_template"],
       "label": "Machine-learning dataset, model, embedding, and synthetic data",
       "description": "Training/evaluation datasets, models, features, embeddings, generated data, and benchmarks.",
       "triggers": {"structural_archetypes": ["model_registry", "feature_store", "benchmark"], "content_modalities": ["model", "synthetic"], "production_modes": ["simulation", "machine_learning"]},
@@ -323,6 +351,7 @@
     },
     {
       "id": "software_workflow",
+      "module_kinds": ["provenance_sidecar", "structure_template"],
       "label": "Executable workflow and research compendium",
       "description": "Code, notebooks, workflow graphs, environments, software-generated datasets, and reproducibility packages.",
       "triggers": {"structural_archetypes": ["software_repository", "workflow_graph", "research_compendium"], "content_modalities": ["code"]},
@@ -336,6 +365,7 @@
     },
     {
       "id": "restricted_access",
+      "module_kinds": ["governance_sidecar", "access_sidecar"],
       "label": "Restricted, licensed, secure, or application access",
       "description": "Data that require registration, payment, contracts, ethics review, secure environments, or disclosure control.",
       "triggers": {"access_regimes": ["registered", "licensed", "restricted", "secure_environment", "application", "commercial"], "sensitivity_classes": ["personal", "health", "genetic", "financial", "commercially_sensitive", "national_security", "indigenous_or_community_governed", "confidential_business"]},
@@ -349,6 +379,7 @@
     },
     {
       "id": "derived_provenance",
+      "module_kinds": ["provenance_sidecar"],
       "label": "Derived, harmonized, modelled, or mirrored data",
       "description": "Secondary products whose authority, meaning, and quality depend on upstream versions and transformations.",
       "triggers": {"origin_types": ["secondary", "hybrid"], "provenance_roles": ["official_harmonizer", "curated_repository", "mirror", "derivative_aggregator", "hybrid"]},
@@ -362,6 +393,7 @@
     },
     {
       "id": "federated_identity",
+      "module_kinds": ["provenance_sidecar", "structure_template"],
       "label": "Federated and linked multi-source system",
       "description": "Virtual databases, cross-source query layers, identity resolution systems, and distributed collections.",
       "triggers": {"structural_archetypes": ["federated_system", "virtual_database"], "boundary_types": ["federated_query"]},
@@ -375,6 +407,7 @@
     },
     {
       "id": "legacy_or_proprietary",
+      "module_kinds": ["technical_recovery"],
       "label": "Legacy, undocumented, or proprietary format",
       "description": "Formats or systems requiring vendor software, reverse engineering, conversion, emulation, or incomplete metadata.",
       "triggers": {"structural_archetypes": ["legacy_system", "proprietary_format"], "metadata_maturity": ["undocumented", "inferred"]},
@@ -388,6 +421,7 @@
     },
     {
       "id": "open_world_custom",
+      "module_kinds": ["open_world_fallback"],
       "label": "Unknown or custom database route",
       "description": "Safe fallback when existing contracts do not fully explain a structure, modality, lifecycle, or governance model.",
       "triggers": {"structural_archetypes": ["other", "unknown"], "content_modalities": ["other", "unknown"], "lifecycle_modes": ["unknown"], "metadata_maturity": ["unknown"]},

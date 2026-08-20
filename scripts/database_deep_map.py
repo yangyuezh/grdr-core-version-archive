@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import unicodedata
 from typing import Any
 
@@ -17,6 +20,7 @@ from database_deep_map_planner import (
     build_database_deep_map_plan_from_intake,
     contract_index,
     load_contracts,
+    merge_facets,
 )
 
 
@@ -29,6 +33,17 @@ REPORT_FILE = "README.md"
 PHASES = ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit"]
 EARLY_PHASES = ["identity", "classification", "boundary", "inventory"]
 UNIT_STAGES = ["dataset", "data_structure", "data_element", "variable", "construct", "access"]
+SPINES = ["structural", "disciplinary", "variable_bridge"]
+SPINE_CHECK_STAGES = {
+    "structural_spine": "structural",
+    "disciplinary_spine": "disciplinary",
+    "variable_bridge": "variable_bridge",
+}
+SPINE_PREREQUISITES = {
+    "structural": ("dataset", "data_structure", "data_element", "variable"),
+    "disciplinary": ("variable", "construct"),
+    "variable_bridge": ("data_element", "variable", "construct"),
+}
 CLOSED_STATES = {"verified_complete", "not_applicable"}
 MAPPED_STATES = {"mapped_complete", *CLOSED_STATES}
 ACTIVE_STATES = {"not_started", "enumerating", "in_progress", "blocked"}
@@ -47,6 +62,7 @@ REGISTRY_FILES = [
     "resources.jsonl", "data_elements.jsonl", "variables.jsonl", "constructs.jsonl",
     "relationships.jsonl", "adapters.jsonl", "storage.jsonl", "monitors.jsonl",
     "source_profiles.jsonl",
+    "semantic_nodes.jsonl",
 ]
 
 
@@ -74,11 +90,86 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
 def write_jsonl(path: Path, values: list[dict[str, Any]]) -> None:
-    path.write_text("".join(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n" for value in values), encoding="utf-8")
+    atomic_write_text(path, "".join(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n" for value in values))
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def fingerprint(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def plan_lock_payload(plan: dict[str, Any]) -> dict[str, Any]:
+    gates = [
+        {key: gate.get(key) for key in ("gate", "reason", "required_before")}
+        for gate in plan.get("human_gates", [])
+    ]
+    return {
+        key: plan.get(key)
+        for key in (
+            "route_contract_version", "source", "goal", "diagnostic_dimensions", "scope",
+            "work_unit_strategy", "selected_route_modules", "required_facets", "unresolved_critical",
+            "risk_flags", "fallback_policy",
+        )
+    } | {"human_gate_definitions": gates}
+
+
+def unit_manifest_payload(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    fields = (
+        "id", "sequence", "upstream_id", "dataset_id", "unit_type", "disciplines", "origin_type",
+        "structural_archetypes", "content_modalities", "lifecycle_modes", "versioning_model",
+        "sensitivity_classes", "route_modules", "required_stages",
+    )
+    return [
+        {key: unit.get(key) for key in fields}
+        for unit in sorted(units, key=lambda item: (item["sequence"], item["id"]))
+    ]
+
+
+def execution_contract() -> dict[str, Any]:
+    return {
+        "contract_version": "2.0.0",
+        "unknown_database_diagnosis": True,
+        "scope_lock": True,
+        "deterministic_queue": True,
+        "checkpoint_resume": True,
+        "deviation_rejection": True,
+        "dual_spine_completion": True,
+        "evidence_only_completion": True,
+        "external_blocker_transparency": True,
+    }
+
+
+def build_locks(project: dict[str, Any], units: list[dict[str, Any]], timestamp: str) -> dict[str, str]:
+    return {
+        "plan_fingerprint": fingerprint(plan_lock_payload(project["diagnostic_plan"])),
+        "scope_fingerprint": fingerprint(project["scope"]),
+        "unit_manifest_fingerprint": fingerprint(unit_manifest_payload(units)),
+        "locked_at": timestamp,
+    }
 
 
 def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
@@ -104,6 +195,13 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
             f"| `{name}` | {item['required_units']} | {item['mapped_units']} | "
             f"{item['verified_or_not_applicable_units']} | {item['blocked_units']} |"
         )
+    spine_rows = []
+    for name in SPINES:
+        item = audit["spine_summary"][name]
+        spine_rows.append(
+            f"| `{name}` | {item['required_units']} | {item['mapped_units']} | "
+            f"{item['verified_or_not_applicable_units']} | {item['blocked_units']} |"
+        )
     blockers = []
     for phase, value in project["phase_states"].items():
         blockers.extend(f"- 项目阶段 `{phase}`：{item['type']} — {item['notes']}" for item in value["blockers"])
@@ -123,10 +221,17 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 - 映射进度：**{progress['mapping_percentage']}%**
 - 严格完成度：**{progress['strict_completion_percentage']}%**
 - 路线契约验收：**{progress['contract_check_percentage']}%**（{progress['closed_contract_checks']} / {progress['required_contract_checks']}）
-- 全部阶段完成的工作单元：{progress['fully_closed_work_units']} / {progress['work_units']}
+- 双主干与桥梁严格完成度：**{progress['dual_spine_percentage']}%**（{progress['closed_spines']} / {progress['required_spines']}）
+- 全部阶段及双主干完成的工作单元：{progress['fully_closed_work_units']} / {progress['work_units']}
 - 可声明完成：`{str(audit['completion_ready']).lower()}`
+- 执行契约：`{project['execution_contract']['contract_version']}`（全部硬约束：`{str(all(value is True for key, value in project['execution_contract'].items() if key != 'contract_version')).lower()}`）
+- 计划锁：`{project['locks']['plan_fingerprint']}`
+- 范围锁：`{project['locks']['scope_fingerprint']}`
+- 工作单元清单锁：`{project['locks']['unit_manifest_fingerprint']}`
 
 “映射进度”包括已经完成映射但仍待充分核验的阶段；“严格完成度”只计入 `verified_complete` 或有证据的 `not_applicable`。严格阶段达到100%仍不够：路线契约验收、诊断计划、人工门槛、阻塞和审计也必须全部闭合，项目才能完成。
+
+执行计划、范围和工作单元清单均由机器指纹锁定。任何静默改动都会使审计失败，必须通过显式升级重新规划。
 
 ## 数据库类型与路线
 
@@ -149,6 +254,12 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 |---|---:|---:|---:|---:|
 {chr(10).join(stage_rows)}
 
+## 两根主干与变量桥梁
+
+| 主干/桥梁 | 必需单元 | 已映射 | 已严格闭合 | 阻塞 |
+|---|---:|---:|---:|---:|
+{chr(10).join(spine_rows)}
+
 ## 下一步
 
 {next_target_text}
@@ -168,7 +279,7 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 
 
 def sync_report(target: Path, project: dict[str, Any], audit: dict[str, Any]) -> None:
-    (target / REPORT_FILE).write_text(render_report(project, audit), encoding="utf-8")
+    atomic_write_text(target / REPORT_FILE, render_report(project, audit))
 
 
 def resolve_project_dir(value: str | Path) -> Path:
@@ -212,6 +323,33 @@ def empty_stage(timestamp: str) -> dict[str, Any]:
         "state": "not_started", "expected_count": None, "registered_ids": [],
         "verified_count": 0, "completion_basis": None, "evidence": [],
         "blockers": [], "notes": None, "updated_at": timestamp,
+    }
+
+
+def empty_spine(timestamp: str) -> dict[str, Any]:
+    return {
+        "state": "not_started",
+        "expected_node_count": None,
+        "node_ids": [],
+        "verified_node_count": 0,
+        "expected_edge_count": None,
+        "edge_ids": [],
+        "verified_edge_count": 0,
+        "root_node_ids": [],
+        "leaf_node_ids": [],
+        "topology_fingerprint": None,
+        "completion_basis": None,
+        "evidence": [],
+        "blockers": [],
+        "checkpoint": {
+            "enumeration_rule": None,
+            "completed_native_count": 0,
+            "last_native_id": None,
+            "next_native_id": None,
+            "snapshot": None,
+            "cursor_checksum": None,
+        },
+        "updated_at": timestamp,
     }
 
 
@@ -297,12 +435,14 @@ def route_blockers_from_stage(blockers: list[dict[str, Any]]) -> list[dict[str, 
         "payment": "requires_authorization", "license": "requires_authorization",
         "privacy": "requires_human_decision", "ethics": "requires_human_decision",
         "technical": "retryable", "scale": "alternative_route",
-        "missing_metadata": "upstream_only", "other": "unknown",
+        "missing_metadata": "upstream_only", "schema_drift": "alternative_route",
+        "semantic_ambiguity": "requires_human_decision", "quality": "upstream_only",
+        "other": "unknown",
     }
     return [
         {
             "type": item["type"], "scope": "stage",
-            "recoverability": recoverability[item["type"]],
+            "recoverability": recoverability.get(item["type"], "unknown"),
             "resolution": f"Resolve the inherited {item['type']} blocker before closing this route obligation.",
             "notes": item["notes"],
         }
@@ -330,6 +470,12 @@ def synchronize_blocked_stage_checks(units: list[dict[str, Any]], checks: list[d
         })
         changed += 1
     return changed
+
+
+def unit_gate_state(unit: dict[str, Any], stage: str) -> str:
+    if stage in SPINE_CHECK_STAGES:
+        return unit["spines"][SPINE_CHECK_STAGES[stage]]["state"]
+    return unit["stages"][stage]["state"]
 
 
 def append_history(project: dict[str, Any], operation: str, summary: str) -> None:
@@ -390,6 +536,146 @@ def stage_errors(unit: dict[str, Any], stage_name: str, stage: dict[str, Any], k
     return errors
 
 
+def spine_topology_fingerprint(spine: dict[str, Any], records: dict[str, dict[str, Any]]) -> str:
+    nodes = [records[item] for item in sorted(spine["node_ids"]) if item in records]
+    edges = [records[item] for item in sorted(spine["edge_ids"]) if item in records]
+    return fingerprint({
+        "nodes": nodes,
+        "edges": edges,
+        "roots": sorted(spine["root_node_ids"]),
+        "leaves": sorted(spine["leaf_node_ids"]),
+    })
+
+
+def checkpoint_checksum(checkpoint: dict[str, Any]) -> str:
+    return fingerprint({key: checkpoint.get(key) for key in (
+        "enumeration_rule", "completed_native_count", "last_native_id", "next_native_id", "snapshot",
+    )})
+
+
+def spine_errors(
+    unit: dict[str, Any],
+    spine_name: str,
+    spine: dict[str, Any],
+    records: dict[str, dict[str, Any]],
+) -> list[str]:
+    errors: list[str] = []
+    label = f"{unit['id']}:{spine_name}_spine"
+    allowed_prefixes = {
+        "structural": ("grdr:dataset:", "grdr:data-structure:", "grdr:data-element:", "grdr:variable:"),
+        "disciplinary": ("grdr:semantic-node:", "grdr:construct:"),
+        "variable_bridge": ("grdr:data-structure:", "grdr:data-element:", "grdr:variable:", "grdr:construct:", "grdr:semantic-node:"),
+    }[spine_name]
+    node_ids = spine["node_ids"]
+    edge_ids = spine["edge_ids"]
+    expected_nodes = spine["expected_node_count"]
+    expected_edges = spine["expected_edge_count"]
+    for node_id in node_ids:
+        if not node_id.startswith(allowed_prefixes):
+            errors.append(f"{label}: disallowed node type {node_id}")
+        if node_id not in records:
+            errors.append(f"{label}: unknown canonical node {node_id}")
+            continue
+        record = records[node_id]
+        if node_id.startswith("grdr:dataset:") and unit.get("dataset_id") and node_id != unit["dataset_id"]:
+            errors.append(f"{label}: dataset node {node_id} does not match the work unit dataset")
+        if node_id.startswith(("grdr:data-structure:", "grdr:data-element:", "grdr:variable:")):
+            dataset_ids = set(record.get("dataset_ids", []))
+            if unit.get("dataset_id") and unit["dataset_id"] not in dataset_ids:
+                errors.append(f"{label}: node {node_id} does not belong to the work unit dataset")
+    for edge_id in edge_ids:
+        record = records.get(edge_id)
+        if record is None or not edge_id.startswith("grdr:relationship:"):
+            errors.append(f"{label}: unknown canonical relationship {edge_id}")
+            continue
+        if record.get("subject_id") not in node_ids or record.get("object_id") not in node_ids:
+            errors.append(f"{label}: edge {edge_id} has an endpoint outside the declared spine nodes")
+    for boundary_name in ("root_node_ids", "leaf_node_ids"):
+        unknown = sorted(set(spine[boundary_name]) - set(node_ids))
+        if unknown:
+            errors.append(f"{label}: {boundary_name} contains nodes outside node_ids: {', '.join(unknown)}")
+    actual_verified_nodes = sum(
+        records.get(item, {}).get("verification", {}).get("status") == "verified"
+        for item in node_ids
+    )
+    actual_verified_edges = sum(
+        records.get(item, {}).get("verification", {}).get("status") == "verified"
+        for item in edge_ids
+    )
+    if spine["verified_node_count"] != actual_verified_nodes:
+        errors.append(f"{label}: verified_node_count does not match canonical verification states")
+    if spine["verified_edge_count"] != actual_verified_edges:
+        errors.append(f"{label}: verified_edge_count does not match canonical verification states")
+    if spine["state"] in {"mapped_complete", "verified_complete"}:
+        prerequisite_stages = SPINE_PREREQUISITES[spine_name]
+        open_prerequisites = [
+            name for name in prerequisite_stages
+            if unit["stages"][name]["state"] not in MAPPED_STATES
+        ]
+        if open_prerequisites:
+            errors.append(f"{label}: cannot close before mapped prerequisite stages: {', '.join(open_prerequisites)}")
+        if expected_nodes is None or expected_edges is None:
+            errors.append(f"{label}: complete spine requires known node and edge denominators")
+        if expected_nodes != len(node_ids):
+            errors.append(f"{label}: expected_node_count={expected_nodes} but node_ids={len(node_ids)}")
+        if expected_edges != len(edge_ids):
+            errors.append(f"{label}: expected_edge_count={expected_edges} but edge_ids={len(edge_ids)}")
+        if not node_ids or not spine["root_node_ids"] or not spine["leaf_node_ids"]:
+            errors.append(f"{label}: complete spine requires nodes, roots, and leaves")
+        required_prefixes = {
+            "structural": ("grdr:dataset:", "grdr:data-structure:", "grdr:data-element:", "grdr:variable:"),
+            "disciplinary": ("grdr:semantic-node:", "grdr:construct:"),
+            "variable_bridge": ("grdr:variable:", "grdr:construct:"),
+        }[spine_name]
+        missing_types = [prefix for prefix in required_prefixes if not any(item.startswith(prefix) for item in node_ids)]
+        if missing_types:
+            errors.append(f"{label}: complete spine lacks required canonical node types: {', '.join(missing_types)}")
+        if spine_name == "variable_bridge" and not edge_ids:
+            errors.append(f"{label}: the variable bridge requires at least one canonical relationship")
+        adjacency = {item: set() for item in node_ids}
+        for edge_id in edge_ids:
+            edge = records.get(edge_id, {})
+            subject = edge.get("subject_id"); object_id = edge.get("object_id")
+            if subject in adjacency and object_id in adjacency:
+                adjacency[subject].add(object_id); adjacency[object_id].add(subject)
+        reachable = set(spine["root_node_ids"])
+        pending = list(reachable)
+        while pending:
+            current = pending.pop()
+            for neighbor in adjacency.get(current, set()) - reachable:
+                reachable.add(neighbor); pending.append(neighbor)
+        disconnected = sorted(set(node_ids) - reachable)
+        if disconnected:
+            errors.append(f"{label}: nodes are disconnected from declared roots: {', '.join(disconnected)}")
+        if not spine["completion_basis"] or not spine["evidence"]:
+            errors.append(f"{label}: complete spine requires completion_basis and evidence")
+        checkpoint = spine["checkpoint"]
+        if not checkpoint["enumeration_rule"] or checkpoint["snapshot"] is None:
+            errors.append(f"{label}: complete spine requires a dated deterministic enumeration rule")
+        if checkpoint["next_native_id"] is not None:
+            errors.append(f"{label}: complete spine requires next_native_id=null")
+        if expected_nodes is not None and checkpoint["completed_native_count"] != expected_nodes:
+            errors.append(f"{label}: completed_native_count must equal expected_node_count")
+        if checkpoint["cursor_checksum"] != checkpoint_checksum(checkpoint):
+            errors.append(f"{label}: checkpoint cursor checksum is missing or stale")
+        expected_fingerprint = spine_topology_fingerprint(spine, records)
+        if spine["topology_fingerprint"] != expected_fingerprint:
+            errors.append(f"{label}: topology fingerprint is missing or stale")
+    if spine["state"] == "verified_complete":
+        if expected_nodes is not None and spine["verified_node_count"] != expected_nodes:
+            errors.append(f"{label}: verified_complete requires every node verified")
+        if expected_edges is not None and spine["verified_edge_count"] != expected_edges:
+            errors.append(f"{label}: verified_complete requires every edge verified")
+    if spine["state"] == "not_applicable":
+        if expected_nodes != 0 or expected_edges != 0 or node_ids or edge_ids:
+            errors.append(f"{label}: not_applicable requires zero denominators and no nodes or edges")
+        if not spine["completion_basis"] or not spine["evidence"]:
+            errors.append(f"{label}: not_applicable requires evidence")
+    if spine["state"] == "blocked" and not spine["blockers"]:
+        errors.append(f"{label}: blocked spine requires at least one blocker")
+    return errors
+
+
 def phase_errors(project: dict[str, Any], name: str, value: dict[str, Any]) -> list[str]:
     errors = []
     label = f"{project['id']}:{name}"
@@ -434,6 +720,8 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
                 errors.append(f"{unit['id']}: route module {route_id} is absent from the project diagnostic plan")
         for stage_name, stage in unit["stages"].items():
             errors.extend(stage_errors(unit, stage_name, stage, known_ids))
+        for spine_name, spine in unit["spines"].items():
+            errors.extend(spine_errors(unit, spine_name, spine, known_records))
     unit_ids = {item["id"] for item in units}
     seen_checks: set[str] = set()
     actual_check_keys: set[tuple[str | None, str]] = set()
@@ -464,7 +752,7 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             if check[field] != expected_check[field]:
                 errors.append(f"{check['id']}: {field} differs from the active route contract")
         if check["unit_id"] is not None and check["state"] in CHECK_CLOSED_STATES:
-            stage_state = unit_by_id[check["unit_id"]]["stages"][check["stage"]]["state"]
+            stage_state = unit_gate_state(unit_by_id[check["unit_id"]], check["stage"])
             if stage_state not in MAPPED_STATES:
                 errors.append(f"{check['id']}: cannot close before its {check['stage']} stage is mapped")
     expected_units = project["scope"]["expected_work_unit_count"]
@@ -474,6 +762,10 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         errors.append("inventory cannot be complete while expected_work_unit_count is unknown")
     if project["source_id"] not in known_ids:
         errors.append(f"unknown source_id {project['source_id']}")
+    expected_locks = build_locks(project, units, project.get("locks", {}).get("locked_at", project["created_at"]))
+    for lock_name in ("plan_fingerprint", "scope_fingerprint", "unit_manifest_fingerprint"):
+        if project.get("locks", {}).get(lock_name) != expected_locks[lock_name]:
+            errors.append(f"execution lock mismatch: {lock_name}; regenerate and re-audit through the upgrade command")
     for name, value in project["phase_states"].items():
         errors.extend(phase_errors(project, name, value))
 
@@ -492,8 +784,29 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "blocked_units": sum(item["state"] == "blocked" for item in records),
             "state_counts": {state: sum(item["state"] == state for item in records) for state in sorted({item["state"] for item in records})},
         }
-    fully_mapped_units = sum(all(unit["stages"][name]["state"] in MAPPED_STATES for name in unit["required_stages"]) for unit in units)
-    fully_closed_units = sum(all(unit["stages"][name]["state"] in CLOSED_STATES for name in unit["required_stages"]) for unit in units)
+    fully_mapped_units = sum(
+        all(unit["stages"][name]["state"] in MAPPED_STATES for name in unit["required_stages"])
+        and all(unit["spines"][name]["state"] in MAPPED_STATES for name in SPINES)
+        for unit in units
+    )
+    fully_closed_units = sum(
+        all(unit["stages"][name]["state"] in CLOSED_STATES for name in unit["required_stages"])
+        and all(unit["spines"][name]["state"] in CLOSED_STATES for name in SPINES)
+        for unit in units
+    )
+    required_spines = [(unit, name) for unit in units for name in SPINES]
+    mapped_spines = sum(unit["spines"][name]["state"] in MAPPED_STATES for unit, name in required_spines)
+    closed_spines = sum(unit["spines"][name]["state"] in CLOSED_STATES for unit, name in required_spines)
+    blocked_spines = sum(unit["spines"][name]["state"] == "blocked" for unit, name in required_spines)
+    spine_summary = {
+        name: {
+            "required_units": len(units),
+            "mapped_units": sum(unit["spines"][name]["state"] in MAPPED_STATES for unit in units),
+            "verified_or_not_applicable_units": sum(unit["spines"][name]["state"] in CLOSED_STATES for unit in units),
+            "blocked_units": sum(unit["spines"][name]["state"] == "blocked" for unit in units),
+        }
+        for name in SPINES
+    }
     required_checks = [item for item in checks if item["required"]]
     closed_checks = sum(item["state"] in CHECK_CLOSED_STATES for item in required_checks)
     blocked_checks = sum(item["state"] == "blocked" for item in required_checks)
@@ -508,6 +821,7 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     completion_ready = (
         not errors and plan_ready and not unresolved_gates
         and core_phases_closed and total > 0 and closed == total and blocked == 0
+        and required_spines and closed_spines == len(required_spines) and blocked_spines == 0
         and required_checks and closed_checks == len(required_checks)
         and blocked_checks == failed_checks == human_checks == 0
     )
@@ -532,6 +846,7 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "operation": "audit_database_deep_map", "project_id": project["id"], "project_dir": str(target), "title": project["title"],
         "source_id": project["source_id"], "workflow_status": project["workflow_status"],
         "current_phase": project["current_phase"], "scope": project["scope"],
+        "execution_contract": project["execution_contract"], "execution_locks": project["locks"],
         "database_profile": project["database_profile"],
         "diagnostic_plan": {
             "plan_status": project["diagnostic_plan"]["plan_status"],
@@ -552,8 +867,11 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "blocked_contract_checks": blocked_checks, "failed_contract_checks": failed_checks,
             "human_review_contract_checks": human_checks,
             "contract_check_percentage": round((closed_checks / len(required_checks)) * 100, 2) if required_checks else 0.0,
+            "required_spines": len(required_spines), "mapped_spines": mapped_spines,
+            "closed_spines": closed_spines, "blocked_spines": blocked_spines,
+            "dual_spine_percentage": round((closed_spines / len(required_spines)) * 100, 2) if required_spines else 0.0,
         },
-        "stage_summary": stage_summary,
+        "stage_summary": stage_summary, "spine_summary": spine_summary,
         "phase_states": project["phase_states"], "completion_ready": completion_ready,
         "errors": errors, "warnings": warnings, "next_target": queue[0] if queue else None,
         "queue_preview": queue[:10], "next_actions": effective_next_actions,
@@ -587,7 +905,7 @@ def build_unit(spec: dict[str, Any], project: dict[str, Any], timestamp: str, re
     dimensions = project["diagnostic_plan"]["diagnostic_dimensions"]
     routes = list(dict.fromkeys(["core_metadata", *(spec.get("route_modules") or project["database_profile"]["route_modules"])]))
     return {
-        "schema_version": "1.1.0", "id": unit_id, "project_id": project["id"], "sequence": spec.get("sequence", sequence),
+        "schema_version": "2.0.0", "id": unit_id, "project_id": project["id"], "sequence": spec.get("sequence", sequence),
         "upstream_id": upstream_id, "label": spec["label"], "dataset_id": dataset_id,
         "unit_type": spec.get("unit_type") or project["diagnostic_plan"]["work_unit_strategy"]["unit_types"][0],
         "disciplines": spec.get("disciplines") or project["database_profile"]["disciplines"],
@@ -599,7 +917,9 @@ def build_unit(spec: dict[str, Any], project: dict[str, Any], timestamp: str, re
         "sensitivity_classes": spec.get("sensitivity_classes") or dimensions["sensitivity_classes"],
         "route_modules": routes,
         "required_stages": spec.get("required_stages") or UNIT_STAGES,
-        "stages": stages, "created_at": timestamp, "updated_at": timestamp,
+        "stages": stages,
+        "spines": {name: empty_spine(timestamp) for name in SPINES},
+        "created_at": timestamp, "updated_at": timestamp,
     }
 
 
@@ -642,9 +962,10 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     if plan_expected is not None and spec["scope"]["expected_work_unit_count"] != plan_expected:
         raise ValueError("start expected work-unit count does not match the diagnostic plan")
     project = {
-        "schema_version": "1.1.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
+        "schema_version": "2.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
         "database_profile": {**spec["database_profile"], "route_modules": diagnostic_plan["selected_route_modules"]},
         "diagnostic_plan": diagnostic_plan, "scope": spec["scope"],
+        "execution_contract": execution_contract(),
         "phase_states": {
             "identity": phase_state("verified_complete" if source["verification"]["status"] == "verified" else "mapped_complete", timestamp, "Canonical GRDR Source identity and official evidence are registered.", source_evidence),
             "classification": phase_state("in_progress" if diagnostic_plan["unresolved_critical"] else "mapped_complete", timestamp, None if diagnostic_plan["unresolved_critical"] else "Open-world diagnostic dimensions, route contracts, risk flags, and human gates were generated and audited.", [] if diagnostic_plan["unresolved_critical"] else (diagnostic_plan["evidence"] or source_evidence)),
@@ -660,6 +981,7 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
         "created_at": timestamp, "updated_at": timestamp,
     }
     units = [build_unit(item, project, timestamp, records, index) for index, item in enumerate(spec["units"], 1)]
+    project["locks"] = build_locks(project, units, timestamp)
     checks = materialize_checks(project, units, timestamp)
     expected = project["scope"]["expected_work_unit_count"]
     if expected is not None and expected == len(units) and boundary_evidence:
@@ -696,7 +1018,13 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             raise ValueError(f"cannot upgrade incomplete project; missing {name}")
     project = read_json(target / PROJECT_FILE)
     units = read_jsonl(target / UNIT_FILE)
-    if project.get("schema_version") == "1.1.0" and (target / CHECK_FILE).is_file():
+    contracts = load_contracts()
+    current_contract_version = contracts["contract_version"]
+    if (
+        project.get("schema_version") == "2.0.0"
+        and project.get("diagnostic_plan", {}).get("route_contract_version") == current_contract_version
+        and (target / CHECK_FILE).is_file()
+    ):
         checks = read_jsonl(target / CHECK_FILE)
         original_checks = json.loads(json.dumps(checks))
         original_project = json.loads(json.dumps(project))
@@ -714,6 +1042,49 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             sync_report(target, project, audit)
             return {"operation": "upgrade_database_deep_map", "status": "reconciled", "synchronized_checks": synchronized, "audit": audit}
         return {"operation": "upgrade_database_deep_map", "status": "already_current", "audit": audit_database_deep_map(target)}
+    if project.get("schema_version") in {"1.1.0", "2.0.0"} and (target / CHECK_FILE).is_file():
+        original_project = json.loads(json.dumps(project))
+        original_units = json.loads(json.dumps(units))
+        old_checks = read_jsonl(target / CHECK_FILE)
+        original_checks = json.loads(json.dumps(old_checks))
+        timestamp = now()
+        selected = list(dict.fromkeys(["core_metadata", *project["diagnostic_plan"]["selected_route_modules"]]))
+        routes = contract_index(contracts)
+        unknown_routes = [item for item in selected if item not in routes]
+        if unknown_routes:
+            raise ValueError("cannot upgrade; project references removed route modules: " + ", ".join(unknown_routes))
+        project["diagnostic_plan"]["route_contract_version"] = current_contract_version
+        project["diagnostic_plan"]["selected_route_modules"] = selected
+        project["diagnostic_plan"]["required_facets"] = merge_facets(selected, routes)
+        project["diagnostic_plan"]["generated_at"] = timestamp
+        project["database_profile"]["route_modules"] = selected
+        project["schema_version"] = "2.0.0"
+        project["execution_contract"] = execution_contract()
+        for unit in units:
+            unit["schema_version"] = "2.0.0"
+            unit["route_modules"] = list(dict.fromkeys(["core_metadata", *unit["route_modules"]]))
+            unit.setdefault("spines", {name: empty_spine(timestamp) for name in SPINES})
+            for name in SPINES:
+                unit["spines"].setdefault(name, empty_spine(timestamp))
+            unit["updated_at"] = timestamp
+        checks = materialize_checks(project, units, timestamp)
+        old_by_key = {(item["unit_id"], item["facet_id"]): item for item in old_checks}
+        for check in checks:
+            old = old_by_key.get((check["unit_id"], check["facet_id"]))
+            if old and old["stage"] == check["stage"] and old["requirement"] == check["requirement"]:
+                for key in ("state", "completion_basis", "evidence", "blockers", "notes", "created_at"):
+                    check[key] = old[key]
+                check["updated_at"] = timestamp
+        synchronize_blocked_stage_checks(units, checks, timestamp)
+        project["locks"] = build_locks(project, units, timestamp)
+        append_history(project, "upgrade-database-deep-map", "Upgraded to the locked dual-spine execution contract and current route checks.")
+        write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+        audit = audit_database_deep_map(target)
+        if audit["errors"]:
+            write_json(target / PROJECT_FILE, original_project); write_jsonl(target / UNIT_FILE, original_units); write_jsonl(target / CHECK_FILE, original_checks)
+            raise ValueError("dual-spine upgrade failed audit: " + "; ".join(audit["errors"]))
+        sync_report(target, project, audit)
+        return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_dual_spine", "check_count": len(checks), "audit": audit}
     original_project = json.loads(json.dumps(project))
     original_units = json.loads(json.dumps(units))
     records = registry_index()
@@ -757,18 +1128,20 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "evidence": plan_evidence,
     }
     diagnostic_plan = build_database_deep_map_plan_from_intake(intake)
-    project["schema_version"] = "1.1.0"
+    project["schema_version"] = "2.0.0"
     project["diagnostic_plan"] = diagnostic_plan
     project["database_profile"]["route_modules"] = diagnostic_plan["selected_route_modules"]
+    project["execution_contract"] = execution_contract()
     timestamp = now()
     for unit in units:
-        unit["schema_version"] = "1.1.0"
+        unit["schema_version"] = "2.0.0"
         unit["unit_type"] = "dataset"
         unit["content_modalities"] = infer_content_modalities(unit["structural_archetypes"])
         unit["lifecycle_modes"] = ["versioned_release"]
         unit["versioning_model"] = "dated_release"
         unit["sensitivity_classes"] = ["public"]
         unit["route_modules"] = list(dict.fromkeys(["core_metadata", *unit["route_modules"]]))
+        unit["spines"] = {name: empty_spine(timestamp) for name in SPINES}
         unit["updated_at"] = timestamp
     checks = materialize_checks(project, units, timestamp)
     synchronize_blocked_stage_checks(units, checks, timestamp)
@@ -776,6 +1149,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     for check in checks:
         if check["facet_id"] == "core.boundary_denominator" and project["phase_states"]["boundary"]["state"] == "verified_complete" and project["phase_states"]["inventory"]["state"] == "verified_complete":
             check.update({"state": "passed", "completion_basis": "The dated boundary and work-unit denominator were verified before migration.", "evidence": boundary_evidence, "updated_at": timestamp})
+    project["locks"] = build_locks(project, units, timestamp)
     write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
     audit = audit_database_deep_map(target)
     if audit["errors"]:
@@ -840,6 +1214,64 @@ def record_database_deep_map_stage(project_dir: str | Path, update_file: str | P
         raise ValueError("stage update failed audit: " + "; ".join(audit["errors"]))
     sync_report(target, project, audit)
     return {"operation": "record_database_deep_map_stage", "unit_id": unit["id"], "stage": update["stage"], "state": update["state"], "audit": audit}
+
+
+def record_database_deep_map_spine(project_dir: str | Path, update_file: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir); require_project(target)
+    update = read_json(Path(update_file).expanduser().resolve())
+    validate_update(update, "database_deep_map_spine_update.schema.json", "spine_update")
+    units = read_jsonl(target / UNIT_FILE); original_units = json.loads(json.dumps(units))
+    checks = read_jsonl(target / CHECK_FILE); original_checks = json.loads(json.dumps(checks))
+    unit = next((item for item in units if item["id"] == update["unit_id"]), None)
+    if unit is None:
+        raise ValueError(f"unknown unit_id {update['unit_id']}")
+    records = registry_index()
+    unknown_ids = [item for item in [*update["node_ids"], *update["edge_ids"]] if item not in records]
+    if unknown_ids:
+        raise ValueError("spine update references unknown canonical IDs: " + ", ".join(sorted(unknown_ids)))
+    timestamp = now()
+    spine = {key: update[key] for key in (
+        "state", "expected_node_count", "node_ids", "verified_node_count",
+        "expected_edge_count", "edge_ids", "verified_edge_count", "root_node_ids",
+        "leaf_node_ids", "topology_fingerprint", "completion_basis", "evidence", "blockers", "checkpoint",
+    )}
+    spine["verified_node_count"] = sum(
+        records[item].get("verification", {}).get("status") == "verified"
+        for item in spine["node_ids"]
+    )
+    spine["verified_edge_count"] = sum(
+        records[item].get("verification", {}).get("status") == "verified"
+        for item in spine["edge_ids"]
+    )
+    if spine["checkpoint"]["enumeration_rule"] and spine["checkpoint"]["snapshot"]:
+        spine["checkpoint"]["cursor_checksum"] = checkpoint_checksum(spine["checkpoint"])
+    if spine["state"] in {"mapped_complete", "verified_complete"}:
+        spine["topology_fingerprint"] = spine_topology_fingerprint(spine, records)
+    spine["updated_at"] = timestamp
+    unit["spines"][update["spine"]] = spine
+    unit["updated_at"] = timestamp
+    check_stage = next(key for key, value in SPINE_CHECK_STAGES.items() if value == update["spine"])
+    if update["state"] == "blocked":
+        for check in checks:
+            if check["unit_id"] == unit["id"] and check["stage"] == check_stage and check["state"] in {"not_started", "in_progress"}:
+                check.update({
+                    "state": "blocked", "completion_basis": None, "evidence": [],
+                    "blockers": route_blockers_from_stage(update["blockers"]),
+                    "notes": f"Inherited from the blocked {update['spine']} spine.", "updated_at": timestamp,
+                })
+    write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+    project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
+    project["workflow_status"] = "blocked" if update["state"] == "blocked" else "in_progress"
+    project["current_phase"] = "deep_mapping"; project["next_actions"] = ["resume-database-deep-map"]
+    append_history(project, "record-database-deep-map-spine", f"Set {unit['upstream_id']} / {update['spine']} spine to {update['state']}.")
+    write_json(target / PROJECT_FILE, project)
+    audit = audit_database_deep_map(target)
+    if audit["errors"]:
+        write_jsonl(target / UNIT_FILE, original_units); write_jsonl(target / CHECK_FILE, original_checks)
+        write_json(target / PROJECT_FILE, original_project)
+        raise ValueError("spine update failed audit: " + "; ".join(audit["errors"]))
+    sync_report(target, project, audit)
+    return {"operation": "record_database_deep_map_spine", "unit_id": unit["id"], "spine": update["spine"], "state": update["state"], "audit": audit}
 
 
 def record_database_deep_map_check(project_dir: str | Path, update_file: str | Path) -> dict[str, Any]:
@@ -948,6 +1380,25 @@ def action_queue(project: dict[str, Any], units: list[dict[str, Any]], checks: l
                 related_checks = checks_by_stage.get((unit["id"], stage), [])
                 stage_priority = 4 if stage == "access" and protected_observation_access else 2
                 queue.append({"priority": 8 if value["state"] == "blocked" else stage_priority, "sequence": unit["sequence"], "target_type": "work_unit_stage", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks], "checkpoint": value["notes"], "blockers": value["blockers"], "command": "record-database-deep-map-stage"})
+        for spine_name in SPINES:
+            value = unit["spines"][spine_name]
+            prerequisites_ready = all(
+                unit["stages"][stage]["state"] in MAPPED_STATES
+                for stage in SPINE_PREREQUISITES[spine_name]
+            )
+            if value["state"] in ACTIVE_STATES and prerequisites_ready:
+                check_stage = next(key for key, mapped in SPINE_CHECK_STAGES.items() if mapped == spine_name)
+                related_checks = checks_by_stage.get((unit["id"], check_stage), [])
+                queue.append({
+                    "priority": 8 if value["state"] == "blocked" else 2,
+                    "sequence": unit["sequence"], "target_type": "work_unit_spine",
+                    "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"],
+                    "stage": check_stage, "spine": spine_name, "state": value["state"],
+                    "route_modules": unit["route_modules"],
+                    "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks],
+                    "checkpoint": value["checkpoint"], "blockers": value["blockers"],
+                    "command": "record-database-deep-map-spine",
+                })
     for check in checks_by_stage.get((None, "project"), []):
         if check["state"] in CHECK_ACTIVE_STATES:
             queue.append({"priority": 8 if check["state"] in {"blocked", "failed", "needs_human_review"} else 3, "target_type": "route_contract_check", "check_id": check["id"], "facet_id": check["facet_id"], "stage": "project", "state": check["state"], "route_modules": check["route_modules"], "checkpoint": check["notes"], "blockers": check["blockers"], "requirement": check["requirement"], "command": "record-database-deep-map-check"})
@@ -961,16 +1412,42 @@ def action_queue(project: dict[str, Any], units: list[dict[str, Any]], checks: l
             if value["state"] == "mapped_complete":
                 related_checks = checks_by_stage.get((unit["id"], stage), [])
                 queue.append({"priority": 5, "sequence": unit["sequence"], "target_type": "work_unit_verification", "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": stage, "state": value["state"], "route_modules": unit["route_modules"], "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks], "checkpoint": value["notes"], "command": "record-database-deep-map-stage"})
+        for spine_name in SPINES:
+            value = unit["spines"][spine_name]
+            if value["state"] == "mapped_complete":
+                check_stage = next(key for key, mapped in SPINE_CHECK_STAGES.items() if mapped == spine_name)
+                related_checks = checks_by_stage.get((unit["id"], check_stage), [])
+                queue.append({
+                    "priority": 5, "sequence": unit["sequence"], "target_type": "work_unit_spine_verification",
+                    "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"],
+                    "stage": check_stage, "spine": spine_name, "state": value["state"],
+                    "route_modules": unit["route_modules"],
+                    "required_checks": [{"check_id": item["id"], "facet_id": item["facet_id"], "state": item["state"], "requirement": item["requirement"]} for item in related_checks],
+                    "checkpoint": value["checkpoint"], "command": "record-database-deep-map-spine",
+                })
     unit_by_id = {item["id"]: item for item in units}
     for check in checks:
         if check["unit_id"] is None or check["state"] not in CHECK_ACTIVE_STATES:
             continue
         unit = unit_by_id[check["unit_id"]]
-        stage_state = unit["stages"][check["stage"]]["state"]
+        stage_state = unit_gate_state(unit, check["stage"])
         if stage_state not in MAPPED_STATES:
             continue
         queue.append({"priority": 8 if check["state"] in {"blocked", "failed", "needs_human_review"} else 6, "sequence": unit["sequence"], "target_type": "route_contract_check", "check_id": check["id"], "facet_id": check["facet_id"], "unit_id": unit["id"], "upstream_id": unit["upstream_id"], "label": unit["label"], "stage": check["stage"], "state": check["state"], "route_modules": check["route_modules"], "checkpoint": check["notes"], "blockers": check["blockers"], "requirement": check["requirement"], "command": "record-database-deep-map-check"})
-    return sorted(queue, key=lambda item: (item["priority"], item.get("sequence", 0), UNIT_STAGES.index(item["stage"]) if item.get("stage") in UNIT_STAGES else -1))
+    queue_stage_order = {
+        **{stage: index for index, stage in enumerate(UNIT_STAGES)},
+        "structural_spine": len(UNIT_STAGES),
+        "disciplinary_spine": len(UNIT_STAGES) + 1,
+        "variable_bridge": len(UNIT_STAGES) + 2,
+    }
+    return sorted(
+        queue,
+        key=lambda item: (
+            item["priority"],
+            item.get("sequence", 0),
+            queue_stage_order.get(item.get("stage"), -1),
+        ),
+    )
 
 
 def resume_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
@@ -1020,7 +1497,7 @@ def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     if early_open:
         raise ValueError("cannot complete; unclosed project phases: " + ", ".join(early_open))
     if not audit["completion_ready"]:
-        raise ValueError("cannot complete; strict unit-stage, route-contract, diagnostic-plan, or human-gate requirements are not satisfied")
+        raise ValueError("cannot complete; strict unit-stage, dual-spine, route-contract, execution-lock, diagnostic-plan, or human-gate requirements are not satisfied")
     try:
         import jsonschema  # noqa: F401
     except ImportError as exc:
@@ -1036,7 +1513,7 @@ def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             raise ValueError(f"completion validation failed: {' '.join(command)}: {completed.stderr or completed.stdout}")
         evidence.append(completed.stdout.strip())
     timestamp = now()
-    project["phase_states"]["deep_mapping"] = phase_state("verified_complete", timestamp, "Every required stage for every bounded work unit is verified or evidenced as not applicable.", project["phase_states"]["boundary"]["evidence"])
+    project["phase_states"]["deep_mapping"] = phase_state("verified_complete", timestamp, "Every required stage plus the structural spine, disciplinary spine, and variable bridge for every bounded work unit is verified or evidenced as not applicable.", project["phase_states"]["boundary"]["evidence"])
     project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "Canonical registry validation and human-catalog drift checks passed.", project["phase_states"]["boundary"]["evidence"])
     project["phase_states"]["completion_audit"] = phase_state("verified_complete", timestamp, "Strict bounded completion audit passed with no open or blocked required stages.", project["phase_states"]["boundary"]["evidence"])
     project["workflow_status"] = "complete"; project["current_phase"] = "complete"; project["next_actions"] = ["database-deep-map-status"]

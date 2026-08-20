@@ -317,6 +317,7 @@ def list_database_route_modules() -> dict[str, Any]:
                 "id": item["id"],
                 "label": item["label"],
                 "description": item["description"],
+                "module_kinds": item["module_kinds"],
                 "facet_count": len(item["facets"]),
                 "fallback_routes": item["fallback_routes"],
             }

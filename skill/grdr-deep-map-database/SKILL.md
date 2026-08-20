@@ -1,6 +1,6 @@
 ---
 name: grdr-deep-map-database
-description: "Deep-read any authoritative database into GRDR through an open-world, evidence-backed execution system that diagnoses source shape before acting, composes route-specific contracts, fixes bounded work units, traces primary and secondary provenance, maps the six content stages, survives heterogeneous, dynamic, restricted, large, legacy, federated, or unknown systems, and enforces machine-audited completion. Use when Codex receives a database name, URL, catalog, GRDR source ID, or existing deep-map project and must plan, start, resume, repair, audit, or complete database ingestion and mapping."
+description: "Deep-read an authoritative database into GRDR and build its source-native structure spine, scientific-semantic spine, and variable-to-construct bridge through a locked, resumable, evidence-backed execution contract. Use when Codex receives a database name, URL, catalog, GRDR source ID, or existing deep-map project and must diagnose, plan, start, resume, repair, audit, or complete bounded database ingestion without silent scope drift."
 ---
 
 # GRDR Deep-Map Database
@@ -13,9 +13,12 @@ Use `$grdr` for registry-wide discovery and research-question matching. Use `$gr
 
 Never treat a finite archetype list as complete. Diagnose first, compose known route contracts, and use the open-world route when the source does not fit. Unknown means unresolved, not absent.
 
+The engineering guarantee is about GRDR's own execution: an executable project has immutable plan, scope, and work-unit locks; a deterministic dependency-aware queue; persisted checkpoints; audit-rejected drift; dual-spine completion gates; and evidence-only closure. It is not a promise that an upstream owner will expose inaccessible, paid, changing, deleted, undocumented, or genuinely non-enumerable content. Such conditions must remain explicit blockers or bounded claims and can never be converted into invented completeness.
+
 Locate GRDR at `${GRDR_ROOT}` or `/Users/jasper/Documents/codex/grdr`. Before a write, read `docs/DATABASE_DEEP_MAP_WORKFLOW.md` and only the task-relevant references:
 
 - [diagnostic-matrix.md](references/diagnostic-matrix.md): mandatory preflight dimensions;
+- [engineering-contract.md](references/engineering-contract.md): non-negotiable execution locks, queue, checkpoints, drift rejection, and completion behavior;
 - [route-contracts.md](references/route-contracts.md): route composition and check execution;
 - [six-layer-standard.md](references/six-layer-standard.md): canonical content meaning;
 - [lifecycle-boundaries.md](references/lifecycle-boundaries.md): exhaustive, rolling, versioned, federated, and question-bounded scopes;
@@ -71,7 +74,7 @@ Start only with an audited executable plan:
 Every project under `deep_map_projects/<source-or-pass>/` contains:
 
 - `project.json`: plan, scope, phases, gates, history, and current state;
-- `units.jsonl`: ordered work-unit ledger and six stage states;
+- `units.jsonl`: ordered work-unit ledger, six stage states, and three graph-closure states;
 - `checks.jsonl`: route-contract obligations and typed blockers;
 - `README.md`: generated human-readable progress and next target.
 
@@ -95,17 +98,26 @@ For each work unit, preserve the fixed content stages:
 
 Resource access remains a sidecar to Dataset or DataStructure; it is not a content layer. Write canonical `registry/*.jsonl` records and relationships before claiming a stage has mapped them.
 
-## 4. Satisfy both stage and route contracts
+The six stages populate two trunks and one bridge:
 
-Copy `references/stage-update.example.json`, `references/phase-update.example.json`, or `references/check-update.example.json` rather than inventing fields:
+- **Source-native structure spine:** Dataset → DataStructure → DataElement → Variable. Institution and Source remain the project-level provenance context above every work unit. Preserve the database's real nesting, grain, ordering, keys, lineage, and native identifiers; do not flatten a cube, survey, graph, corpus, array, experiment, or file hierarchy into a generic table.
+- **Scientific-semantic spine:** multi-parent SemanticNode graph → Construct. Classify by discipline, research field, object, system, phenomenon, process, population, observation unit, analysis unit, application area, and method wherever evidenced. Do not force a mutually exclusive discipline tree.
+- **Variable bridge:** Variable → Construct, with any required DataElement/DataStructure context. This is the controlled connection between what the database stores and what research can claim it measures.
+
+The content stages are inventory ledgers; the spines prove that the registered objects form connected, auditable mappings. Neither substitutes for the other.
+
+## 4. Close stages, graph products, and route contracts
+
+Copy `references/stage-update.example.json`, `references/spine-update.example.json`, `references/phase-update.example.json`, or `references/check-update.example.json` rather than inventing fields:
 
 ```bash
 "$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-stage <project> <stage-update.json>
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-spine <project> <spine-update.json>
 "$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-phase <project> <phase-update.json>
 "$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
 ```
 
-A stage answers “which canonical objects are mapped and counted.” A route check answers “were the obligations specific to this database shape actually discharged.” Both must close. For example, a statistical cube must resolve ordered dimensions/codelists and prove observation access; a simulation archive must recover run/configuration lineage; a qualitative archive must preserve case/document/code provenance.
+A stage answers “which canonical objects are mapped and counted.” A spine answers “do those objects form the required connected structural or semantic topology.” A route check answers “were the obligations specific to this database shape actually discharged.” All three must close. For example, a statistical cube must resolve ordered dimensions/codelists and prove observation access; a simulation archive must recover run/configuration lineage; a qualitative archive must preserve case/document/code provenance.
 
 Use [within-stage-enumeration.md](references/within-stage-enumeration.md) inside every open stage. For SDMX, prefer the bundled inspector:
 
@@ -135,7 +147,7 @@ If a new source shape is not explained by existing contracts, select `open_world
 "$GRDR_PYTHON" scripts/grdr.py complete-database-deep-map <project>
 ```
 
-Completion requires an executable resolved plan, all human gates resolved without rejection, every required project phase closed, every required unit stage verified or evidenced not applicable, every route check passed or evidenced not applicable, no blockers or failed checks, valid canonical references, strict Schema validation, and synchronized human catalog output.
+Completion requires an executable resolved plan; unchanged plan, scope, and work-unit fingerprints; all human gates resolved without rejection; every required project phase closed; every required unit stage verified or evidenced not applicable; every structural spine, disciplinary spine, and variable bridge verified or evidenced not applicable; every route check passed or evidenced not applicable; no blockers or failed checks; valid canonical references; strict Schema validation; and synchronized human catalog output.
 
 Report the exact completion claim and boundary, not a universal “100%.” A representative chain, catalog-only pass, question-bounded pass, rolling-current window, and exhaustive snapshot are different achievements.
 

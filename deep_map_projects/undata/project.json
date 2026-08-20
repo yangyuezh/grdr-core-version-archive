@@ -138,7 +138,7 @@
       "semantic_ambiguity": "Retain source-native elements, defer Variable or Construct promotion, and request human review when consequential.",
       "unknown_structure": "Use open_world_custom; preserve observed facts; propose a reusable route only after evidence and tests."
     },
-    "generated_at": "2026-08-19T14:32:01.538008+00:00",
+    "generated_at": "2026-08-20T16:52:41.929985+00:00",
     "goal": {
       "completion_claim": "exhaustive_snapshot",
       "research_question": null,
@@ -276,6 +276,56 @@
           "core_metadata"
         ],
         "stage": "access"
+      },
+      {
+        "completion_evidence": "Machine-recomputed SHA-256 fingerprints for the plan, scope, and unit manifest match the persisted execution locks.",
+        "id": "core.execution_lock",
+        "requirement": "Lock the audited plan, declared scope, and ordered work-unit manifest so an Agent cannot silently change the target, denominator, routes, or completion claim.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Replay tests and current project history reproduce the same next target and validate every checkpoint checksum.",
+        "id": "core.resume_integrity",
+        "requirement": "Persist deterministic checkpoints and resume the first unfinished target without skipping, substitution, or loss after process, network, or session interruption.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "A bounded, counted, connected, fingerprinted canonical structural spine whose nodes and relationships are all verified or explicitly evidenced not applicable.",
+        "id": "core.structural_spine",
+        "requirement": "Recover the complete source-native structural graph from Dataset through recursive DataStructure nodes and DataElements to operational Variables, including grain, keys, ordering, cardinality, lineage, roots, leaves, and edges.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "structural_spine"
+      },
+      {
+        "completion_evidence": "A bounded, counted, connected, fingerprinted semantic spine using canonical SemanticNode and Construct records with source-native and external classification mappings preserved.",
+        "id": "core.disciplinary_spine",
+        "requirement": "Recover the multi-parent scientific-semantic graph from disciplines and subdisciplines through research objects, systems, phenomena, processes, populations and units to Constructs without reducing it to topic strings.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "disciplinary_spine"
+      },
+      {
+        "completion_evidence": "Every bridge node and relationship is counted, verified, fingerprinted, and exposes measurement directness, units, population, resolution, comparability, and join conditions.",
+        "id": "core.variable_bridge",
+        "requirement": "Prove the canonical bridge connecting source-native DataElements and DataStructures to research-matchable Variables and evidenced Constructs or scientific-semantic nodes.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "variable_bridge"
       },
       {
         "completion_evidence": "Complete bounded catalog traversal with stable native identifiers.",
@@ -472,7 +522,7 @@
       "partitioning_or_compute_required",
       "upstream_provenance_required"
     ],
-    "route_contract_version": "2026-08-19",
+    "route_contract_version": "2026-08-20-dual-spine",
     "schema_version": "1.0.0",
     "scope": {
       "boundary_statement": "All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.",
@@ -507,6 +557,17 @@
         "dataset"
       ]
     }
+  },
+  "execution_contract": {
+    "checkpoint_resume": true,
+    "contract_version": "2.0.0",
+    "deterministic_queue": true,
+    "deviation_rejection": true,
+    "dual_spine_completion": true,
+    "evidence_only_completion": true,
+    "external_blocker_transparency": true,
+    "scope_lock": true,
+    "unknown_database_diagnosis": true
   },
   "history": [
     {
@@ -553,9 +614,20 @@
       "operation": "reconcile-database-deep-map-blockers",
       "summary": "Propagated 6 blocked stage obligations into route checks.",
       "timestamp": "2026-08-19T15:32:09.260691+00:00"
+    },
+    {
+      "operation": "upgrade-database-deep-map",
+      "summary": "Upgraded to the locked dual-spine execution contract and current route checks.",
+      "timestamp": "2026-08-20T16:52:41.952198+00:00"
     }
   ],
   "id": "grdr:deep-map-project:undata",
+  "locks": {
+    "locked_at": "2026-08-20T16:52:41.929985+00:00",
+    "plan_fingerprint": "6146ee7ada5a2d11a36892b5a556a1093e18c5a5419f52d0bf821651c69478e5",
+    "scope_fingerprint": "2ae175c91c57f569332108572685f79f1910e189429620ea27b31e75537192cd",
+    "unit_manifest_fingerprint": "5d53dd1d940211d8167fc51a51ad446b8160c81839057a330559a10e06dce99c"
+  },
   "next_actions": [
     "resume-database-deep-map"
   ],
@@ -734,7 +806,7 @@
       "updated_at": "2026-08-19T10:22:59.139663+00:00"
     }
   },
-  "schema_version": "1.1.0",
+  "schema_version": "2.0.0",
   "scope": {
     "boundary_statement": "All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.",
     "boundary_type": "catalog_snapshot",
@@ -745,6 +817,6 @@
   },
   "source_id": "grdr:source:undata",
   "title": "UNdata bounded deep-map project",
-  "updated_at": "2026-08-19T15:32:09.260691+00:00",
+  "updated_at": "2026-08-20T16:52:41.952198+00:00",
   "workflow_status": "in_progress"
 }

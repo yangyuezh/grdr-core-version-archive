@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:world-bank-open-data"
 record_type: "source_catalog"
-registry_version: "1.2.0"
+registry_version: "2.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.worldbank.org/"
 ---
@@ -28,6 +28,7 @@ canonical_url: "https://data.worldbank.org/"
 | 已登记数据元素 | 0 |
 | 已登记变量 | 1 |
 | 已关联构念 | 1 |
+| 已登记学科语义节点 | 0 |
 | 当前拆解阶段 | `six_layer_chain_present` |
 | 持久化深度映射 | 尚未建立持久化深度映射工程 |
 | 已声明拆解范围 | `representative_chain` |
@@ -159,12 +160,21 @@ canonical_url: "https://data.worldbank.org/"
 |---|---|
 | GRDR ID | `grdr:data-structure:world-bank-indicators-api-v2` |
 | 结构类型 | `api_schema` |
+| 结构家族 | `tabular` |
+| 上游原生类型 | Indicator-series logical response model |
+| 原生路径 | World Bank Open Data、World Development Indicators、Indicators API v2、indicator/{indicator}/country/{country} |
+| 结构层级 | 0 |
+| 结构粒度 | {"description": "One indicator value for one World Bank economy code and reference year, accompanied by indicator, economy and pagination metadata.", "kind": "measurement"} |
+| 稳定排序 | {"position": null, "rule": "Source-native indicator code, economy code and reference-year order returned by the documented API.", "stable": false} |
 | 上游系统 | World Bank Indicators API v2 |
 | 发布机构标识 | World Bank |
 | 上游对象类别 | indicator-series API model |
 | 上游对象 ID | indicator/{indicator}/country/{country} |
 | 结构版本 | v2 |
 | 父结构 | 未知 / 尚未登记 |
+| 子结构 | 未知 / 尚未登记 |
+| 关键元素 | 未知 / 尚未登记 |
+| 结构谱系 | {"notes": "This logical structure provides the registered WDI indicator-series model.", "relation": "references", "target_id": "grdr:dataset:world-development-indicators"} |
 | 附属访问资源 | grdr:resource:world-bank-indicators-api、grdr:resource:wdi-data-catalog |
 | 结构说明 | The documented Indicators API organization connecting indicator identity, economy, time, value and metadata for World Development Indicators; it provides the structural context for GRDR research variables registered from WDI indicator metadata. |
 | 验证状态 | 已验证 (`verified`) |
@@ -232,6 +242,10 @@ canonical_url: "https://data.worldbank.org/"
 **构念层证据**
 
 - [World Bank indicator metadata: Population, total](https://api.worldbank.org/v2/indicator/SP.POP.TOTL?format=json) — World Bank；证据类型：`official_definition`；支持：definition、operationalization、upstream_sources；检索于 2026-08-14T00:00:00Z。
+
+## 学科语义主干（多父节点知识图谱）
+
+> 尚未建立学科语义图层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关学科语义图。
 
 ## 访问方式与资源（旁路信息，不占内容层级）
 

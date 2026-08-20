@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:who-data"
 record_type: "source_catalog"
-registry_version: "1.2.0"
+registry_version: "2.0.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.who.int/"
 ---
@@ -28,6 +28,7 @@ canonical_url: "https://data.who.int/"
 | 已登记数据元素 | 0 |
 | 已登记变量 | 0 |
 | 已关联构念 | 0 |
+| 已登记学科语义节点 | 0 |
 | 当前拆解阶段 | `source_only` |
 | 持久化深度映射 | 尚未建立持久化深度映射工程 |
 | 已声明拆解范围 | `undeclared` |
@@ -115,6 +116,10 @@ canonical_url: "https://data.who.int/"
 ### 第6层：理论构念（Construct）
 
 > 尚未建立理论构念层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关理论构念。
+
+## 学科语义主干（多父节点知识图谱）
+
+> 尚未建立学科语义图层记录。这表示 GRDR 还没有完成这一层的核验与展开，不表示该数据库不存在相关学科语义图。
 
 ## 访问方式与资源（旁路信息，不占内容层级）
 

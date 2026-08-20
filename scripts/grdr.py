@@ -20,6 +20,7 @@ ENTITY_FILES = {
     "resource": "resources.jsonl",
     "data_element": "data_elements.jsonl",
     "construct": "constructs.jsonl",
+    "semantic_node": "semantic_nodes.jsonl",
     "variable": "variables.jsonl",
     "adapter": "adapters.jsonl",
     "storage": "storage.jsonl",
@@ -424,6 +425,23 @@ def search_variables(args: argparse.Namespace) -> None:
     )
 
 
+def search_semantic_nodes(args: argparse.Namespace) -> None:
+    records = load_jsonl("semantic_nodes.jsonl")
+    results = [
+        item for item in records
+        if contains(item, args.query)
+        and (args.node_type is None or item["node_type"] == args.node_type)
+    ]
+    results.sort(key=lambda item: (
+        VERIFICATION_RANK.get(item["verification"]["status"], 99),
+        item["preferred_label"].casefold(),
+    ))
+    emit({
+        "operation": "search_semantic_nodes", "registry_version": REGISTRY_VERSION,
+        "result_count": len(results), "results": results,
+    })
+
+
 def get_source(args: argparse.Namespace) -> None:
     sources = {source["id"]: source for source in load_jsonl("sources.jsonl")}
     institutions = {item["id"]: item for item in load_jsonl("institutions.jsonl")}
@@ -507,6 +525,25 @@ def get_variable(args: argparse.Namespace) -> None:
             "data_structures": [structures[item] for item in variable["data_structure_ids"] if item in structures],
         }
     )
+
+
+def get_semantic_node(args: argparse.Namespace) -> None:
+    records = {item["id"]: item for item in load_jsonl("semantic_nodes.jsonl")}
+    node = records.get(args.semantic_node_id)
+    if node is None:
+        emit({"operation": "get_semantic_node", "registry_version": REGISTRY_VERSION, "error": "semantic_node_not_found", "semantic_node_id": args.semantic_node_id})
+        return
+    children = [item for item in records.values() if node["id"] in item.get("parent_ids", [])]
+    relationships = [
+        item for item in load_jsonl("relationships.jsonl")
+        if node["id"] in {item["subject_id"], item["object_id"]}
+    ]
+    emit({
+        "operation": "get_semantic_node", "registry_version": REGISTRY_VERSION,
+        "semantic_node": node,
+        "parents": [records[item] for item in node.get("parent_ids", []) if item in records],
+        "children": children, "relationships": relationships,
+    })
 
 
 def get_data_element(args: argparse.Namespace) -> None:
@@ -919,6 +956,15 @@ def record_database_deep_map_stage_command(args: argparse.Namespace) -> None:
     )
 
 
+def record_database_deep_map_spine_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_spine
+
+    run_research_operation(
+        "record_database_deep_map_spine",
+        lambda: record_database_deep_map_spine(args.project_dir, args.update_file),
+    )
+
+
 def record_database_deep_map_check_command(args: argparse.Namespace) -> None:
     from database_deep_map import record_database_deep_map_check
 
@@ -983,6 +1029,7 @@ def stats(_args: argparse.Namespace) -> None:
                         "resource": "resources",
                         "data_element": "data_elements",
                         "construct": "constructs",
+                        "semantic_node": "semantic_nodes",
                         "variable": "variables",
                         "adapter": "adapters",
                         "storage": "storage_records",
@@ -1052,6 +1099,11 @@ def parser() -> argparse.ArgumentParser:
     search_variable.add_argument("--limit", type=int, default=20)
     search_variable.set_defaults(handler=search_variables)
 
+    search_semantics = commands.add_parser("search-semantic-nodes", help="Search the multi-parent scientific-semantic graph")
+    search_semantics.add_argument("--query")
+    search_semantics.add_argument("--node-type", choices=["discipline", "subdiscipline", "research_field", "research_object", "system", "phenomenon", "process", "state", "population", "observation_unit", "analysis_unit", "application_area", "method", "other"])
+    search_semantics.set_defaults(handler=search_semantic_nodes)
+
     get = commands.add_parser("get-source", help="Get a source and related records")
     get.add_argument("source_id")
     get.set_defaults(handler=get_source)
@@ -1063,6 +1115,10 @@ def parser() -> argparse.ArgumentParser:
     get_variable_command = commands.add_parser("get-variable", help="Get a variable with datasets and constructs")
     get_variable_command.add_argument("variable_id")
     get_variable_command.set_defaults(handler=get_variable)
+
+    get_semantic_command = commands.add_parser("get-semantic-node", help="Get one scientific-semantic node with parents, children, and relationships")
+    get_semantic_command.add_argument("semantic_node_id")
+    get_semantic_command.set_defaults(handler=get_semantic_node)
 
     get_element_command = commands.add_parser("get-data-element", help="Get a source-native dimension, measure, identifier, or attribute")
     get_element_command.add_argument("element_id")
@@ -1159,6 +1215,14 @@ def parser() -> argparse.ArgumentParser:
     record_deep_map_stage.add_argument("project_dir")
     record_deep_map_stage.add_argument("update_file")
     record_deep_map_stage.set_defaults(handler=record_database_deep_map_stage_command)
+
+    record_deep_map_spine = commands.add_parser(
+        "record-database-deep-map-spine",
+        help="Record and audit one structural, disciplinary, or variable-bridge spine checkpoint.",
+    )
+    record_deep_map_spine.add_argument("project_dir")
+    record_deep_map_spine.add_argument("update_file")
+    record_deep_map_spine.set_defaults(handler=record_database_deep_map_spine_command)
 
     record_deep_map_check = commands.add_parser(
         "record-database-deep-map-check",

@@ -14,6 +14,20 @@
 
 DataElement and Variable are two representations inside layer 5, so the model has six content layers and seven entity types.
 
+## Two trunks and one bridge
+
+The six content layers are not a flat checklist. They populate three connected graph products:
+
+| Graph product | Required path | What it proves |
+|---|---|---|
+| Source-native structure spine | Institution → Source → Dataset → DataStructure → DataElement → Variable | GRDR preserves where a value lives, the database's actual internal topology, grain, keys, ordering, lineage, and the operational quantity formed from native elements. Institution and Source are project-level context; each work-unit spine begins at Dataset. |
+| Scientific-semantic spine | one or more SemanticNodes → Construct | The construct is situated in an evidenced, multi-parent scientific map: discipline and field plus relevant object, system, phenomenon, process, population, units, application, or method. |
+| Variable bridge | Variable → Construct | The database-side operational quantity is explicitly connected to the research meaning it measures, proxies, models, forecasts, or operationalizes. |
+
+`SemanticNode` is deliberately multi-parent. A construct or field may belong to several disciplines and research combinations. Storage assigns every evidenced parent and classification mapping; a research query later traverses and recombines them. It does not recreate the disciplinary map from scratch for each question.
+
+Stage counts establish inventory coverage. Spine closure establishes topology. Route contracts establish database-shape-specific obligations. All are required for strict bounded completion.
+
 ## Cross-cutting records
 
 - `Resource` attaches API, download, query, documentation, authentication, rate-limit, license, and secure-access information to a Dataset or DataStructure. It does not occupy a layer.
