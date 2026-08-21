@@ -48,7 +48,7 @@ class GrdrCliTests(unittest.TestCase):
         self.assertEqual(payload["counts"]["source_profiles"], 2)
 
     def test_variable_search_uses_construct(self) -> None:
-        payload = run_cli("search-variables", "--construct", "population")
+        payload = run_cli("search-variables", "--construct", "population size")
         ids = {item["id"] for item in payload["results"]}
         self.assertIn("grdr:variable:wdi-sp-pop-totl", ids)
 
@@ -73,7 +73,7 @@ class GrdrCliTests(unittest.TestCase):
         }
         self.assertEqual(
             by_name["population size"],
-            "partially_verified_available",
+            "verified_available",
         )
         self.assertEqual(
             by_name["territorial carbon dioxide emissions"],
@@ -104,19 +104,20 @@ class GrdrCliTests(unittest.TestCase):
         )["profile"]
         self.assertEqual(undata["profile_stage"], "six_layer_chain_present")
         self.assertTrue(undata["variable_matching_ready"])
-        self.assertFalse(undata["deep_map_scope_complete"])
-        self.assertEqual(undata["data_element_count"], 16)
-        self.assertEqual(undata["variable_count"], 13)
-        self.assertEqual(undata["data_structure_count"], 2)
-        self.assertEqual(undata["access_sidecar"]["resource_count"], 9)
+        self.assertTrue(undata["deep_map_scope_complete"])
+        self.assertEqual(undata["data_element_count"], 210)
+        self.assertEqual(undata["variable_count"], 9347)
+        self.assertEqual(undata["data_structure_count"], 38)
+        self.assertEqual(undata["access_sidecar"]["resource_count"], 45)
         self.assertEqual(world_bank["profile_stage"], "six_layer_chain_present")
         self.assertTrue(world_bank["variable_matching_ready"])
         self.assertEqual(world_bank["catalog_completeness"], "representative_only")
         self.assertEqual(world_bank["declared_profile"]["scope_mode"], "representative_chain")
-        self.assertEqual(undata["declared_profile"]["scope_mode"], "catalog_level")
-        self.assertEqual(undata["catalog_completeness"], "catalog_scope_complete")
-        self.assertIn("data_structure", {item["entity"] for item in undata["coverage_gaps"]})
-        self.assertNotIn("dataset", {item["entity"] for item in undata["coverage_gaps"]})
+        self.assertEqual(undata["declared_profile"]["scope_mode"], "exhaustive_snapshot")
+        self.assertEqual(undata["catalog_completeness"], "exhaustive_snapshot")
+        self.assertEqual(undata["declared_profile"]["layer_5_details"]["registered_data_element_count"], 194)
+        self.assertEqual(undata["declared_profile"]["layer_5_details"]["registered_variable_count"], 9334)
+        self.assertEqual(undata["coverage_gaps"], [])
 
     def test_all_source_depth_audit_covers_every_registered_source(self) -> None:
         payload = run_cli("audit-all-source-depth")

@@ -626,6 +626,11 @@
       "operation": "upgrade-database-deep-map",
       "summary": "Split the monolithic deep-map workflow into locked Plan, staged Execute, and canonical Archive steps.",
       "timestamp": "2026-08-21T02:23:17.813991+00:00"
+    },
+    {
+      "operation": "resume-database-deep-map",
+      "summary": "Next target: EDATA / variable.",
+      "timestamp": "2026-08-21T03:23:22.445234+00:00"
     }
   ],
   "id": "grdr:deep-map-project:undata",
@@ -636,7 +641,7 @@
     "unit_manifest_fingerprint": "5d53dd1d940211d8167fc51a51ad446b8160c81839057a330559a10e06dce99c"
   },
   "next_actions": [
-    "resume-database-deep-map"
+    "record-database-deep-map-stage"
   ],
   "phase_states": {
     "boundary": {
@@ -848,6 +853,6 @@
   },
   "source_id": "grdr:source:undata",
   "title": "UNdata bounded deep-map project",
-  "updated_at": "2026-08-21T02:23:17.813991+00:00",
+  "updated_at": "2026-08-21T03:23:22.445234+00:00",
   "workflow_status": "in_progress"
 }

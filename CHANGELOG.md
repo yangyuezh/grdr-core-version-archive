@@ -2,6 +2,29 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [3.1.0] - 2026-08-20
+
+### Added
+
+- The first complete production demonstration of the three-Skill database factory: UNdata was independently planned, executed, and archived as `grdr:deep-map-project:undata-2026-08-21`, with a fingerprint-locked 36-datamart boundary and immutable archive receipt.
+- A reproducible UNdata metadata curator covering all 36 official datamarts and six glossary sidecars through source-specific Explorer, SDMX codelist, current Statistical Yearbook, and official technical-note routes.
+- A high-cardinality atomic execution-batch operation that validates and records phase, stage, dual-spine, bridge, and route-check updates in one rollback-safe project transaction.
+- Dated UNdata evidence and execution artifacts: 8,719 Explorer hierarchy nodes, 9,334 source-exposed variables, 194 data elements, 41 semantic nodes, and 43,000 knowledge-graph relationships.
+- Regression tests for atomic high-cardinality execution, rollback on an invalid target, UNdata snapshot denominators, canonical archive counts, receipt integrity, and the human-readable result boundary.
+
+### Changed
+
+- UNdata's new production project closed 216/216 content stages, 108/108 graph products, and 638/638 route obligations, then archived 62,013 validated candidate records (61,975 creates and 38 updates) into the canonical registry.
+- High-cardinality human catalogs now keep the database overview readable and deterministically paginate Variable and Construct layers at 100 records per page, while retaining complete canonical JSONL records for agents.
+- Catalog relationship traversal now precomputes each source's relevant entity set once, reducing a full 207-page consistency check from minutes to seconds at UNdata scale.
+- The Execute Skill and engineering contract now specify the atomic batch path for large bounded databases; single-item update commands remain available for diagnosis and repair.
+- The UNdata curator deletes rebuildable candidate and execution-batch intermediates after successful staging and execution, while preserving the sealed staging package, evidence snapshot, ledgers, and archive receipt.
+
+### Boundary clarification
+
+- “Complete” means complete for the fingerprint-locked, dated source-exposed metadata boundary: all 36 official UNdata datamarts were routed and enumerated without sampling. GRDR mirrored zero observation rows, records failed/degraded observation endpoints explicitly, and does not claim that UNdata supersedes each contributing provider's primary methodology or releases.
+- The earlier `deep_map_projects/undata` project remains as an auditable historical partial run; it is not the completed production project and was not rewritten to manufacture progress.
+
 ## [3.0.0] - 2026-08-20
 
 ### Added

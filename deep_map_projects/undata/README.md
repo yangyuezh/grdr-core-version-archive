@@ -73,7 +73,7 @@
 - 阶段内检查点：enumeration=UNSD CL_TRANSACTION_NRG 1.1 with 216 codes; order=official codelist document order; completed_native=6; last_native=none because prior priority records were non-contiguous; next_native=010; snapshot=2026-08-19
 - 本目标路线验收项：5
 
-- `resume-database-deep-map`
+- `record-database-deep-map-stage`
 
 ## 阻塞
 

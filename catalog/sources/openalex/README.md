@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:openalex"
 record_type: "source_catalog"
-registry_version: "3.0.0"
+registry_version: "3.1.0"
 verification_status: "unverified"
 canonical_url: "https://openalex.org/"
 ---

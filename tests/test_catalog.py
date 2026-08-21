@@ -53,9 +53,16 @@ class HumanCatalogTests(unittest.TestCase):
         self.assertIn("UNdata Energy Statistics SDMX cube", text)
         self.assertIn("#### 5A 数据结构元素", text)
         self.assertIn("Energy transaction (`TRANSACTION`)", text)
-        self.assertIn("Total energy supply (`GA`)", text)
+        self.assertIn("因数量较大按每页最多", text)
         self.assertIn("19.44%", text)
         self.assertIn("0.93%", text)
+        variable_pages = sorted((page.parent / "variables").glob("page-*.md"))
+        construct_pages = sorted((page.parent / "constructs").glob("page-*.md"))
+        self.assertEqual(len(variable_pages), 94)
+        self.assertEqual(len(construct_pages), 94)
+        variable_text = "\n".join(item.read_text(encoding="utf-8") for item in variable_pages)
+        self.assertIn("Total energy supply (`GA`)", variable_text)
+        self.assertLess(page.stat().st_size, 2_000_000)
 
 
 if __name__ == "__main__":

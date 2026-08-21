@@ -1,0 +1,786 @@
+{
+  "created_at": "2026-08-21T03:35:34.797584+00:00",
+  "current_phase": "complete",
+  "database_profile": {
+    "access_regime": "mixed",
+    "classification_notes": "UNdata is an official UNSD aggregation and presentation portal. Each work unit keeps its own structural routes and upstream producer lineage.",
+    "disciplines": [
+      "multidisciplinary"
+    ],
+    "origin_type": "hybrid",
+    "production_modes": [
+      "official_statistics",
+      "census",
+      "survey",
+      "administrative",
+      "modelled_estimates"
+    ],
+    "provenance_role": "derivative_aggregator",
+    "route_modules": [
+      "core_metadata",
+      "catalog",
+      "file_archive",
+      "table_schema",
+      "api_schema",
+      "sdmx_cube",
+      "corpus_multimodal",
+      "derived_provenance"
+    ],
+    "structural_archetypes": [
+      "hierarchical_catalog",
+      "flat_table_collection",
+      "statistical_cube",
+      "file_archive"
+    ]
+  },
+  "diagnostic_plan": {
+    "diagnostic_dimensions": {
+      "access_regimes": [
+        "open",
+        "api"
+      ],
+      "content_modalities": [
+        "tabular",
+        "multidimensional",
+        "time_series",
+        "document"
+      ],
+      "disciplines": [
+        "multidisciplinary"
+      ],
+      "languages": [
+        "en"
+      ],
+      "lifecycle_modes": [
+        "mutable",
+        "revised_release",
+        "archived",
+        "deprecated"
+      ],
+      "metadata_maturity": "machine_readable",
+      "origin_types": [
+        "hybrid"
+      ],
+      "production_modes": [
+        "official_statistics",
+        "census",
+        "survey",
+        "administrative",
+        "modelled_estimates"
+      ],
+      "provenance_roles": [
+        "derivative_aggregator",
+        "official_harmonizer"
+      ],
+      "scale_classes": [
+        "large"
+      ],
+      "sensitivity_classes": [
+        "public"
+      ],
+      "structural_archetypes": [
+        "hierarchical_catalog",
+        "flat_table_collection",
+        "statistical_cube",
+        "file_archive"
+      ],
+      "versioning_models": [
+        "revision_chain",
+        "dated_snapshot",
+        "none"
+      ]
+    },
+    "evidence": [
+      {
+        "evidence_type": "official_catalog",
+        "retrieved_at": "2026-08-21T03:32:45Z",
+        "supports": [
+          "identity",
+          "36_datamart_denominator",
+          "provider_roles",
+          "update_state",
+          "alternative_routes"
+        ],
+        "title": "UNdata Sources catalog and update calendar",
+        "url": "https://data.un.org/DataMartInfo.aspx"
+      },
+      {
+        "evidence_type": "api_documentation",
+        "retrieved_at": "2026-08-21T03:32:45Z",
+        "supports": [
+          "sdmx_route",
+          "format_support",
+          "partial_datamart_coverage"
+        ],
+        "title": "UNdata API Manual",
+        "url": "https://data.un.org/Host.aspx?Content=API"
+      },
+      {
+        "evidence_type": "live_metadata_probe",
+        "retrieved_at": "2026-08-21T03:32:45Z",
+        "supports": [
+          "interactive_datamart_inventory",
+          "table_and_hierarchy_route"
+        ],
+        "title": "UNdata Explorer ordered datamart manifest",
+        "url": "https://data.un.org/Handlers/ExplorerHandler.ashx?t=marts"
+      },
+      {
+        "evidence_type": "live_metadata_probe",
+        "retrieved_at": "2026-08-21T03:32:45Z",
+        "supports": [
+          "sdmx_dataflow_inventory",
+          "sdmx_unit_route_selection"
+        ],
+        "title": "UNdata SDMX dataflow manifest",
+        "url": "https://data.un.org/ws/rest/dataflow/all/all/latest"
+      },
+      {
+        "evidence_type": "license",
+        "retrieved_at": "2026-08-21T03:32:45Z",
+        "supports": [
+          "public_access",
+          "attribution",
+          "provider_responsibility"
+        ],
+        "title": "UNdata Conditions of Use",
+        "url": "https://data.un.org/Host.aspx?Content=UNdataUse"
+      }
+    ],
+    "fallback_policy": {
+      "access_failure": "Continue public metadata mapping, record a typed blocker, and never infer observation availability.",
+      "change": "Fingerprint the bounded universe and reopen affected checks and stages when upstream structure or version changes.",
+      "scale": "Partition by a stable native order or manifest; preserve counts, range boundaries, and checksums.",
+      "semantic_ambiguity": "Retain source-native elements, defer Variable or Construct promotion, and request human review when consequential.",
+      "unknown_structure": "Use open_world_custom; preserve observed facts; propose a reusable route only after evidence and tests."
+    },
+    "generated_at": "2026-08-21T03:35:34.829654+00:00",
+    "goal": {
+      "completion_claim": "exhaustive_snapshot",
+      "research_question": null,
+      "scope_mode": "exhaustive_snapshot"
+    },
+    "human_gates": [],
+    "plan_status": "ready",
+    "required_facets": [
+      {
+        "completion_evidence": "Official identity and institutional evidence with canonical GRDR references.",
+        "id": "core.source_identity",
+        "requirement": "Resolve canonical source identity, aliases, responsible institutions, and database boundary.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Evidence-backed provenance chain with unresolved roles explicitly recorded.",
+        "id": "core.provenance_roles",
+        "requirement": "Separate original production, collection, harmonization, derivation, publication, mirroring, and maintenance roles.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Boundary statement, enumeration rule, dated evidence, and known denominator or explicit non-enumerable limitation.",
+        "id": "core.boundary_denominator",
+        "requirement": "Define a reproducible dated, versioned, partitioned, question-bounded, or rolling universe and denominator strategy.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Official version/change documentation or repeated probes with a refresh policy.",
+        "id": "core.change_model",
+        "requirement": "Identify snapshot, release, revision, append, rolling, deletion, and schema-change behavior.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Current authoritative policy evidence and any required human authorization gate.",
+        "id": "core.governance_rights",
+        "requirement": "Record licenses, terms, citation, attribution, privacy, ethics, sovereignty, retention, and redistribution controls.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Official dataset metadata, method documentation, and canonical Dataset record.",
+        "id": "core.dataset_methodology",
+        "requirement": "Resolve unit identity, producer, population or universe, observation unit, method, coverage, release, limitations, and citation.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "dataset"
+      },
+      {
+        "completion_evidence": "Quality or methodology evidence and explicit unknown/not-applicable decisions.",
+        "id": "core.quality_uncertainty",
+        "requirement": "Record missingness, suppression, imputation, uncertainty, calibration, revisions, bias, and comparability limits where applicable.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "dataset"
+      },
+      {
+        "completion_evidence": "Versioned schema, codebook, manifest, instrument, graph, array, stream, or observed structure.",
+        "id": "core.native_structure",
+        "requirement": "Recover the source-native organization without substituting an access URL for structure.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Reproducible count, ordering or manifest, and canonical DataElement coverage.",
+        "id": "core.element_universe",
+        "requirement": "Enumerate native fields, dimensions, measures, identifiers, attributes, flags, items, coordinates, or annotations within the declared boundary.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "data_element"
+      },
+      {
+        "completion_evidence": "Official definitions plus structural selections, units, population, resolution, and comparability.",
+        "id": "core.operational_semantics",
+        "requirement": "Define research-matchable operational quantities without inferring them from topic labels.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "variable"
+      },
+      {
+        "completion_evidence": "Evidence-backed mappings with directness and scope limitations.",
+        "id": "core.construct_semantics",
+        "requirement": "Link variables to constructs while distinguishing direct, subjective, administrative, constructed, modelled, forecast, proxy, and latent measures.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "construct"
+      },
+      {
+        "completion_evidence": "Key definitions and a tested or explicitly limited joinability assessment.",
+        "id": "core.identifiers_joinability",
+        "requirement": "Document entity identifiers, time keys, spatial keys, version keys, linkage assumptions, collision risks, and identity resolution.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "variable"
+      },
+      {
+        "completion_evidence": "Dated access probes or evidenced controlled-access procedure covering every required route.",
+        "id": "core.access_reproducibility",
+        "requirement": "Test metadata and observation access separately and record authentication, limits, formats, environment, query, and reproducibility conditions.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "access"
+      },
+      {
+        "completion_evidence": "Machine-recomputed SHA-256 fingerprints for the plan, scope, and unit manifest match the persisted execution locks.",
+        "id": "core.execution_lock",
+        "requirement": "Lock the audited plan, declared scope, and ordered work-unit manifest so an Agent cannot silently change the target, denominator, routes, or completion claim.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "Replay tests and current project history reproduce the same next target and validate every checkpoint checksum.",
+        "id": "core.resume_integrity",
+        "requirement": "Persist deterministic checkpoints and resume the first unfinished target without skipping, substitution, or loss after process, network, or session interruption.",
+        "scope": "project",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "project"
+      },
+      {
+        "completion_evidence": "A bounded, counted, connected, fingerprinted canonical structural spine whose nodes and relationships are all verified or explicitly evidenced not applicable.",
+        "id": "core.structural_spine",
+        "requirement": "Recover the complete source-native structural graph from Dataset through recursive DataStructure nodes and DataElements to operational Variables, including grain, keys, ordering, cardinality, lineage, roots, leaves, and edges.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "structural_spine"
+      },
+      {
+        "completion_evidence": "A bounded, counted, connected, fingerprinted semantic spine using canonical SemanticNode and Construct records with source-native and external classification mappings preserved.",
+        "id": "core.disciplinary_spine",
+        "requirement": "Recover the multi-parent scientific-semantic graph from disciplines and subdisciplines through research objects, systems, phenomena, processes, populations and units to Constructs without reducing it to topic strings.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "disciplinary_spine"
+      },
+      {
+        "completion_evidence": "Every bridge node and relationship is counted, verified, fingerprinted, and exposes measurement directness, units, population, resolution, comparability, and join conditions.",
+        "id": "core.variable_bridge",
+        "requirement": "Prove the canonical bridge connecting source-native DataElements and DataStructures to research-matchable Variables and evidenced Constructs or scientific-semantic nodes.",
+        "scope": "unit",
+        "source_routes": [
+          "core_metadata"
+        ],
+        "stage": "variable_bridge"
+      },
+      {
+        "completion_evidence": "Complete bounded catalog traversal with stable native identifiers.",
+        "id": "catalog.hierarchy",
+        "requirement": "Preserve catalog, collection, dataset, version, and distribution hierarchy.",
+        "scope": "unit",
+        "source_routes": [
+          "catalog"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Every distribution linked as an access Resource with format and rights.",
+        "id": "catalog.distributions",
+        "requirement": "Separate datasets from their files, APIs, landing pages, mirrors, and distributions.",
+        "scope": "unit",
+        "source_routes": [
+          "catalog"
+        ],
+        "stage": "access"
+      },
+      {
+        "completion_evidence": "Stable manifest or deterministic listing with counts and checksums where available.",
+        "id": "file.manifest",
+        "requirement": "Enumerate path, object identity, version, size, media type, packaging, checksum, and nesting.",
+        "scope": "unit",
+        "source_routes": [
+          "file_archive"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Format-specific probe results and required software or keys without exposing secrets.",
+        "id": "file.format_decode",
+        "requirement": "Test lawful extraction and decoding for every distinct required format, including compression and encryption boundaries.",
+        "scope": "unit",
+        "source_routes": [
+          "file_archive"
+        ],
+        "stage": "access"
+      },
+      {
+        "completion_evidence": "Machine schema or reproducible introspection covering the bounded table universe.",
+        "id": "table.schema_keys",
+        "requirement": "Recover schemas, tables, views, columns, types, nullability, constraints, primary/foreign keys, and row grain.",
+        "scope": "unit",
+        "source_routes": [
+          "table_schema"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Field lineage, calculation logic, code lists, and canonical variable mapping.",
+        "id": "table.derived_fields",
+        "requirement": "Distinguish stored, computed, denormalized, coded, and externally joined fields.",
+        "scope": "unit",
+        "source_routes": [
+          "table_schema"
+        ],
+        "stage": "variable"
+      },
+      {
+        "completion_evidence": "Official machine schema or dated endpoint inventory with representative successful and failing probes.",
+        "id": "api.surface",
+        "requirement": "Enumerate endpoints, operations, request/response schemas, parameters, pagination, filters, and error semantics.",
+        "scope": "unit",
+        "source_routes": [
+          "api_schema"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Documentation plus bounded live probes that do not bypass controls.",
+        "id": "api.operational_limits",
+        "requirement": "Record authentication, scopes, quotas, rate limits, pagination caps, timeouts, retries, and nondeterminism.",
+        "scope": "unit",
+        "source_routes": [
+          "api_schema"
+        ],
+        "stage": "access"
+      },
+      {
+        "completion_evidence": "Versioned DSD/schema and complete referenced code-list inventory.",
+        "id": "cube.structure_codelists",
+        "requirement": "Resolve measure, ordered dimensions, time dimension, codelists, attributes, units, multipliers, flags, and attachment levels.",
+        "scope": "unit",
+        "source_routes": [
+          "sdmx_cube"
+        ],
+        "stage": "data_element"
+      },
+      {
+        "completion_evidence": "Complete declared variable universe linked to native dimension codes.",
+        "id": "cube.variable_composition",
+        "requirement": "Define each variable by measure plus all meaning-bearing dimension selections.",
+        "scope": "unit",
+        "source_routes": [
+          "sdmx_cube"
+        ],
+        "stage": "variable"
+      },
+      {
+        "completion_evidence": "Dated probes recording query keys, response status, units, flags, and failures.",
+        "id": "cube.observation_probe",
+        "requirement": "Test structure metadata and observation retrieval independently.",
+        "scope": "unit",
+        "source_routes": [
+          "sdmx_cube"
+        ],
+        "stage": "access"
+      },
+      {
+        "completion_evidence": "Manifest/schema and annotation protocol covering the bounded corpus.",
+        "id": "corpus.item_segment",
+        "requirement": "Recover corpus, item, version, segment, transcript/OCR, language, annotation, and label hierarchy.",
+        "scope": "unit",
+        "source_routes": [
+          "corpus_multimodal"
+        ],
+        "stage": "data_structure"
+      },
+      {
+        "completion_evidence": "Rights and methodology evidence with known exclusions and bias limits.",
+        "id": "corpus.rights_representation",
+        "requirement": "Record item-level rights, takedowns, provenance, sampling/collection bias, representation, and annotation reliability.",
+        "scope": "unit",
+        "source_routes": [
+          "corpus_multimodal"
+        ],
+        "stage": "dataset"
+      },
+      {
+        "completion_evidence": "Evidence-backed lineage that does not assign aggregator claims to producers or vice versa.",
+        "id": "derived.upstream_lineage",
+        "requirement": "Identify original producers, exact upstream datasets/versions, acquisition dates, transformations, harmonization, models, and revision propagation.",
+        "scope": "unit",
+        "source_routes": [
+          "derived_provenance"
+        ],
+        "stage": "dataset"
+      },
+      {
+        "completion_evidence": "Transformation/method evidence and variable-level comparability status.",
+        "id": "derived.comparability",
+        "requirement": "Record definition crosswalks, unit conversions, rebasing, imputations, model assumptions, breaks, and non-equivalence.",
+        "scope": "unit",
+        "source_routes": [
+          "derived_provenance"
+        ],
+        "stage": "variable"
+      }
+    ],
+    "risk_flags": [
+      "dynamic_or_nonstationary_source",
+      "partitioning_or_compute_required",
+      "upstream_provenance_required"
+    ],
+    "route_contract_version": "2026-08-20-dual-spine",
+    "schema_version": "1.0.0",
+    "scope": {
+      "boundary_statement": "Every one of the 36 ordered datamarts in the official UNdata Sources catalog retrieved on 2026-08-21; the six separately listed glossaries are access/documentation sidecars rather than Dataset work units.",
+      "boundary_type": "catalog_snapshot",
+      "snapshot_at": "2026-08-21T03:32:45Z"
+    },
+    "selected_route_modules": [
+      "core_metadata",
+      "catalog",
+      "file_archive",
+      "table_schema",
+      "api_schema",
+      "sdmx_cube",
+      "corpus_multimodal",
+      "derived_provenance"
+    ],
+    "source": {
+      "name": "UNdata",
+      "source_id": "grdr:source:undata",
+      "url": "https://data.un.org/"
+    },
+    "unresolved_critical": [],
+    "work_unit_strategy": {
+      "denominator_strategy": "official_manifest",
+      "expected_count": 36,
+      "identity_rule": "Use the official UNdata DataMart block id together with the existing canonical GRDR Dataset id.",
+      "ordering_rule": "Preserve the official DataMartInfo.aspx dataset order.",
+      "partition_rule": "Exactly one work unit per ordered official datamart; retain archived, deprecated, static-presentation, and temporarily unavailable entries.",
+      "unit_types": [
+        "datamart"
+      ]
+    }
+  },
+  "execution_contract": {
+    "archive_only_canonical_write": true,
+    "checkpoint_resume": true,
+    "contract_version": "3.0.0",
+    "deterministic_queue": true,
+    "deviation_rejection": true,
+    "dual_spine_completion": true,
+    "evidence_only_completion": true,
+    "external_blocker_transparency": true,
+    "scope_lock": true,
+    "staging_only_execution": true,
+    "unknown_database_diagnosis": true
+  },
+  "history": [
+    {
+      "operation": "start-database-deep-map",
+      "summary": "Created persistent database deep-map project and initial work-unit ledger.",
+      "timestamp": "2026-08-21T03:35:34.797584+00:00"
+    },
+    {
+      "operation": "stage-database-deep-map-records",
+      "summary": "Staged 62013 canonical candidate records for Step 3 archival review.",
+      "timestamp": "2026-08-21T04:34:06.107275+00:00"
+    },
+    {
+      "operation": "record-database-deep-map-execution-batch",
+      "summary": "Applied one transactional Step 2 ledger batch after schema-validating every phase, stage, spine, and check update.",
+      "timestamp": "2026-08-21T04:35:58.147571+00:00"
+    },
+    {
+      "operation": "prepare-database-deep-map-archive",
+      "summary": "Sealed the fingerprinted Step 2 handoff package for Step 3 archival review.",
+      "timestamp": "2026-08-21T04:37:31.095172+00:00"
+    },
+    {
+      "operation": "archive-database-deep-map",
+      "summary": "Step 3 promoted the sealed execution package into the canonical GRDR registry and issued an archive receipt.",
+      "timestamp": "2026-08-21T04:54:04.368689+00:00"
+    }
+  ],
+  "id": "grdr:deep-map-project:undata-2026-08-21",
+  "locks": {
+    "locked_at": "2026-08-21T03:35:34.797584+00:00",
+    "plan_fingerprint": "e1c8dafe60d361ca6862612dba5b9231924237e7aba138e3caf234061af72a20",
+    "scope_fingerprint": "6e89435584ad360ecaca90b5e53d0d2bb7d8b980b40b515844a274f799d7c959",
+    "unit_manifest_fingerprint": "e91b880648c041b253eb878c92ec2863894575c110fa22b558da013de4340e89"
+  },
+  "next_actions": [
+    "database-deep-map-archive-status"
+  ],
+  "phase_states": {
+    "boundary": {
+      "blockers": [],
+      "completion_basis": "UNdata boundary is closed for the fingerprint-locked 2026-08-21 source-exposed metadata snapshot; observation rows are outside the declared boundary.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:35:57.460110+00:00"
+    },
+    "classification": {
+      "blockers": [],
+      "completion_basis": "UNdata classification is closed for the fingerprint-locked 2026-08-21 source-exposed metadata snapshot; observation rows are outside the declared boundary.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:35:57.460110+00:00"
+    },
+    "completion_audit": {
+      "blockers": [],
+      "completion_basis": "The fingerprinted Plan → Execute → Archive chain closed with a canonical archive receipt.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:54:04.289282+00:00"
+    },
+    "deep_mapping": {
+      "blockers": [],
+      "completion_basis": "Step 2 closed every required stage, structural spine, disciplinary spine, variable bridge, and route obligation within the locked boundary.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:37:30.840579+00:00"
+    },
+    "identity": {
+      "blockers": [],
+      "completion_basis": "UNdata identity is closed for the fingerprint-locked 2026-08-21 source-exposed metadata snapshot; observation rows are outside the declared boundary.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:35:57.460110+00:00"
+    },
+    "inventory": {
+      "blockers": [],
+      "completion_basis": "UNdata inventory is closed for the fingerprint-locked 2026-08-21 source-exposed metadata snapshot; observation rows are outside the declared boundary.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:35:57.460110+00:00"
+    },
+    "validation": {
+      "blockers": [],
+      "completion_basis": "Step 3 validated the prospective canonical registry, promoted staged records, and rebuilt the human catalog.",
+      "evidence": [
+        {
+          "evidence_type": "official_catalog",
+          "retrieved_at": "2026-08-21T03:32:45Z",
+          "supports": [
+            "identity",
+            "classification",
+            "boundary",
+            "inventory",
+            "deep_mapping",
+            "validation",
+            "completion_audit"
+          ],
+          "title": "UNdata dated exhaustive metadata boundary",
+          "url": "https://data.un.org/DataMartInfo.aspx"
+        }
+      ],
+      "state": "verified_complete",
+      "updated_at": "2026-08-21T04:54:04.289282+00:00"
+    }
+  },
+  "pipeline_contract": {
+    "canonical_writes_archive_only": true,
+    "contract_version": "3.0.0",
+    "fingerprinted_handoffs": true,
+    "staged_before_archive": true,
+    "step_isolation": true,
+    "steps": [
+      {
+        "output": "locked_deep_map_project",
+        "skill": "grdr-plan-database-deep-map",
+        "step": "plan"
+      },
+      {
+        "output": "staged_deep_map_records",
+        "skill": "grdr-execute-database-deep-map",
+        "step": "execute"
+      },
+      {
+        "output": "canonical_registry_archive",
+        "skill": "grdr-archive-database-deep-map",
+        "step": "archive"
+      }
+    ]
+  },
+  "schema_version": "3.0.0",
+  "scope": {
+    "boundary_statement": "All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars.",
+    "boundary_type": "catalog_snapshot",
+    "enumeration_method": "Parse every official DataMart block, preserve its DataMart id and order, reconcile exactly 36 datasets and six glossaries, then route each work unit through its live Explorer, SDMX, static-table, or file-manifest surface.",
+    "expected_work_unit_count": 36,
+    "mode": "exhaustive_snapshot",
+    "snapshot_at": "2026-08-21T03:32:45Z"
+  },
+  "source_id": "grdr:source:undata",
+  "title": "UNdata 2026-08-21 exhaustive metadata deep-map",
+  "updated_at": "2026-08-21T04:54:04.368689+00:00",
+  "workflow_status": "complete"
+}

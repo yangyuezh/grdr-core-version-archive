@@ -80,6 +80,14 @@ Only after referenced candidates are staged, record the matching ledger update:
 
 A stage closes counts and canonical candidate IDs. A spine closes connected topology. A check discharges database-shape-specific obligations. All three are independently mandatory.
 
+For a high-cardinality source, after every candidate in the bounded batch is staged, a single transaction may apply arrays named `phases`, `stages`, `spines`, and `checks`:
+
+```bash
+"$GRDR_PYTHON" scripts/grdr.py record-database-deep-map-execution-batch <project> <execution-batch.json>
+```
+
+Use this only to avoid repeatedly rescanning the same large staged registry. The operation validates every ordinary update schema, rejects duplicate or unknown targets, recomputes verification counts, checkpoint checksums, and topology fingerprints, writes all ledgers atomically, runs the full execution audit once, and rolls the entire batch back on error. It does not stage candidates, alter locks, relax queue obligations, seal the handoff, or write canonical records.
+
 For SDMX, use the bundled inspector:
 
 ```bash

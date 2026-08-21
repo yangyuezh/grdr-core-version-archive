@@ -19,6 +19,7 @@ from database_deep_map import (  # noqa: E402
     database_deep_map_archive_status,
     database_deep_map_status,
     prepare_database_deep_map_archive,
+    record_database_deep_map_execution_batch,
     record_database_deep_map_check,
     record_database_deep_map_human_gate,
     record_database_deep_map_spine,
@@ -111,6 +112,87 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
         self.assertEqual(audit["next_target"]["stage"], "variable")
         self.assertIn("sdmx_cube", audit["next_target"]["route_modules"])
         self.assertIn("next_native=010", audit["next_target"]["checkpoint"])
+
+    def test_high_cardinality_execution_batch_is_atomic_and_audited(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "world-bank"
+            start_database_deep_map(ROOT / "examples" / "world_bank_deep_map_spec.json", target)
+            evidence = [{
+                "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures",
+                "title": "Synthetic transactional batch fixture",
+                "evidence_type": "synthetic_test_fixture",
+                "supports": ["transactional_batch"],
+                "retrieved_at": "2026-08-21T00:00:00Z",
+            }]
+            project = json.loads((target / "project.json").read_text(encoding="utf-8"))
+            units = [json.loads(line) for line in (target / "units.jsonl").read_text(encoding="utf-8").splitlines()]
+            checks = [json.loads(line) for line in (target / "checks.jsonl").read_text(encoding="utf-8").splitlines()]
+            batch = {
+                "phases": [{
+                    "phase": phase,
+                    "state": "verified_complete",
+                    "completion_basis": "Synthetic full-transaction closure.",
+                    "evidence": evidence,
+                    "blockers": [],
+                } for phase in project["phase_states"]],
+                "stages": [{
+                    "unit_id": unit["id"],
+                    "stage": stage,
+                    "state": "not_applicable",
+                    "expected_count": 0,
+                    "registered_ids": [],
+                    "verified_count": 0,
+                    "completion_basis": "Synthetic zero-denominator stage.",
+                    "evidence": evidence,
+                    "blockers": [],
+                    "notes": "Transactional batch fixture",
+                } for unit in units for stage in unit["required_stages"]],
+                "spines": [{
+                    "unit_id": unit["id"],
+                    "spine": spine_name,
+                    "state": "not_applicable",
+                    "expected_node_count": 0,
+                    "node_ids": [],
+                    "verified_node_count": 0,
+                    "expected_edge_count": 0,
+                    "edge_ids": [],
+                    "verified_edge_count": 0,
+                    "root_node_ids": [],
+                    "leaf_node_ids": [],
+                    "topology_fingerprint": None,
+                    "completion_basis": "Synthetic zero-denominator spine.",
+                    "evidence": evidence,
+                    "blockers": [],
+                    "checkpoint": {
+                        "enumeration_rule": None,
+                        "completed_native_count": 0,
+                        "last_native_id": None,
+                        "next_native_id": None,
+                        "snapshot": None,
+                        "cursor_checksum": None,
+                    },
+                } for unit in units for spine_name in unit["spines"]],
+                "checks": [{
+                    "check_id": check["id"],
+                    "state": "not_applicable",
+                    "completion_basis": "Synthetic route-check closure.",
+                    "evidence": evidence,
+                    "blockers": [],
+                    "notes": "Transactional batch fixture",
+                } for check in checks],
+            }
+            update_file = Path(temporary) / "execution-batch.json"
+            update_file.write_text(json.dumps(batch), encoding="utf-8")
+            result = record_database_deep_map_execution_batch(target, update_file)
+            self.assertTrue(result["execution_ready_for_archive"])
+            self.assertEqual(result["audit"]["errors"], [])
+
+            before = (target / "project.json").read_bytes()
+            batch["checks"][0]["check_id"] = "grdr:deep-map-check:unknown"
+            update_file.write_text(json.dumps(batch), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                record_database_deep_map_execution_batch(target, update_file)
+            self.assertEqual((target / "project.json").read_bytes(), before)
 
     def test_resume_selects_priority_unit_and_route(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

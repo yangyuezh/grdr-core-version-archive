@@ -39,12 +39,22 @@ class ResearchWorkflowTests(unittest.TestCase):
             self.assertEqual(resumed["workflow_status"], "ready_to_match")
 
             matched = run_cli("match-indicators", str(project))
-            self.assertEqual(matched["outcomes"], {"direct_match": 3, "not_found_registry_snapshot": 2})
+            self.assertEqual(matched["outcomes"], {"direct_match": 4, "not_found_registry_snapshot": 1})
+            income = next(
+                item for item in matched["mappings"]
+                if item["indicator_id"].endswith("income-per-capita")
+            )
+            self.assertEqual(
+                income["variable_ids"],
+                ["grdr:variable:undata-sowc-2026-08-21-040332b020f235d9"],
+            )
+            self.assertEqual(income["fit"]["construct"], "exact")
+            self.assertEqual(income["fit"]["population"], "incompatible")
             self.assertTrue(matched["exploratory"])
             self.assertFalse(matched["formal_evidence_ready"])
 
             expanded = run_cli("expand-from-data-gaps", str(project))
-            self.assertEqual(expanded["gap_count"], 2)
+            self.assertEqual(expanded["gap_count"], 1)
             candidate_ids = {item for gap in expanded["gaps"] for item in gap["candidate_dataset_ids"]}
             self.assertIn("grdr:dataset:undata-national-accounts-estimates-of-main-aggregates", candidate_ids)
 
@@ -52,10 +62,10 @@ class ResearchWorkflowTests(unittest.TestCase):
             self.assertEqual(resumed_again["current_step"], "rematching")
             rerun = run_cli("rerun-matching", str(project))
             self.assertEqual(rerun["matching_attempt"], 2)
-            self.assertEqual(rerun["outcomes"]["not_found_registry_snapshot"], 2)
+            self.assertEqual(rerun["outcomes"]["not_found_registry_snapshot"], 1)
 
             final = run_cli("research-project-status", str(project))
-            self.assertEqual(final["leaf_match_coverage"], {"matched": 3, "ratio": 0.6, "total": 5})
+            self.assertEqual(final["leaf_match_coverage"], {"matched": 4, "ratio": 0.8, "total": 5})
             self.assertTrue(final["exploratory_matching_complete"])
             self.assertFalse(final["formal_evidence_ready"])
 

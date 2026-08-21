@@ -126,6 +126,7 @@ def main() -> int:
         "record-database-deep-map-stage",
         "record-database-deep-map-spine",
         "record-database-deep-map-check",
+        "record-database-deep-map-execution-batch",
         "record-database-deep-map-human-gate",
         "stage-database-deep-map-records",
         "audit-database-deep-map",

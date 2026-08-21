@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:imf-data"
 record_type: "source_catalog"
-registry_version: "3.0.0"
+registry_version: "3.1.0"
 verification_status: "partially_verified"
 canonical_url: "https://data.imf.org/"
 ---

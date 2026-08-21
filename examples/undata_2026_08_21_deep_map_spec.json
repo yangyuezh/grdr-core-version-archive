@@ -1,0 +1,111 @@
+{
+  "source_id": "grdr:source:undata",
+  "title": "UNdata 2026-08-21 exhaustive metadata deep-map",
+  "project_slug": "undata-2026-08-21",
+  "diagnostic_intake": {
+    "schema_version": "1.0.0",
+    "source": {"source_id": "grdr:source:undata", "name": "UNdata", "url": "https://data.un.org/"},
+    "goal": {"scope_mode": "exhaustive_snapshot", "completion_claim": "exhaustive_snapshot", "research_question": null},
+    "observations": {
+      "disciplines": ["multidisciplinary"],
+      "origin_types": ["hybrid"],
+      "provenance_roles": ["derivative_aggregator", "official_harmonizer"],
+      "production_modes": ["official_statistics", "census", "survey", "administrative", "modelled_estimates"],
+      "structural_archetypes": ["hierarchical_catalog", "flat_table_collection", "statistical_cube", "file_archive"],
+      "content_modalities": ["tabular", "multidimensional", "time_series", "document"],
+      "lifecycle_modes": ["mutable", "revised_release", "archived", "deprecated"],
+      "versioning_models": ["revision_chain", "dated_snapshot", "none"],
+      "access_regimes": ["open", "api"],
+      "sensitivity_classes": ["public"],
+      "scale_classes": ["large"],
+      "metadata_maturity": "machine_readable",
+      "languages": ["en"]
+    },
+    "scope": {
+      "boundary_type": "catalog_snapshot",
+      "boundary_statement": "Every one of the 36 ordered datamarts in the official UNdata Sources catalog retrieved on 2026-08-21; the six separately listed glossaries are access/documentation sidecars rather than Dataset work units.",
+      "snapshot_at": "2026-08-21T03:32:45Z"
+    },
+    "work_unit_strategy": {
+      "unit_types": ["datamart"],
+      "identity_rule": "Use the official UNdata DataMart block id together with the existing canonical GRDR Dataset id.",
+      "partition_rule": "Exactly one work unit per ordered official datamart; retain archived, deprecated, static-presentation, and temporarily unavailable entries.",
+      "ordering_rule": "Preserve the official DataMartInfo.aspx dataset order.",
+      "denominator_strategy": "official_manifest",
+      "expected_count": 36
+    },
+    "constraints": {
+      "authorized_access": ["public_metadata", "public_observation_probes", "public_documentation", "public_download_manifests"],
+      "prohibited_actions": ["bulk observation mirroring", "authentication bypass", "rate-limit bypass"],
+      "compute_limit": "Enumerate and fingerprint metadata, schemas, series, definitions, and access routes; do not copy the complete observation store.",
+      "notes": "UNdata is a secondary portal. Upstream producer identity and non-equivalence must be retained for every datamart."
+    },
+    "explicit_route_modules": ["catalog", "table_schema", "sdmx_cube", "file_archive", "derived_provenance"],
+    "evidence": [
+      {"url": "https://data.un.org/DataMartInfo.aspx", "title": "UNdata Sources catalog and update calendar", "evidence_type": "official_catalog", "supports": ["identity", "36_datamart_denominator", "provider_roles", "update_state", "alternative_routes"], "retrieved_at": "2026-08-21T03:32:45Z"},
+      {"url": "https://data.un.org/Host.aspx?Content=API", "title": "UNdata API Manual", "evidence_type": "api_documentation", "supports": ["sdmx_route", "format_support", "partial_datamart_coverage"], "retrieved_at": "2026-08-21T03:32:45Z"},
+      {"url": "https://data.un.org/Handlers/ExplorerHandler.ashx?t=marts", "title": "UNdata Explorer ordered datamart manifest", "evidence_type": "live_metadata_probe", "supports": ["interactive_datamart_inventory", "table_and_hierarchy_route"], "retrieved_at": "2026-08-21T03:32:45Z"},
+      {"url": "https://data.un.org/ws/rest/dataflow/all/all/latest", "title": "UNdata SDMX dataflow manifest", "evidence_type": "live_metadata_probe", "supports": ["sdmx_dataflow_inventory", "sdmx_unit_route_selection"], "retrieved_at": "2026-08-21T03:32:45Z"},
+      {"url": "https://data.un.org/Host.aspx?Content=UNdataUse", "title": "UNdata Conditions of Use", "evidence_type": "license", "supports": ["public_access", "attribution", "provider_responsibility"], "retrieved_at": "2026-08-21T03:32:45Z"}
+    ]
+  },
+  "database_profile": {
+    "disciplines": ["multidisciplinary"],
+    "origin_type": "hybrid",
+    "provenance_role": "derivative_aggregator",
+    "production_modes": ["official_statistics", "census", "survey", "administrative", "modelled_estimates"],
+    "structural_archetypes": ["hierarchical_catalog", "flat_table_collection", "statistical_cube", "file_archive"],
+    "access_regime": "mixed",
+    "route_modules": ["catalog", "table_schema", "sdmx_cube", "file_archive", "derived_provenance"],
+    "classification_notes": "UNdata is an official UNSD aggregation and presentation portal. Each work unit keeps its own structural routes and upstream producer lineage."
+  },
+  "scope": {
+    "mode": "exhaustive_snapshot",
+    "boundary_type": "catalog_snapshot",
+    "boundary_statement": "All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars.",
+    "snapshot_at": "2026-08-21T03:32:45Z",
+    "enumeration_method": "Parse every official DataMart block, preserve its DataMart id and order, reconcile exactly 36 datasets and six glossaries, then route each work unit through its live Explorer, SDMX, static-table, or file-manifest surface.",
+    "expected_work_unit_count": 36
+  },
+  "boundary_evidence": [
+    {"url": "https://data.un.org/DataMartInfo.aspx", "title": "UNdata Sources catalog and update calendar", "evidence_type": "official_catalog", "supports": ["36_datamart_denominator", "catalog_order", "provider", "lifecycle", "alternative_routes"], "retrieved_at": "2026-08-21T03:32:45Z"}
+  ],
+  "units": [
+    {"upstream_id": "ComTrade", "label": "Commodity Trade Statistics Database", "dataset_id": "grdr:dataset:undata-commodity-trade-statistics-database", "disciplines": ["economics", "international trade"], "origin_type": "hybrid", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "POP", "label": "Demographic Statistics Database", "dataset_id": "grdr:dataset:undata-demographic-statistics-database", "disciplines": ["demography", "sociology", "public health"], "origin_type": "hybrid", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "EDATA", "label": "Energy Statistics Database", "dataset_id": "grdr:dataset:undata-energy-statistics", "disciplines": ["energy research", "environmental science", "economics"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "statistical_cube", "flat_table_collection"], "route_modules": ["catalog", "sdmx_cube", "table_schema", "derived_provenance"]},
+    {"upstream_id": "ENV", "label": "Environment Statistics Database", "dataset_id": "grdr:dataset:undata-environment-statistics-database", "disciplines": ["environmental science", "water research", "waste management"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "FAO", "label": "FAOSTAT", "dataset_id": "grdr:dataset:undata-faostat", "disciplines": ["agricultural science", "food systems", "economics"], "origin_type": "secondary", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "GenderStat", "label": "Gender Info", "dataset_id": "grdr:dataset:undata-gender-info", "disciplines": ["gender studies", "sociology", "public policy"], "origin_type": "hybrid", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "GHG", "label": "Greenhouse Gas Inventory Data", "dataset_id": "grdr:dataset:undata-greenhouse-gas-inventory", "disciplines": ["climate science", "environmental science", "public policy"], "origin_type": "secondary", "structural_archetypes": ["statistical_cube", "flat_table_collection"], "route_modules": ["catalog", "sdmx_cube", "table_schema", "derived_provenance"]},
+    {"upstream_id": "33", "label": "Homicide Statistics", "dataset_id": "grdr:dataset:undata-homicide-statistics", "disciplines": ["criminology", "public health", "sociology"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "32", "label": "Human Development Indices: A statistical update 2025", "dataset_id": "grdr:dataset:undata-human-development-indices-a-statistical-update-2025", "disciplines": ["development studies", "economics", "public policy"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "16", "label": "Indicators on Women and Men", "dataset_id": "grdr:dataset:undata-indicators-on-women-and-men", "disciplines": ["gender studies", "demography", "sociology"], "origin_type": "hybrid", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "UNIDO", "label": "INDSTAT", "dataset_id": "grdr:dataset:undata-indstat", "disciplines": ["industrial economics", "manufacturing research"], "origin_type": "secondary", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "ICS", "label": "Industrial Commodity Statistics Database", "dataset_id": "grdr:dataset:undata-industrial-commodity-statistics-database", "disciplines": ["industrial economics", "manufacturing research"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "IFS", "label": "International Financial Statistics", "dataset_id": "grdr:dataset:undata-international-financial-statistics", "disciplines": ["economics", "finance", "monetary studies"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "30", "label": "Key Indicators of the Labour Market, 7th Edition", "dataset_id": "grdr:dataset:undata-key-indicators-of-the-labour-market-7th-edition", "disciplines": ["labour economics", "sociology"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "LABORSTA", "label": "LABORSTA", "dataset_id": "grdr:dataset:undata-laborsta", "disciplines": ["labour economics", "sociology"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "MDG", "label": "Millennium Development Goals Database", "dataset_id": "grdr:dataset:undata-millennium-development-goals-database", "disciplines": ["development studies", "public policy"], "origin_type": "hybrid", "structural_archetypes": ["statistical_cube", "file_archive"], "route_modules": ["catalog", "sdmx_cube", "file_archive", "derived_provenance"]},
+    {"upstream_id": "SNAAMA", "label": "National Accounts Estimates of Main Aggregates", "dataset_id": "grdr:dataset:undata-national-accounts-estimates-of-main-aggregates", "disciplines": ["economics", "national accounting"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "statistical_cube", "flat_table_collection"], "route_modules": ["catalog", "sdmx_cube", "table_schema", "derived_provenance"]},
+    {"upstream_id": "SNA", "label": "National Accounts Official Country Data", "dataset_id": "grdr:dataset:undata-national-accounts-official-country-data", "disciplines": ["economics", "national accounting"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "18", "label": "OECD Data", "dataset_id": "grdr:dataset:undata-oecd-data", "disciplines": ["economics", "public policy"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "SDGs", "label": "Sustainable Development Goals Indicators", "dataset_id": "grdr:dataset:undata-sustainable-development-goals-indicators", "disciplines": ["sustainability science", "development studies", "public policy"], "origin_type": "hybrid", "structural_archetypes": ["statistical_cube"], "route_modules": ["catalog", "sdmx_cube", "derived_provenance"]},
+    {"upstream_id": "SOWC", "label": "The State of the World’s Children", "dataset_id": "grdr:dataset:undata-the-state-of-the-worlds-children", "disciplines": ["child development", "public health", "education"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "UNESCO", "label": "UIS Data Centre", "dataset_id": "grdr:dataset:undata-uis-data-centre", "disciplines": ["education", "science studies", "culture statistics"], "origin_type": "secondary", "structural_archetypes": ["hierarchical_catalog", "statistical_cube", "flat_table_collection"], "route_modules": ["catalog", "sdmx_cube", "table_schema", "derived_provenance"]},
+    {"upstream_id": "UNAIDS", "label": "UNAIDS Data", "dataset_id": "grdr:dataset:undata-unaids-data", "disciplines": ["epidemiology", "public health"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "UNHCR", "label": "UNHCR Statistical Database", "dataset_id": "grdr:dataset:undata-unhcr-statistical-database", "disciplines": ["migration studies", "humanitarian studies", "demography"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "KI", "label": "United Nations Statistical Yearbook", "dataset_id": "grdr:dataset:undata-united-nations-statistical-yearbook", "disciplines": ["multidisciplinary", "official statistics"], "origin_type": "hybrid", "structural_archetypes": ["hierarchical_catalog", "file_archive"], "route_modules": ["catalog", "file_archive", "derived_provenance"]},
+    {"upstream_id": "WHO", "label": "WHO Data", "dataset_id": "grdr:dataset:undata-who-data", "disciplines": ["medicine", "epidemiology", "public health"], "origin_type": "secondary", "structural_archetypes": ["hierarchical_catalog", "flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "29", "label": "World Contraceptive Use", "dataset_id": "grdr:dataset:undata-world-contraceptive-use", "disciplines": ["demography", "reproductive health"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "WDI", "label": "World Development Indicators", "dataset_id": "grdr:dataset:undata-world-development-indicators", "disciplines": ["development studies", "economics", "public policy"], "origin_type": "secondary", "structural_archetypes": ["statistical_cube", "flat_table_collection"], "route_modules": ["catalog", "sdmx_cube", "table_schema", "derived_provenance"]},
+    {"upstream_id": "22", "label": "World Fertility Data", "dataset_id": "grdr:dataset:undata-world-fertility-data", "disciplines": ["demography", "reproductive health"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "25", "label": "World Marriage Data", "dataset_id": "grdr:dataset:undata-world-marriage-data", "disciplines": ["demography", "family studies"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "CLINO", "label": "World Meteorological Organization Standard Normals", "dataset_id": "grdr:dataset:undata-world-meteorological-organization-standard-normals", "disciplines": ["atmospheric science", "climatology"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "PopDiv", "label": "World Population Prospects: The 2024 Revision", "dataset_id": "grdr:dataset:undata-world-population-prospects-the-2024-revision", "disciplines": ["demography", "population studies"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "WorldStat", "label": "World Statistics Pocketbook", "dataset_id": "grdr:dataset:undata-world-statistics-pocketbook", "disciplines": ["multidisciplinary", "official statistics"], "origin_type": "hybrid", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "ITU", "label": "World Telecommunication/ICT Indicators Database", "dataset_id": "grdr:dataset:undata-world-telecommunication-ict-indicators-database", "disciplines": ["communication studies", "information science"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "31", "label": "World Telecommunication/ICT Indicators Table", "dataset_id": "grdr:dataset:undata-world-telecommunication-ict-indicators-table", "disciplines": ["communication studies", "information science"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]},
+    {"upstream_id": "19", "label": "World Tourism Data", "dataset_id": "grdr:dataset:undata-world-tourism-data", "disciplines": ["tourism studies", "economics"], "origin_type": "secondary", "structural_archetypes": ["flat_table_collection"], "route_modules": ["catalog", "table_schema", "derived_provenance"]}
+  ]
+}

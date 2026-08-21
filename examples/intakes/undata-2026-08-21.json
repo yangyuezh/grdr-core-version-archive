@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "source": {
+    "source_id": "grdr:source:undata",
+    "name": "UNdata",
+    "url": "https://data.un.org/"
+  },
+  "goal": {
+    "scope_mode": "exhaustive_snapshot",
+    "completion_claim": "exhaustive_snapshot",
+    "research_question": null
+  },
+  "observations": {
+    "disciplines": ["multidisciplinary"],
+    "origin_types": ["hybrid"],
+    "provenance_roles": ["derivative_aggregator", "official_harmonizer"],
+    "production_modes": ["official_statistics", "census", "survey", "administrative", "modelled_estimates"],
+    "structural_archetypes": ["hierarchical_catalog", "flat_table_collection", "statistical_cube", "file_archive"],
+    "content_modalities": ["tabular", "multidimensional", "time_series", "document"],
+    "lifecycle_modes": ["mutable", "revised_release", "archived", "deprecated"],
+    "versioning_models": ["revision_chain", "dated_snapshot", "none"],
+    "access_regimes": ["open", "api"],
+    "sensitivity_classes": ["public"],
+    "scale_classes": ["large"],
+    "metadata_maturity": "machine_readable",
+    "languages": ["en"]
+  },
+  "scope": {
+    "boundary_type": "catalog_snapshot",
+    "boundary_statement": "Every one of the 36 ordered datamarts in the official UNdata Sources catalog retrieved on 2026-08-21; the six separately listed glossaries are access/documentation sidecars rather than Dataset work units.",
+    "snapshot_at": "2026-08-21T03:32:45Z"
+  },
+  "work_unit_strategy": {
+    "unit_types": ["datamart"],
+    "identity_rule": "Use the official UNdata DataMart block id together with the existing canonical GRDR Dataset id.",
+    "partition_rule": "Exactly one work unit per ordered official datamart; retain archived, deprecated, static-presentation, and temporarily unavailable entries.",
+    "ordering_rule": "Preserve the official DataMartInfo.aspx dataset order.",
+    "denominator_strategy": "official_manifest",
+    "expected_count": 36
+  },
+  "constraints": {
+    "authorized_access": ["public_metadata", "public_observation_probes", "public_documentation", "public_download_manifests"],
+    "prohibited_actions": ["bulk observation mirroring", "authentication bypass", "rate-limit bypass"],
+    "compute_limit": "Enumerate and fingerprint metadata, schemas, series, definitions, and access routes; do not copy the complete observation store.",
+    "notes": "UNdata is a secondary portal. Upstream producer identity and non-equivalence must be retained for every datamart."
+  },
+  "explicit_route_modules": ["catalog", "table_schema", "sdmx_cube", "file_archive", "derived_provenance"],
+  "evidence": [
+    {
+      "url": "https://data.un.org/DataMartInfo.aspx",
+      "title": "UNdata Sources catalog and update calendar",
+      "evidence_type": "official_catalog",
+      "supports": ["identity", "36_datamart_denominator", "provider_roles", "update_state", "alternative_routes"],
+      "retrieved_at": "2026-08-21T03:32:45Z"
+    },
+    {
+      "url": "https://data.un.org/Host.aspx?Content=API",
+      "title": "UNdata API Manual",
+      "evidence_type": "api_documentation",
+      "supports": ["sdmx_route", "format_support", "partial_datamart_coverage"],
+      "retrieved_at": "2026-08-21T03:32:45Z"
+    },
+    {
+      "url": "https://data.un.org/Handlers/ExplorerHandler.ashx?t=marts",
+      "title": "UNdata Explorer ordered datamart manifest",
+      "evidence_type": "live_metadata_probe",
+      "supports": ["interactive_datamart_inventory", "table_and_hierarchy_route"],
+      "retrieved_at": "2026-08-21T03:32:45Z"
+    },
+    {
+      "url": "https://data.un.org/ws/rest/dataflow/all/all/latest",
+      "title": "UNdata SDMX dataflow manifest",
+      "evidence_type": "live_metadata_probe",
+      "supports": ["sdmx_dataflow_inventory", "sdmx_unit_route_selection"],
+      "retrieved_at": "2026-08-21T03:32:45Z"
+    },
+    {
+      "url": "https://data.un.org/Host.aspx?Content=UNdataUse",
+      "title": "UNdata Conditions of Use",
+      "evidence_type": "license",
+      "supports": ["public_access", "attribution", "provider_responsibility"],
+      "retrieved_at": "2026-08-21T03:32:45Z"
+    }
+  ]
+}

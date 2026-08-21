@@ -1792,6 +1792,169 @@ def stage_database_deep_map_records(project_dir: str | Path, records_file: str |
     }
 
 
+def record_database_deep_map_execution_batch(
+    project_dir: str | Path,
+    update_file: str | Path,
+) -> dict[str, Any]:
+    """Apply a complete Step 2 ledger transaction with one final audit.
+
+    Large sources can contain thousands of canonical candidates and hundreds of
+    route checks.  Re-auditing the same staged registry after every individual
+    ledger mutation is needlessly quadratic.  This operation preserves the
+    existing update schemas and all-or-nothing rollback semantics while
+    committing phase, stage, spine, and check updates in one audited write.
+    It never stages records and never writes the canonical registry.
+    """
+
+    target = resolve_project_dir(project_dir); require_project(target)
+    payload = read_json(Path(update_file).expanduser().resolve())
+    expected_keys = {"phases", "stages", "spines", "checks"}
+    if set(payload) != expected_keys:
+        raise ValueError(
+            "execution batch must contain exactly: " + ", ".join(sorted(expected_keys))
+        )
+    if not all(isinstance(payload[key], list) for key in expected_keys):
+        raise ValueError("execution batch sections must be arrays")
+    for update in payload["phases"]:
+        validate_update(update, "database_deep_map_phase_update.schema.json", "batch_phase_update")
+    for update in payload["stages"]:
+        validate_update(update, "database_deep_map_stage_update.schema.json", "batch_stage_update")
+    for update in payload["spines"]:
+        validate_update(update, "database_deep_map_spine_update.schema.json", "batch_spine_update")
+    for update in payload["checks"]:
+        validate_update(update, "database_deep_map_check_update.schema.json", "batch_check_update")
+
+    def unique(values: list[tuple[Any, ...]], label: str) -> None:
+        if len(values) != len(set(values)):
+            raise ValueError(f"execution batch contains duplicate {label} targets")
+
+    unique([(item["phase"],) for item in payload["phases"]], "phase")
+    unique([(item["unit_id"], item["stage"]) for item in payload["stages"]], "stage")
+    unique([(item["unit_id"], item["spine"]) for item in payload["spines"]], "spine")
+    unique([(item["check_id"],) for item in payload["checks"]], "check")
+
+    project = read_json(target / PROJECT_FILE)
+    units = read_jsonl(target / UNIT_FILE)
+    checks = read_jsonl(target / CHECK_FILE)
+    original_project = json.loads(json.dumps(project))
+    original_units = json.loads(json.dumps(units))
+    original_checks = json.loads(json.dumps(checks))
+    unit_by_id = {item["id"]: item for item in units}
+    check_by_id = {item["id"]: item for item in checks}
+    records = registry_index(target)
+    known_ids = set(records)
+    timestamp = now()
+
+    try:
+        for update in payload["phases"]:
+            if update["state"] in {"mapped_complete", "verified_complete", "not_applicable"} and (
+                not update["completion_basis"] or not update["evidence"]
+            ):
+                raise ValueError("complete or not-applicable phase update requires completion_basis and evidence")
+            if update["state"] == "blocked" and not update["blockers"]:
+                raise ValueError("blocked phase update requires blockers")
+            project["phase_states"][update["phase"]] = {
+                **{key: update[key] for key in ("state", "completion_basis", "evidence", "blockers")},
+                "updated_at": timestamp,
+            }
+
+        for update in payload["stages"]:
+            unit = unit_by_id.get(update["unit_id"])
+            if unit is None:
+                raise ValueError(f"unknown unit_id {update['unit_id']}")
+            unknown_ids = sorted(set(update["registered_ids"]) - known_ids)
+            if unknown_ids:
+                raise ValueError("stage update references unknown canonical IDs: " + ", ".join(unknown_ids))
+            unit["stages"][update["stage"]] = {
+                **{key: update[key] for key in (
+                    "state", "expected_count", "registered_ids", "verified_count",
+                    "completion_basis", "evidence", "blockers", "notes",
+                )},
+                "updated_at": timestamp,
+            }
+            if update["stage"] == "dataset" and unit["dataset_id"] is None and len(update["registered_ids"]) == 1:
+                unit["dataset_id"] = update["registered_ids"][0]
+            unit["updated_at"] = timestamp
+
+        for update in payload["spines"]:
+            unit = unit_by_id.get(update["unit_id"])
+            if unit is None:
+                raise ValueError(f"unknown unit_id {update['unit_id']}")
+            unknown_ids = sorted(
+                set([*update["node_ids"], *update["edge_ids"]]) - known_ids
+            )
+            if unknown_ids:
+                raise ValueError("spine update references unknown canonical IDs: " + ", ".join(unknown_ids))
+            spine = {key: update[key] for key in (
+                "state", "expected_node_count", "node_ids", "verified_node_count",
+                "expected_edge_count", "edge_ids", "verified_edge_count", "root_node_ids",
+                "leaf_node_ids", "topology_fingerprint", "completion_basis", "evidence",
+                "blockers", "checkpoint",
+            )}
+            spine["verified_node_count"] = sum(
+                records[item].get("verification", {}).get("status") == "verified"
+                for item in spine["node_ids"]
+            )
+            spine["verified_edge_count"] = sum(
+                records[item].get("verification", {}).get("status") == "verified"
+                for item in spine["edge_ids"]
+            )
+            if spine["checkpoint"]["enumeration_rule"] and spine["checkpoint"]["snapshot"]:
+                spine["checkpoint"]["cursor_checksum"] = checkpoint_checksum(spine["checkpoint"])
+            if spine["state"] in {"mapped_complete", "verified_complete"}:
+                spine["topology_fingerprint"] = spine_topology_fingerprint(spine, records)
+            spine["updated_at"] = timestamp
+            unit["spines"][update["spine"]] = spine
+            unit["updated_at"] = timestamp
+
+        for update in payload["checks"]:
+            check = check_by_id.get(update["check_id"])
+            if check is None:
+                raise ValueError(f"unknown check_id {update['check_id']}")
+            if update["state"] in CHECK_CLOSED_STATES and (
+                not update["completion_basis"] or not update["evidence"]
+            ):
+                raise ValueError("passed or not-applicable check update requires completion_basis and evidence")
+            if update["state"] in {"blocked", "failed", "needs_human_review"} and not update["blockers"]:
+                raise ValueError(f"{update['state']} check update requires typed blockers")
+            for key in ("state", "completion_basis", "evidence", "blockers", "notes"):
+                check[key] = update[key]
+            check["updated_at"] = timestamp
+
+        synchronize_blocked_stage_checks(units, checks, timestamp)
+        project["workflow_status"] = "in_progress"
+        project["current_phase"] = "completion_audit"
+        project["next_actions"] = ["audit-database-deep-map-execution"]
+        append_history(
+            project,
+            "record-database-deep-map-execution-batch",
+            "Applied one transactional Step 2 ledger batch after schema-validating every phase, stage, spine, and check update.",
+        )
+        write_json(target / PROJECT_FILE, project)
+        write_jsonl(target / UNIT_FILE, units)
+        write_jsonl(target / CHECK_FILE, checks)
+        audit = audit_database_deep_map(target)
+        if audit["errors"]:
+            raise ValueError("execution batch failed audit: " + "; ".join(audit["errors"]))
+    except Exception:
+        write_json(target / PROJECT_FILE, original_project)
+        write_jsonl(target / UNIT_FILE, original_units)
+        write_jsonl(target / CHECK_FILE, original_checks)
+        raise
+
+    sync_report(target, project, audit)
+    return {
+        "operation": "record_database_deep_map_execution_batch",
+        "project_id": project["id"],
+        "phase_update_count": len(payload["phases"]),
+        "stage_update_count": len(payload["stages"]),
+        "spine_update_count": len(payload["spines"]),
+        "check_update_count": len(payload["checks"]),
+        "execution_ready_for_archive": audit["execution_ready_for_archive"],
+        "audit": audit,
+    }
+
+
 def action_queue(project: dict[str, Any], units: list[dict[str, Any]], checks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     queue = []
     pending_gates = [item for item in project["diagnostic_plan"]["human_gates"] if item["status"] == "pending"]

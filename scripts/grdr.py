@@ -992,6 +992,15 @@ def stage_database_deep_map_records_command(args: argparse.Namespace) -> None:
     )
 
 
+def record_database_deep_map_execution_batch_command(args: argparse.Namespace) -> None:
+    from database_deep_map import record_database_deep_map_execution_batch
+
+    run_research_operation(
+        "record_database_deep_map_execution_batch",
+        lambda: record_database_deep_map_execution_batch(args.project_dir, args.update_file),
+    )
+
+
 def audit_database_deep_map_command(args: argparse.Namespace) -> None:
     from database_deep_map import audit_database_deep_map
 
@@ -1295,6 +1304,14 @@ def parser() -> argparse.ArgumentParser:
     stage_deep_map_records.add_argument("project_dir")
     stage_deep_map_records.add_argument("records_file")
     stage_deep_map_records.set_defaults(handler=stage_database_deep_map_records_command)
+
+    record_deep_map_batch = commands.add_parser(
+        "record-database-deep-map-execution-batch",
+        help="Atomically apply schema-valid Step 2 phase, stage, spine, and route-check ledgers with one final audit",
+    )
+    record_deep_map_batch.add_argument("project_dir")
+    record_deep_map_batch.add_argument("update_file")
+    record_deep_map_batch.set_defaults(handler=record_database_deep_map_execution_batch_command)
 
     audit_deep_map = commands.add_parser(
         "audit-database-deep-map",
