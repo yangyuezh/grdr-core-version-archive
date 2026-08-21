@@ -30,6 +30,10 @@ PROJECT_FILE = "project.json"
 UNIT_FILE = "units.jsonl"
 CHECK_FILE = "checks.jsonl"
 REPORT_FILE = "README.md"
+STAGING_DIR = "staging"
+STAGING_MANIFEST_FILE = "staging_manifest.json"
+ARCHIVE_PACKAGE_FILE = "archive_package.json"
+ARCHIVE_RECEIPT_FILE = "archive_receipt.json"
 PHASES = ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit"]
 EARLY_PHASES = ["identity", "classification", "boundary", "inventory"]
 UNIT_STAGES = ["dataset", "data_structure", "data_element", "variable", "construct", "access"]
@@ -64,6 +68,38 @@ REGISTRY_FILES = [
     "source_profiles.jsonl",
     "semantic_nodes.jsonl",
 ]
+REGISTRY_SCHEMAS = {
+    "institutions.jsonl": "institution.schema.json",
+    "sources.jsonl": "source.schema.json",
+    "datasets.jsonl": "dataset.schema.json",
+    "data_structures.jsonl": "data_structure.schema.json",
+    "resources.jsonl": "resource.schema.json",
+    "data_elements.jsonl": "data_element.schema.json",
+    "variables.jsonl": "variable.schema.json",
+    "constructs.jsonl": "construct.schema.json",
+    "relationships.jsonl": "relationship.schema.json",
+    "adapters.jsonl": "adapter.schema.json",
+    "storage.jsonl": "storage.schema.json",
+    "monitors.jsonl": "monitor.schema.json",
+    "source_profiles.jsonl": "source_profile.schema.json",
+    "semantic_nodes.jsonl": "semantic_node.schema.json",
+}
+REGISTRY_PREFIXES = {
+    "grdr:institution:": "institutions.jsonl",
+    "grdr:source-profile:": "source_profiles.jsonl",
+    "grdr:source:": "sources.jsonl",
+    "grdr:dataset:": "datasets.jsonl",
+    "grdr:data-structure:": "data_structures.jsonl",
+    "grdr:resource:": "resources.jsonl",
+    "grdr:data-element:": "data_elements.jsonl",
+    "grdr:variable:": "variables.jsonl",
+    "grdr:construct:": "constructs.jsonl",
+    "grdr:relationship:": "relationships.jsonl",
+    "grdr:adapter:": "adapters.jsonl",
+    "grdr:storage:": "storage.jsonl",
+    "grdr:monitor:": "monitors.jsonl",
+    "grdr:semantic-node:": "semantic_nodes.jsonl",
+}
 
 
 def now() -> str:
@@ -122,6 +158,33 @@ def fingerprint(value: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def pipeline_contract() -> dict[str, Any]:
+    return {
+        "contract_version": "3.0.0",
+        "steps": [
+            {
+                "step": "plan",
+                "skill": "grdr-plan-database-deep-map",
+                "output": "locked_deep_map_project",
+            },
+            {
+                "step": "execute",
+                "skill": "grdr-execute-database-deep-map",
+                "output": "staged_deep_map_records",
+            },
+            {
+                "step": "archive",
+                "skill": "grdr-archive-database-deep-map",
+                "output": "canonical_registry_archive",
+            },
+        ],
+        "step_isolation": True,
+        "staged_before_archive": True,
+        "canonical_writes_archive_only": True,
+        "fingerprinted_handoffs": True,
+    }
+
+
 def plan_lock_payload(plan: dict[str, Any]) -> dict[str, Any]:
     gates = [
         {key: gate.get(key) for key in ("gate", "reason", "required_before")}
@@ -151,7 +214,7 @@ def unit_manifest_payload(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def execution_contract() -> dict[str, Any]:
     return {
-        "contract_version": "2.0.0",
+        "contract_version": "3.0.0",
         "unknown_database_diagnosis": True,
         "scope_lock": True,
         "deterministic_queue": True,
@@ -160,6 +223,8 @@ def execution_contract() -> dict[str, Any]:
         "dual_spine_completion": True,
         "evidence_only_completion": True,
         "external_blocker_transparency": True,
+        "staging_only_execution": True,
+        "archive_only_canonical_write": True,
     }
 
 
@@ -223,7 +288,11 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 - 路线契约验收：**{progress['contract_check_percentage']}%**（{progress['closed_contract_checks']} / {progress['required_contract_checks']}）
 - 双主干与桥梁严格完成度：**{progress['dual_spine_percentage']}%**（{progress['closed_spines']} / {progress['required_spines']}）
 - 全部阶段及双主干完成的工作单元：{progress['fully_closed_work_units']} / {progress['work_units']}
+- 可进入 Step 3 归档：`{str(audit['execution_ready_for_archive']).lower()}`
 - 可声明完成：`{str(audit['completion_ready']).lower()}`
+- 三步生产线：`plan → execute → archive`
+- 当前暂存记录：{audit['staging']['record_count']}（状态：`{audit['staging']['state']}`）
+- 归档包：`{str(audit['staging']['archive_package_present']).lower()}`；归档回执：`{str(audit['staging']['archive_receipt_present']).lower()}`
 - 执行契约：`{project['execution_contract']['contract_version']}`（全部硬约束：`{str(all(value is True for key, value in project['execution_contract'].items() if key != 'contract_version')).lower()}`）
 - 计划锁：`{project['locks']['plan_fingerprint']}`
 - 范围锁：`{project['locks']['scope_fingerprint']}`
@@ -296,13 +365,180 @@ def require_project(path: Path) -> None:
         raise ValueError(f"incomplete database deep-map project {path}: missing {', '.join(missing)}")
 
 
-def registry_index() -> dict[str, dict[str, Any]]:
-    records = {}
+def canonical_collections() -> dict[str, list[dict[str, Any]]]:
+    return {
+        filename: read_jsonl(ROOT / "registry" / filename)
+        for filename in REGISTRY_FILES
+    }
+
+
+def empty_staging_manifest(project: dict[str, Any], timestamp: str) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0.0",
+        "project_id": project["id"],
+        "source_id": project["source_id"],
+        "state": "open",
+        "records": [],
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    }
+
+
+def ensure_staging_manifest(target: Path, project: dict[str, Any]) -> dict[str, Any]:
+    path = target / STAGING_MANIFEST_FILE
+    if path.is_file():
+        return read_json(path)
+    manifest = empty_staging_manifest(project, now())
+    write_json(path, manifest)
+    return manifest
+
+
+def staged_collections(target: Path) -> dict[str, list[dict[str, Any]]]:
+    directory = target / STAGING_DIR
+    return {
+        filename: read_jsonl(directory / filename) if (directory / filename).is_file() else []
+        for filename in REGISTRY_FILES
+    }
+
+
+def merged_collections(target: Path | None = None) -> dict[str, list[dict[str, Any]]]:
+    canonical = canonical_collections()
+    if target is None:
+        return canonical
+    staged = staged_collections(target)
+    merged: dict[str, list[dict[str, Any]]] = {}
     for filename in REGISTRY_FILES:
-        path = ROOT / "registry" / filename
-        for record in read_jsonl(path):
+        by_id = {record["id"]: record for record in canonical[filename]}
+        order = [record["id"] for record in canonical[filename]]
+        for record in staged[filename]:
+            if record["id"] not in by_id:
+                order.append(record["id"])
+            by_id[record["id"]] = record
+        merged[filename] = [by_id[record_id] for record_id in order]
+    return merged
+
+
+def registry_index(target: Path | None = None) -> dict[str, dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    for collection in merged_collections(target).values():
+        for record in collection:
             records[record["id"]] = record
     return records
+
+
+def registry_file_for_record(record: dict[str, Any]) -> str:
+    record_id = record.get("id")
+    if not isinstance(record_id, str):
+        raise ValueError("staged record requires a canonical id")
+    for prefix, filename in REGISTRY_PREFIXES.items():
+        if record_id.startswith(prefix):
+            return filename
+    raise ValueError(f"unsupported staged canonical id type: {record_id}")
+
+
+def read_record_batch(path: Path) -> list[dict[str, Any]]:
+    raw = path.read_text(encoding="utf-8")
+    stripped = raw.strip()
+    if not stripped:
+        raise ValueError("staged record batch is empty")
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError:
+        values = [json.loads(line) for line in raw.splitlines() if line.strip()]
+    else:
+        values = parsed if isinstance(parsed, list) else [parsed]
+    if not isinstance(values, list) or not all(isinstance(item, dict) for item in values):
+        raise ValueError("staged record batch must be a JSON object, JSON array, or JSONL objects")
+    record_ids = [item.get("id") for item in values]
+    duplicates = sorted({item for item in record_ids if record_ids.count(item) > 1}, key=str)
+    if duplicates:
+        raise ValueError("staged record batch contains duplicate IDs: " + ", ".join(duplicates))
+    return values
+
+
+def collection_name(filename: str) -> str:
+    return filename.removesuffix(".jsonl")
+
+
+def validate_merged_registry(target: Path) -> list[str]:
+    from validate_registry import validate_integrity, validate_with_jsonschema
+
+    collections = {
+        collection_name(filename): records
+        for filename, records in merged_collections(target).items()
+    }
+    return validate_with_jsonschema(collections) + validate_integrity(collections)
+
+
+def execution_ledger_fingerprint(units: list[dict[str, Any]], checks: list[dict[str, Any]]) -> str:
+    return fingerprint({"units": units, "checks": checks})
+
+
+def staging_manifest_fingerprint(manifest: dict[str, Any]) -> str:
+    return fingerprint({
+        key: value
+        for key, value in manifest.items()
+        if key not in {"state", "updated_at"}
+    })
+
+
+def archive_package_payload(
+    project: dict[str, Any],
+    units: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+    manifest: dict[str, Any],
+    timestamp: str,
+) -> dict[str, Any]:
+    counts = {
+        filename: sum(item["registry_file"] == filename for item in manifest["records"])
+        for filename in REGISTRY_FILES
+    }
+    package = {
+        "schema_version": "1.0.0",
+        "project_id": project["id"],
+        "source_id": project["source_id"],
+        "plan_fingerprint": project["locks"]["plan_fingerprint"],
+        "scope_fingerprint": project["locks"]["scope_fingerprint"],
+        "unit_manifest_fingerprint": project["locks"]["unit_manifest_fingerprint"],
+        "execution_ledger_fingerprint": execution_ledger_fingerprint(units, checks),
+        "staging_manifest_fingerprint": staging_manifest_fingerprint(manifest),
+        "record_count": len(manifest["records"]),
+        "collection_counts": {key: value for key, value in counts.items() if value},
+        "prepared_at": timestamp,
+    }
+    package["package_fingerprint"] = fingerprint(package)
+    return package
+
+
+def archive_receipt_is_valid(target: Path, project: dict[str, Any]) -> bool:
+    package_path = target / ARCHIVE_PACKAGE_FILE
+    receipt_path = target / ARCHIVE_RECEIPT_FILE
+    if not package_path.is_file() or not receipt_path.is_file():
+        return False
+    try:
+        package = read_json(package_path)
+        receipt = read_json(receipt_path)
+        units = read_jsonl(target / UNIT_FILE)
+        checks = read_jsonl(target / CHECK_FILE)
+        manifest = read_json(target / STAGING_MANIFEST_FILE)
+        return (
+            not validate_schema(package, "database_deep_map_archive_package.schema.json", ARCHIVE_PACKAGE_FILE)
+            and not validate_schema(receipt, "database_deep_map_archive_receipt.schema.json", ARCHIVE_RECEIPT_FILE)
+            and package.get("project_id") == project["id"]
+            and package.get("source_id") == project["source_id"]
+            and receipt.get("project_id") == project["id"]
+            and receipt.get("source_id") == project["source_id"]
+            and receipt.get("package_fingerprint") == package.get("package_fingerprint")
+            and package.get("plan_fingerprint") == project["locks"]["plan_fingerprint"]
+            and package.get("scope_fingerprint") == project["locks"]["scope_fingerprint"]
+            and package.get("unit_manifest_fingerprint") == project["locks"]["unit_manifest_fingerprint"]
+            and package.get("execution_ledger_fingerprint") == execution_ledger_fingerprint(units, checks)
+            and package.get("staging_manifest_fingerprint") == staging_manifest_fingerprint(manifest)
+            and receipt.get("receipt_fingerprint")
+            == fingerprint({key: value for key, value in receipt.items() if key != "receipt_fingerprint"})
+        )
+    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+        return False
 
 
 def evidence_from(record: dict[str, Any]) -> list[dict[str, Any]]:
@@ -687,17 +923,78 @@ def phase_errors(project: dict[str, Any], name: str, value: dict[str, Any]) -> l
     return errors
 
 
+def staging_errors(target: Path, project: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
+    errors = validate_schema(
+        manifest,
+        "database_deep_map_staging_manifest.schema.json",
+        STAGING_MANIFEST_FILE,
+    )
+    if manifest.get("project_id") != project["id"]:
+        errors.append("staging manifest project_id does not match the project")
+    if manifest.get("source_id") != project["source_id"]:
+        errors.append("staging manifest source_id does not match the project")
+    staged = staged_collections(target)
+    staged_by_id = {
+        record["id"]: (filename, record)
+        for filename, records in staged.items()
+        for record in records
+    }
+    canonical = registry_index()
+    manifest_ids = [item["id"] for item in manifest.get("records", [])]
+    if len(manifest_ids) != len(set(manifest_ids)):
+        errors.append("staging manifest contains duplicate record IDs")
+    if set(manifest_ids) != set(staged_by_id):
+        missing = sorted(set(staged_by_id) - set(manifest_ids))
+        extra = sorted(set(manifest_ids) - set(staged_by_id))
+        if missing:
+            errors.append("staging manifest omits staged IDs: " + ", ".join(missing))
+        if extra:
+            errors.append("staging manifest references missing staged IDs: " + ", ".join(extra))
+    for item in manifest.get("records", []):
+        staged_item = staged_by_id.get(item["id"])
+        if staged_item is None:
+            continue
+        filename, record = staged_item
+        if item["registry_file"] != filename:
+            errors.append(f"{item['id']}: staging manifest registry_file does not match its file")
+        if item["staged_fingerprint"] != fingerprint(record):
+            errors.append(f"{item['id']}: staged fingerprint is stale")
+        canonical_record = canonical.get(item["id"])
+        if manifest.get("state") == "archived":
+            if canonical_record != record:
+                errors.append(f"{item['id']}: archived staged record no longer matches canonical state")
+        else:
+            expected_base = fingerprint(canonical_record) if canonical_record is not None else None
+            if item["base_fingerprint"] != expected_base:
+                errors.append(f"{item['id']}: staging base fingerprint no longer matches canonical state")
+            expected_action = (
+                "create" if canonical_record is None
+                else "unchanged" if canonical_record == record
+                else "update"
+            )
+            if item["action"] != expected_action:
+                errors.append(f"{item['id']}: staging action should be {expected_action}, not {item['action']}")
+        errors.extend(validate_schema(record, REGISTRY_SCHEMAS[filename], f"staging/{filename}:{item['id']}"))
+    return errors
+
+
 def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     require_project(target)
     project = read_json(target / PROJECT_FILE)
     units = read_jsonl(target / UNIT_FILE)
     checks = read_jsonl(target / CHECK_FILE)
+    manifest_path = target / STAGING_MANIFEST_FILE
+    manifest = read_json(manifest_path) if manifest_path.is_file() else empty_staging_manifest(project, project["created_at"])
     contracts = load_contracts()
     route_ids = set(contract_index(contracts))
-    known_records = registry_index()
+    known_records = registry_index(target)
     known_ids = set(known_records)
     errors = validate_schema(project, "database_deep_map_project.schema.json", PROJECT_FILE)
+    if not manifest_path.is_file():
+        errors.append(f"missing required {STAGING_MANIFEST_FILE}")
+    else:
+        errors.extend(staging_errors(target, project, manifest))
     plan_audit = audit_database_deep_map_plan(project.get("diagnostic_plan", {}))
     errors.extend(f"diagnostic_plan: {item}" for item in plan_audit["errors"])
     warnings = []
@@ -818,15 +1115,17 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         if item["status"] in {"pending", "rejected"}
     ]
     plan_ready = project["diagnostic_plan"]["plan_status"] == "ready" and not project["diagnostic_plan"]["unresolved_critical"]
-    completion_ready = (
+    execution_ready_for_archive = (
         not errors and plan_ready and not unresolved_gates
         and core_phases_closed and total > 0 and closed == total and blocked == 0
         and required_spines and closed_spines == len(required_spines) and blocked_spines == 0
         and required_checks and closed_checks == len(required_checks)
         and blocked_checks == failed_checks == human_checks == 0
     )
+    archive_complete = archive_receipt_is_valid(target, project)
+    completion_ready = execution_ready_for_archive and archive_complete
     if project["workflow_status"] == "complete" and not completion_ready:
-        errors.append("project is marked complete but the strict completion contract is not satisfied")
+        errors.append("project is marked complete but the strict execution and archive contracts are not satisfied")
     if mapped == total and closed < total:
         warnings.append("All required unit stages are mapped, but one or more still lack full verification.")
     if expected_units is None:
@@ -835,11 +1134,15 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         warnings.append("Diagnostic plan retains critical unresolved dimensions; classification or boundary work must continue.")
     if unresolved_gates:
         warnings.append("Diagnostic plan retains human gates; protected operations and final completion remain unavailable.")
-    queue = [] if errors else action_queue(project, units, checks)
+    queue = [] if errors or project["workflow_status"] in {"ready_for_archive", "complete"} else action_queue(project, units, checks)
     if queue:
         effective_next_actions = [queue[0]["command"]]
-    elif completion_ready:
-        effective_next_actions = ["complete-database-deep-map"]
+    elif project["workflow_status"] == "complete":
+        effective_next_actions = ["database-deep-map-archive-status"]
+    elif (target / ARCHIVE_PACKAGE_FILE).is_file() and execution_ready_for_archive:
+        effective_next_actions = ["archive-database-deep-map"]
+    elif execution_ready_for_archive:
+        effective_next_actions = ["prepare-database-deep-map-archive"]
     else:
         effective_next_actions = project["next_actions"]
     return {
@@ -847,6 +1150,14 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "source_id": project["source_id"], "workflow_status": project["workflow_status"],
         "current_phase": project["current_phase"], "scope": project["scope"],
         "execution_contract": project["execution_contract"], "execution_locks": project["locks"],
+        "pipeline_contract": project["pipeline_contract"],
+        "staging": {
+            "state": manifest["state"],
+            "record_count": len(manifest["records"]),
+            "manifest_fingerprint": staging_manifest_fingerprint(manifest),
+            "archive_package_present": (target / ARCHIVE_PACKAGE_FILE).is_file(),
+            "archive_receipt_present": (target / ARCHIVE_RECEIPT_FILE).is_file(),
+        },
         "database_profile": project["database_profile"],
         "diagnostic_plan": {
             "plan_status": project["diagnostic_plan"]["plan_status"],
@@ -872,7 +1183,10 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "dual_spine_percentage": round((closed_spines / len(required_spines)) * 100, 2) if required_spines else 0.0,
         },
         "stage_summary": stage_summary, "spine_summary": spine_summary,
-        "phase_states": project["phase_states"], "completion_ready": completion_ready,
+        "phase_states": project["phase_states"],
+        "execution_ready_for_archive": execution_ready_for_archive,
+        "archive_complete": archive_complete,
+        "completion_ready": completion_ready,
         "errors": errors, "warnings": warnings, "next_target": queue[0] if queue else None,
         "queue_preview": queue[:10], "next_actions": effective_next_actions,
         "report_path": str(target / REPORT_FILE),
@@ -962,9 +1276,10 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     if plan_expected is not None and spec["scope"]["expected_work_unit_count"] != plan_expected:
         raise ValueError("start expected work-unit count does not match the diagnostic plan")
     project = {
-        "schema_version": "2.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
+        "schema_version": "3.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
         "database_profile": {**spec["database_profile"], "route_modules": diagnostic_plan["selected_route_modules"]},
         "diagnostic_plan": diagnostic_plan, "scope": spec["scope"],
+        "pipeline_contract": pipeline_contract(),
         "execution_contract": execution_contract(),
         "phase_states": {
             "identity": phase_state("verified_complete" if source["verification"]["status"] == "verified" else "mapped_complete", timestamp, "Canonical GRDR Source identity and official evidence are registered.", source_evidence),
@@ -989,6 +1304,7 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
         project["current_phase"] = "deep_mapping"
     target.mkdir(parents=True)
     write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+    write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, timestamp))
     audit = audit_database_deep_map(target)
     if audit["errors"]:
         raise ValueError("created project failed audit: " + "; ".join(audit["errors"]))
@@ -1011,6 +1327,13 @@ def infer_content_modalities(archetypes: list[str]) -> list[str]:
     return result or ["composite"]
 
 
+def normalize_pipeline_workflow(project: dict[str, Any]) -> None:
+    if project.get("workflow_status") in {"ready_for_completion", "complete"}:
+        project["workflow_status"] = "ready_for_archive"
+        project["current_phase"] = "archive"
+        project["next_actions"] = ["prepare-database-deep-map-archive"]
+
+
 def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     for name in (PROJECT_FILE, UNIT_FILE):
@@ -1025,6 +1348,29 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         and project.get("diagnostic_plan", {}).get("route_contract_version") == current_contract_version
         and (target / CHECK_FILE).is_file()
     ):
+        original_project = json.loads(json.dumps(project))
+        timestamp = now()
+        project["schema_version"] = "3.0.0"
+        project["pipeline_contract"] = pipeline_contract()
+        project["execution_contract"] = execution_contract()
+        normalize_pipeline_workflow(project)
+        append_history(project, "upgrade-database-deep-map", "Split the monolithic deep-map workflow into locked Plan, staged Execute, and canonical Archive steps.")
+        write_json(target / PROJECT_FILE, project)
+        write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, timestamp))
+        audit = audit_database_deep_map(target)
+        if audit["errors"]:
+            write_json(target / PROJECT_FILE, original_project)
+            (target / STAGING_MANIFEST_FILE).unlink(missing_ok=True)
+            raise ValueError("three-step pipeline upgrade failed audit: " + "; ".join(audit["errors"]))
+        sync_report(target, project, audit)
+        return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_three_step_pipeline", "audit": audit}
+    if (
+        project.get("schema_version") == "3.0.0"
+        and project.get("diagnostic_plan", {}).get("route_contract_version") == current_contract_version
+        and (target / CHECK_FILE).is_file()
+    ):
+        if not (target / STAGING_MANIFEST_FILE).is_file():
+            write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, now()))
         checks = read_jsonl(target / CHECK_FILE)
         original_checks = json.loads(json.dumps(checks))
         original_project = json.loads(json.dumps(project))
@@ -1058,8 +1404,10 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         project["diagnostic_plan"]["required_facets"] = merge_facets(selected, routes)
         project["diagnostic_plan"]["generated_at"] = timestamp
         project["database_profile"]["route_modules"] = selected
-        project["schema_version"] = "2.0.0"
+        project["schema_version"] = "3.0.0"
+        project["pipeline_contract"] = pipeline_contract()
         project["execution_contract"] = execution_contract()
+        normalize_pipeline_workflow(project)
         for unit in units:
             unit["schema_version"] = "2.0.0"
             unit["route_modules"] = list(dict.fromkeys(["core_metadata", *unit["route_modules"]]))
@@ -1079,6 +1427,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         project["locks"] = build_locks(project, units, timestamp)
         append_history(project, "upgrade-database-deep-map", "Upgraded to the locked dual-spine execution contract and current route checks.")
         write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+        write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, timestamp))
         audit = audit_database_deep_map(target)
         if audit["errors"]:
             write_json(target / PROJECT_FILE, original_project); write_jsonl(target / UNIT_FILE, original_units); write_jsonl(target / CHECK_FILE, original_checks)
@@ -1087,7 +1436,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_dual_spine", "check_count": len(checks), "audit": audit}
     original_project = json.loads(json.dumps(project))
     original_units = json.loads(json.dumps(units))
-    records = registry_index()
+    records = registry_index(target)
     source = records.get(project["source_id"])
     if source is None:
         raise ValueError(f"cannot upgrade; unknown source {project['source_id']}")
@@ -1128,10 +1477,12 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "evidence": plan_evidence,
     }
     diagnostic_plan = build_database_deep_map_plan_from_intake(intake)
-    project["schema_version"] = "2.0.0"
+    project["schema_version"] = "3.0.0"
     project["diagnostic_plan"] = diagnostic_plan
     project["database_profile"]["route_modules"] = diagnostic_plan["selected_route_modules"]
+    project["pipeline_contract"] = pipeline_contract()
     project["execution_contract"] = execution_contract()
+    normalize_pipeline_workflow(project)
     timestamp = now()
     for unit in units:
         unit["schema_version"] = "2.0.0"
@@ -1151,6 +1502,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             check.update({"state": "passed", "completion_basis": "The dated boundary and work-unit denominator were verified before migration.", "evidence": boundary_evidence, "updated_at": timestamp})
     project["locks"] = build_locks(project, units, timestamp)
     write_json(target / PROJECT_FILE, project); write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
+    write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, timestamp))
     audit = audit_database_deep_map(target)
     if audit["errors"]:
         write_json(target / PROJECT_FILE, original_project); write_jsonl(target / UNIT_FILE, original_units)
@@ -1225,7 +1577,7 @@ def record_database_deep_map_spine(project_dir: str | Path, update_file: str | P
     unit = next((item for item in units if item["id"] == update["unit_id"]), None)
     if unit is None:
         raise ValueError(f"unknown unit_id {update['unit_id']}")
-    records = registry_index()
+    records = registry_index(target)
     unknown_ids = [item for item in [*update["node_ids"], *update["edge_ids"]] if item not in records]
     if unknown_ids:
         raise ValueError("spine update references unknown canonical IDs: " + ", ".join(sorted(unknown_ids)))
@@ -1354,6 +1706,92 @@ def record_database_deep_map_human_gate(
     return {"operation": "record_database_deep_map_human_gate", "gate": gate_id, "decision": decision, "reviewer": reviewer, "audit": audit}
 
 
+def stage_database_deep_map_records(project_dir: str | Path, records_file: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir); require_project(target)
+    project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
+    manifest = ensure_staging_manifest(target, project); original_manifest = json.loads(json.dumps(manifest))
+    if manifest["state"] != "open" or (target / ARCHIVE_PACKAGE_FILE).exists():
+        raise ValueError("execution staging is sealed; create a new bounded pass instead of changing an archive handoff")
+    batch = read_record_batch(Path(records_file).expanduser().resolve())
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for record in batch:
+        filename = registry_file_for_record(record)
+        errors = validate_schema(record, REGISTRY_SCHEMAS[filename], f"staged_record:{record.get('id')}")
+        if errors:
+            raise ValueError("; ".join(errors))
+        grouped.setdefault(filename, []).append(record)
+    original_files: dict[str, list[dict[str, Any]] | None] = {}
+    directory = target / STAGING_DIR
+    canonical = registry_index()
+    manifest_by_id = {item["id"]: item for item in manifest["records"]}
+    timestamp = now()
+    for filename, records in grouped.items():
+        path = directory / filename
+        current = read_jsonl(path) if path.is_file() else []
+        original_files[filename] = json.loads(json.dumps(current)) if path.is_file() else None
+        by_id = {item["id"]: item for item in current}
+        order = [item["id"] for item in current]
+        for record in records:
+            record_id = record["id"]
+            if record_id not in by_id:
+                order.append(record_id)
+            by_id[record_id] = record
+            canonical_record = canonical.get(record_id)
+            existing_manifest = manifest_by_id.get(record_id)
+            base_fingerprint = (
+                existing_manifest["base_fingerprint"]
+                if existing_manifest is not None
+                else fingerprint(canonical_record) if canonical_record is not None else None
+            )
+            action = (
+                "create" if canonical_record is None
+                else "unchanged" if canonical_record == record
+                else "update"
+            )
+            manifest_by_id[record_id] = {
+                "id": record_id,
+                "registry_file": filename,
+                "action": action,
+                "base_fingerprint": base_fingerprint,
+                "staged_fingerprint": fingerprint(record),
+                "staged_at": timestamp,
+            }
+        write_jsonl(path, [by_id[record_id] for record_id in order])
+    manifest["records"] = sorted(
+        manifest_by_id.values(),
+        key=lambda item: (REGISTRY_FILES.index(item["registry_file"]), item["id"]),
+    )
+    manifest["updated_at"] = timestamp
+    write_json(target / STAGING_MANIFEST_FILE, manifest)
+    project["workflow_status"] = "in_progress"; project["current_phase"] = "deep_mapping"
+    project["next_actions"] = ["database-deep-map-status", "resume-database-deep-map"]
+    append_history(project, "stage-database-deep-map-records", f"Staged {len(batch)} canonical candidate records for Step 3 archival review.")
+    write_json(target / PROJECT_FILE, project)
+    errors = staging_errors(target, project, manifest) + validate_merged_registry(target)
+    if not errors:
+        audit = audit_database_deep_map(target)
+        errors.extend(audit["errors"])
+    if errors:
+        for filename, original in original_files.items():
+            path = directory / filename
+            if original is None:
+                path.unlink(missing_ok=True)
+            else:
+                write_jsonl(path, original)
+        write_json(target / STAGING_MANIFEST_FILE, original_manifest)
+        write_json(target / PROJECT_FILE, original_project)
+        raise ValueError("staged records failed validation: " + "; ".join(errors))
+    sync_report(target, project, audit)
+    return {
+        "operation": "stage_database_deep_map_records",
+        "project_id": project["id"],
+        "staged_record_ids": [item["id"] for item in batch],
+        "staging_record_count": len(manifest["records"]),
+        "manifest_fingerprint": staging_manifest_fingerprint(manifest),
+        "audit": audit,
+    }
+
+
 def action_queue(project: dict[str, Any], units: list[dict[str, Any]], checks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     queue = []
     pending_gates = [item for item in project["diagnostic_plan"]["human_gates"] if item["status"] == "pending"]
@@ -1472,10 +1910,10 @@ def resume_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             target_label = queue[0].get("upstream_id") or queue[0].get("phase") or queue[0].get("facet_id") or queue[0].get("gate")
             target_stage = queue[0].get("stage") or queue[0].get("phase") or queue[0].get("required_before")
             summary = f"Next target: {target_label} / {target_stage}."
-        elif audit["completion_ready"]:
-            project["workflow_status"] = "ready_for_completion"; project["current_phase"] = "validation"
-            project["next_actions"] = ["complete-database-deep-map"]
-            summary = "All bounded work-unit stages are verified or evidenced as not applicable; run final completion gates."
+        elif audit["execution_ready_for_archive"]:
+            project["workflow_status"] = "ready_for_archive"; project["current_phase"] = "archive"
+            project["next_actions"] = ["prepare-database-deep-map-archive"]
+            summary = "Step 2 execution is closed; seal the fingerprinted handoff package for Step 3 archival review."
         else:
             project["workflow_status"] = "in_progress"; project["current_phase"] = "validation"
             project["next_actions"] = ["record-database-deep-map-phase"]
@@ -1489,38 +1927,251 @@ def database_deep_map_status(project_dir: str | Path) -> dict[str, Any]:
     return {**audit_database_deep_map(project_dir), "operation": "database_deep_map_status"}
 
 
-def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
+def prepare_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]:
     target = resolve_project_dir(project_dir); require_project(target)
     project = read_json(target / PROJECT_FILE)
+    original_project = json.loads(json.dumps(project))
+    manifest = ensure_staging_manifest(target, project)
+    original_manifest = json.loads(json.dumps(manifest))
     audit = audit_database_deep_map(target)
     early_open = [name for name in EARLY_PHASES if project["phase_states"][name]["state"] not in CLOSED_STATES]
     if early_open:
-        raise ValueError("cannot complete; unclosed project phases: " + ", ".join(early_open))
-    if not audit["completion_ready"]:
-        raise ValueError("cannot complete; strict unit-stage, dual-spine, route-contract, execution-lock, diagnostic-plan, or human-gate requirements are not satisfied")
-    try:
-        import jsonschema  # noqa: F401
-    except ImportError as exc:
-        raise ValueError("cannot complete; strict JSON Schema validation requires the jsonschema package") from exc
-    checks = [
-        [sys.executable, str(ROOT / "scripts" / "validate_registry.py")],
-        [sys.executable, str(ROOT / "scripts" / "build_catalog.py"), "--check"],
-    ]
-    evidence = []
-    for command in checks:
-        completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
-        if completed.returncode:
-            raise ValueError(f"completion validation failed: {' '.join(command)}: {completed.stderr or completed.stdout}")
-        evidence.append(completed.stdout.strip())
+        raise ValueError("cannot prepare archive; unclosed project phases: " + ", ".join(early_open))
+    if not audit["execution_ready_for_archive"]:
+        raise ValueError("cannot prepare archive; strict unit-stage, dual-spine, route-contract, execution-lock, diagnostic-plan, or human-gate requirements are not satisfied")
+    errors = validate_merged_registry(target)
+    if errors:
+        raise ValueError("cannot prepare archive; staged registry package is invalid: " + "; ".join(errors))
+    units = read_jsonl(target / UNIT_FILE)
+    checks = read_jsonl(target / CHECK_FILE)
     timestamp = now()
-    project["phase_states"]["deep_mapping"] = phase_state("verified_complete", timestamp, "Every required stage plus the structural spine, disciplinary spine, and variable bridge for every bounded work unit is verified or evidenced as not applicable.", project["phase_states"]["boundary"]["evidence"])
-    project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "Canonical registry validation and human-catalog drift checks passed.", project["phase_states"]["boundary"]["evidence"])
-    project["phase_states"]["completion_audit"] = phase_state("verified_complete", timestamp, "Strict bounded completion audit passed with no open or blocked required stages.", project["phase_states"]["boundary"]["evidence"])
-    project["workflow_status"] = "complete"; project["current_phase"] = "complete"; project["next_actions"] = ["database-deep-map-status"]
-    append_history(project, "complete-database-deep-map", "Declared bounded database deep map complete after strict gates passed.")
+    manifest["state"] = "sealed"; manifest["updated_at"] = timestamp
+    package = archive_package_payload(project, units, checks, manifest, timestamp)
+    write_json(target / STAGING_MANIFEST_FILE, manifest)
+    write_json(target / ARCHIVE_PACKAGE_FILE, package)
+    project["phase_states"]["deep_mapping"] = phase_state("verified_complete", timestamp, "Step 2 closed every required stage, structural spine, disciplinary spine, variable bridge, and route obligation within the locked boundary.", project["phase_states"]["boundary"]["evidence"])
+    project["phase_states"]["validation"] = phase_state("in_progress", timestamp)
+    project["workflow_status"] = "ready_for_archive"; project["current_phase"] = "archive"
+    project["next_actions"] = ["database-deep-map-archive-status", "archive-database-deep-map"]
+    append_history(project, "prepare-database-deep-map-archive", "Sealed the fingerprinted Step 2 handoff package for Step 3 archival review.")
     write_json(target / PROJECT_FILE, project)
-    final_audit = audit_database_deep_map(target)
-    if final_audit["errors"]:
-        raise ValueError("completed project failed final audit: " + "; ".join(final_audit["errors"]))
+    package_audit = audit_database_deep_map_archive(target)
+    if package_audit["errors"]:
+        write_json(target / STAGING_MANIFEST_FILE, original_manifest)
+        write_json(target / PROJECT_FILE, original_project)
+        (target / ARCHIVE_PACKAGE_FILE).unlink(missing_ok=True)
+        raise ValueError("archive preparation failed audit: " + "; ".join(package_audit["errors"]))
+    sync_report(target, project, audit_database_deep_map(target))
+    return {
+        "operation": "prepare_database_deep_map_archive",
+        "project_id": project["id"],
+        "workflow_status": "ready_for_archive",
+        "archive_package": str(target / ARCHIVE_PACKAGE_FILE),
+        "package_fingerprint": package["package_fingerprint"],
+        "archive_audit": package_audit,
+    }
+
+
+def audit_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir); require_project(target)
+    project = read_json(target / PROJECT_FILE)
+    manifest_path = target / STAGING_MANIFEST_FILE
+    if manifest_path.is_file():
+        manifest = read_json(manifest_path)
+    else:
+        manifest = empty_staging_manifest(project, project["created_at"])
+    package_path = target / ARCHIVE_PACKAGE_FILE
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not package_path.is_file():
+        errors.append(f"missing {ARCHIVE_PACKAGE_FILE}; Step 2 must prepare the archive handoff first")
+        package = None
+    else:
+        package = read_json(package_path)
+        errors.extend(validate_schema(package, "database_deep_map_archive_package.schema.json", ARCHIVE_PACKAGE_FILE))
+    execution_audit = audit_database_deep_map(target)
+    errors.extend(execution_audit["errors"])
+    if not execution_audit["execution_ready_for_archive"]:
+        errors.append("Step 2 execution is not ready for archive")
+    if not manifest_path.is_file():
+        errors.append(f"missing {STAGING_MANIFEST_FILE}")
+    if manifest["state"] not in {"sealed", "archived"}:
+        errors.append("staging manifest is not sealed")
+    errors.extend(validate_merged_registry(target))
+    canonical = registry_index()
+    staged = registry_index(target)
+    archive_complete = archive_receipt_is_valid(target, project)
+    for item in manifest["records"]:
+        canonical_record = canonical.get(item["id"])
+        staged_record = staged.get(item["id"])
+        if staged_record is None:
+            errors.append(f"{item['id']}: staged record is missing")
+            continue
+        if manifest["state"] == "archived":
+            if canonical_record != staged_record:
+                errors.append(f"{item['id']}: archived record no longer matches canonical content")
+            continue
+        if item["action"] == "create" and canonical_record is not None:
+            errors.append(f"{item['id']}: canonical create conflict; the ID now exists")
+        if item["action"] in {"update", "unchanged"}:
+            if canonical_record is None:
+                errors.append(f"{item['id']}: canonical base record disappeared")
+            elif fingerprint(canonical_record) != item["base_fingerprint"]:
+                errors.append(f"{item['id']}: canonical base fingerprint changed after staging")
+        if item["action"] == "unchanged" and canonical_record != staged_record:
+            errors.append(f"{item['id']}: unchanged action no longer matches canonical content")
+    if package is not None:
+        units = read_jsonl(target / UNIT_FILE); checks = read_jsonl(target / CHECK_FILE)
+        prepared_at = package.get("prepared_at")
+        if isinstance(prepared_at, str):
+            expected = archive_package_payload(project, units, checks, manifest, prepared_at)
+            for key in (
+                "project_id", "source_id", "plan_fingerprint", "scope_fingerprint",
+                "unit_manifest_fingerprint", "execution_ledger_fingerprint",
+                "staging_manifest_fingerprint", "record_count", "collection_counts",
+                "package_fingerprint",
+            ):
+                if package.get(key) != expected.get(key):
+                    errors.append(f"archive package {key} is stale or mismatched")
+    if manifest["state"] == "archived" and not archive_complete:
+        errors.append("archive receipt is missing, invalid, or stale")
+    if package is not None and not manifest["records"]:
+        warnings.append("Archive package contains no new or updated staged records; it seals a project whose referenced records are already canonical.")
+    return {
+        "operation": "audit_database_deep_map_archive",
+        "project_id": project["id"],
+        "project_dir": str(target),
+        "ready_to_archive": manifest["state"] == "sealed" and not errors,
+        "archive_complete": archive_complete,
+        "staging_state": manifest["state"],
+        "record_count": len(manifest["records"]),
+        "actions": {
+            action: sum(item["action"] == action for item in manifest["records"])
+            for action in ("create", "update", "unchanged")
+        },
+        "package_fingerprint": package.get("package_fingerprint") if package else None,
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
+def database_deep_map_archive_status(project_dir: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir)
+    result = audit_database_deep_map_archive(target)
+    receipt_path = target / ARCHIVE_RECEIPT_FILE
+    result["archive_receipt_present"] = receipt_path.is_file()
+    result["archived"] = result["archive_complete"]
+    result["archive_receipt"] = str(receipt_path) if receipt_path.is_file() else None
+    return {**result, "operation": "database_deep_map_archive_status"}
+
+
+def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
+    target = resolve_project_dir(project_dir); require_project(target)
+    existing_project = read_json(target / PROJECT_FILE)
+    if archive_receipt_is_valid(target, existing_project):
+        existing_receipt = read_json(target / ARCHIVE_RECEIPT_FILE)
+        return {
+            "operation": "archive_database_deep_map",
+            "project_id": existing_project["id"],
+            "workflow_status": "complete",
+            "status": "already_archived",
+            "archive_receipt": str(target / ARCHIVE_RECEIPT_FILE),
+            "receipt": existing_receipt,
+            "audit": audit_database_deep_map(target),
+        }
+    archive_audit = audit_database_deep_map_archive(target)
+    if archive_audit["errors"]:
+        raise ValueError("cannot archive database deep map: " + "; ".join(archive_audit["errors"]))
+    project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
+    manifest = read_json(target / STAGING_MANIFEST_FILE); original_manifest = json.loads(json.dumps(manifest))
+    package = read_json(target / ARCHIVE_PACKAGE_FILE)
+    prospective = merged_collections(target)
+    affected_files = sorted({item["registry_file"] for item in manifest["records"] if item["action"] != "unchanged"})
+    original_contents = {
+        filename: (ROOT / "registry" / filename).read_text(encoding="utf-8")
+        for filename in affected_files
+    }
+    receipt_path = target / ARCHIVE_RECEIPT_FILE
+    original_receipt = receipt_path.read_text(encoding="utf-8") if receipt_path.is_file() else None
+    try:
+        for filename in affected_files:
+            write_jsonl(ROOT / "registry" / filename, prospective[filename])
+        validation = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "validate_registry.py")],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if validation.returncode:
+            raise ValueError(validation.stderr or validation.stdout)
+        catalog_build = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "build_catalog.py")],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if catalog_build.returncode:
+            raise ValueError(catalog_build.stderr or catalog_build.stdout)
+        catalog_check = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "build_catalog.py"), "--check"],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if catalog_check.returncode:
+            raise ValueError(catalog_check.stderr or catalog_check.stdout)
+        timestamp = now()
+        action_counts = {
+            action: sum(item["action"] == action for item in manifest["records"])
+            for action in ("create", "update", "unchanged")
+        }
+        receipt = {
+            "schema_version": "1.0.0",
+            "project_id": project["id"],
+            "source_id": project["source_id"],
+            "package_fingerprint": package["package_fingerprint"],
+            "registry_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
+            "created_count": action_counts["create"],
+            "updated_count": action_counts["update"],
+            "unchanged_count": action_counts["unchanged"],
+            "collection_counts": package["collection_counts"],
+            "registry_validation": validation.stdout.strip(),
+            "catalog_validation": catalog_check.stdout.strip(),
+            "archived_at": timestamp,
+        }
+        receipt["receipt_fingerprint"] = fingerprint(receipt)
+        validate_update(receipt, "database_deep_map_archive_receipt.schema.json", ARCHIVE_RECEIPT_FILE)
+        manifest["state"] = "archived"; manifest["updated_at"] = timestamp
+        write_json(target / STAGING_MANIFEST_FILE, manifest)
+        write_json(target / ARCHIVE_RECEIPT_FILE, receipt)
+        project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "Step 3 validated the prospective canonical registry, promoted staged records, and rebuilt the human catalog.", project["phase_states"]["boundary"]["evidence"])
+        project["phase_states"]["completion_audit"] = phase_state("verified_complete", timestamp, "The fingerprinted Plan → Execute → Archive chain closed with a canonical archive receipt.", project["phase_states"]["boundary"]["evidence"])
+        project["workflow_status"] = "complete"; project["current_phase"] = "complete"
+        project["next_actions"] = ["database-deep-map-archive-status"]
+        append_history(project, "archive-database-deep-map", "Step 3 promoted the sealed execution package into the canonical GRDR registry and issued an archive receipt.")
+        write_json(target / PROJECT_FILE, project)
+        final_audit = audit_database_deep_map(target)
+        if final_audit["errors"] or not final_audit["completion_ready"]:
+            raise ValueError("archived project failed final audit: " + "; ".join(final_audit["errors"]))
+    except Exception:
+        for filename, content in original_contents.items():
+            atomic_write_text(ROOT / "registry" / filename, content)
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "build_catalog.py")], cwd=ROOT, capture_output=True, text=True)
+        write_json(target / STAGING_MANIFEST_FILE, original_manifest)
+        write_json(target / PROJECT_FILE, original_project)
+        if original_receipt is None:
+            receipt_path.unlink(missing_ok=True)
+        else:
+            atomic_write_text(receipt_path, original_receipt)
+        raise
     sync_report(target, project, final_audit)
-    return {"operation": "complete_database_deep_map", "project_id": project["id"], "workflow_status": "complete", "checks": evidence, "audit": final_audit}
+    return {
+        "operation": "archive_database_deep_map",
+        "project_id": project["id"],
+        "workflow_status": "complete",
+        "archive_receipt": str(target / ARCHIVE_RECEIPT_FILE),
+        "receipt": receipt,
+        "audit": final_audit,
+    }
+
+
+def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
+    """Compatibility wrapper for v2 callers; the v3 Skills use explicit prepare and archive steps."""
+    target = resolve_project_dir(project_dir)
+    if not (target / ARCHIVE_PACKAGE_FILE).is_file():
+        prepare_database_deep_map_archive(target)
+    return archive_database_deep_map(target)

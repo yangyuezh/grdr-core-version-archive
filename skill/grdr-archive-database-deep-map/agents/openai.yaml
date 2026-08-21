@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR Step 3 — Archive Database Deep Map"
+  short_description: "Audit and promote a sealed deep-map package into GRDR"
+  default_prompt: "Use $grdr-archive-database-deep-map to verify the sealed execution handoff, detect canonical conflicts, promote valid staged records into GRDR, rebuild the catalog, and issue a fingerprinted archive receipt."

@@ -132,10 +132,10 @@ class GrdrCliTests(unittest.TestCase):
         self.assertEqual(payload["source_count"], source_count)
         self.assertEqual(payload["variable_matching_ready_sources"], 2)
 
-    def test_deep_map_skill_wrapper_calls_canonical_audit(self) -> None:
-        wrapper = ROOT / "skill" / "grdr-deep-map-database" / "scripts" / "audit_database_map.py"
+    def test_execute_skill_wrapper_calls_canonical_execution_audit(self) -> None:
+        wrapper = ROOT / "skill" / "grdr-execute-database-deep-map" / "scripts" / "audit_execution.py"
         completed = subprocess.run(
-            [sys.executable, str(wrapper), "grdr:source:undata"],
+            [sys.executable, str(wrapper), str(ROOT / "deep_map_projects" / "undata")],
             cwd=ROOT.parent,
             check=True,
             capture_output=True,
@@ -143,8 +143,9 @@ class GrdrCliTests(unittest.TestCase):
             env={key: value for key, value in os.environ.items() if key != "GRDR_ROOT"},
         )
         payload = json.loads(completed.stdout)
-        self.assertEqual(payload["operation"], "audit_source_depth")
-        self.assertEqual(payload["profile"]["profile_stage"], "six_layer_chain_present")
+        self.assertEqual(payload["operation"], "audit_database_deep_map")
+        self.assertEqual(payload["pipeline_contract"]["contract_version"], "3.0.0")
+        self.assertFalse(payload["execution_ready_for_archive"])
 
     def test_data_element_is_queryable_with_linked_dataset_and_resource(self) -> None:
         payload = run_cli("get-data-element", "grdr:data-element:undata-energy-transaction")

@@ -559,14 +559,16 @@
     }
   },
   "execution_contract": {
+    "archive_only_canonical_write": true,
     "checkpoint_resume": true,
-    "contract_version": "2.0.0",
+    "contract_version": "3.0.0",
     "deterministic_queue": true,
     "deviation_rejection": true,
     "dual_spine_completion": true,
     "evidence_only_completion": true,
     "external_blocker_transparency": true,
     "scope_lock": true,
+    "staging_only_execution": true,
     "unknown_database_diagnosis": true
   },
   "history": [
@@ -619,6 +621,11 @@
       "operation": "upgrade-database-deep-map",
       "summary": "Upgraded to the locked dual-spine execution contract and current route checks.",
       "timestamp": "2026-08-20T16:52:41.952198+00:00"
+    },
+    {
+      "operation": "upgrade-database-deep-map",
+      "summary": "Split the monolithic deep-map workflow into locked Plan, staged Execute, and canonical Archive steps.",
+      "timestamp": "2026-08-21T02:23:17.813991+00:00"
     }
   ],
   "id": "grdr:deep-map-project:undata",
@@ -806,7 +813,31 @@
       "updated_at": "2026-08-19T10:22:59.139663+00:00"
     }
   },
-  "schema_version": "2.0.0",
+  "pipeline_contract": {
+    "canonical_writes_archive_only": true,
+    "contract_version": "3.0.0",
+    "fingerprinted_handoffs": true,
+    "staged_before_archive": true,
+    "step_isolation": true,
+    "steps": [
+      {
+        "output": "locked_deep_map_project",
+        "skill": "grdr-plan-database-deep-map",
+        "step": "plan"
+      },
+      {
+        "output": "staged_deep_map_records",
+        "skill": "grdr-execute-database-deep-map",
+        "step": "execute"
+      },
+      {
+        "output": "canonical_registry_archive",
+        "skill": "grdr-archive-database-deep-map",
+        "step": "archive"
+      }
+    ]
+  },
+  "schema_version": "3.0.0",
   "scope": {
     "boundary_statement": "All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.",
     "boundary_type": "catalog_snapshot",
@@ -817,6 +848,6 @@
   },
   "source_id": "grdr:source:undata",
   "title": "UNdata bounded deep-map project",
-  "updated_at": "2026-08-20T16:52:41.952198+00:00",
+  "updated_at": "2026-08-21T02:23:17.813991+00:00",
   "workflow_status": "in_progress"
 }

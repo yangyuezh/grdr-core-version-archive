@@ -63,7 +63,7 @@ Every work unit has `structural`, `disciplinary`, and `variable_bridge` graph st
 
 ## Project gates
 
-Before `complete-database-deep-map`:
+Before `archive-database-deep-map` can issue a valid receipt:
 
 - source identity and primary/secondary provenance are verified;
 - database shape and route classification are verified;
@@ -75,9 +75,9 @@ Before `complete-database-deep-map`:
 - no required stage is blocked;
 - every required route-contract check is passed or evidenced not applicable;
 - every human gate is resolved by a named human, with no rejection;
-- all registered IDs exist and have the correct entity type;
+- all registered IDs exist in the prospective staged-plus-canonical registry and have the correct entity type;
 - plan, scope, and unit-manifest fingerprints still match their start-time locks;
-- canonical registry validation passes with the `jsonschema` package present; a skipped Schema pass is not strict validation;
+- prospective and promoted canonical registry validation pass with the `jsonschema` package present; a skipped Schema pass is not strict validation;
 - the generated catalog is current.
 
 Git records versions; the current project files describe the current snapshot. A later upstream release, schema fingerprint change, rolling window, or federation-membership change starts a new bounded pass or explicitly updates the boundary and reopens affected stages and checks.

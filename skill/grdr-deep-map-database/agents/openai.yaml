@@ -1,4 +1,0 @@
-interface:
-  display_name: "GRDR Database Deep-Map Engineer"
-  short_description: "Lock, resume, and prove a database’s two spines and bridge"
-  default_prompt: "Use $grdr-deep-map-database to diagnose this database, lock its bounded execution plan, and build or resume its source-native structure spine, scientific-semantic spine, and variable-to-construct bridge with strict evidence and completion gates."

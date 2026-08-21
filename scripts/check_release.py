@@ -37,13 +37,21 @@ def main() -> int:
     if legacy_skill.exists():
         errors.append("legacy global-research-data-warehouse Skill bundle still exists")
 
-    mapper_skill = ROOT / "skill" / "grdr-deep-map-database" / "SKILL.md"
-    if not mapper_skill.is_file():
-        errors.append("version-controlled grdr-deep-map-database Skill is missing")
-    elif not mapper_skill.read_text(encoding="utf-8").startswith(
-        "---\nname: grdr-deep-map-database\n"
+    for deep_map_skill in (
+        "grdr-plan-database-deep-map",
+        "grdr-execute-database-deep-map",
+        "grdr-archive-database-deep-map",
     ):
-        errors.append("version-controlled deep-map Skill identity is not 'grdr-deep-map-database'")
+        skill_path = ROOT / "skill" / deep_map_skill / "SKILL.md"
+        if not skill_path.is_file():
+            errors.append(f"version-controlled {deep_map_skill} Skill is missing")
+        elif not skill_path.read_text(encoding="utf-8").startswith(
+            f"---\nname: {deep_map_skill}\n"
+        ):
+            errors.append(f"version-controlled Skill identity is not {deep_map_skill!r}")
+
+    if (ROOT / "skill" / "grdr-deep-map-database").exists():
+        errors.append("superseded monolithic grdr-deep-map-database Skill bundle still exists")
 
     if (ROOT / "skill" / "grdr-source-profiler").exists():
         errors.append("superseded grdr-source-profiler Skill bundle still exists")
@@ -70,6 +78,9 @@ def main() -> int:
         ROOT / "schemas" / "database_deep_map_plan.schema.json",
         ROOT / "schemas" / "database_deep_map_check.schema.json",
         ROOT / "schemas" / "database_deep_map_check_update.schema.json",
+        ROOT / "schemas" / "database_deep_map_staging_manifest.schema.json",
+        ROOT / "schemas" / "database_deep_map_archive_package.schema.json",
+        ROOT / "schemas" / "database_deep_map_archive_receipt.schema.json",
         ROOT / "schemas" / "database_route_contracts.schema.json",
         ROOT / "config" / "database_route_contracts.json",
         ROOT / "requirements-validation.txt",
@@ -81,20 +92,23 @@ def main() -> int:
         ROOT / "deep_map_projects" / "undata" / "project.json",
         ROOT / "deep_map_projects" / "undata" / "units.jsonl",
         ROOT / "deep_map_projects" / "undata" / "checks.jsonl",
+        ROOT / "deep_map_projects" / "undata" / "staging_manifest.json",
         ROOT / "docs" / "DATABASE_DEEP_MAP_WORKFLOW.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "completion-contract.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "engineering-contract.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "database-archetypes.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "within-stage-enumeration.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "diagnostic-matrix.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "route-contracts.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "lifecycle-boundaries.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "exception-recovery.md",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "phase-update.example.json",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "stage-update.example.json",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "spine-update.example.json",
-        ROOT / "skill" / "grdr-deep-map-database" / "references" / "check-update.example.json",
-        ROOT / "skill" / "grdr-deep-map-database" / "scripts" / "inspect_sdmx.py",
+        ROOT / "skill" / "grdr-plan-database-deep-map" / "references" / "diagnostic-matrix.md",
+        ROOT / "skill" / "grdr-plan-database-deep-map" / "references" / "database-archetypes.md",
+        ROOT / "skill" / "grdr-plan-database-deep-map" / "references" / "route-contracts.md",
+        ROOT / "skill" / "grdr-plan-database-deep-map" / "references" / "lifecycle-boundaries.md",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "engineering-contract.md",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "within-stage-enumeration.md",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "exception-recovery.md",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "phase-update.example.json",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "stage-update.example.json",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "spine-update.example.json",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "check-update.example.json",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "scripts" / "inspect_sdmx.py",
+        ROOT / "skill" / "grdr-execute-database-deep-map" / "scripts" / "audit_execution.py",
+        ROOT / "skill" / "grdr-archive-database-deep-map" / "references" / "archive-contract.md",
+        ROOT / "skill" / "grdr-archive-database-deep-map" / "references" / "completion-contract.md",
     ]:
         if not required_path.is_file():
             errors.append(f"required research workflow file is missing: {required_path.relative_to(ROOT)}")
@@ -113,7 +127,13 @@ def main() -> int:
         "record-database-deep-map-spine",
         "record-database-deep-map-check",
         "record-database-deep-map-human-gate",
+        "stage-database-deep-map-records",
         "audit-database-deep-map",
+        "audit-database-deep-map-execution",
+        "prepare-database-deep-map-archive",
+        "audit-database-deep-map-archive",
+        "database-deep-map-archive-status",
+        "archive-database-deep-map",
         "complete-database-deep-map",
         "start-research-project",
         "research-project-status",

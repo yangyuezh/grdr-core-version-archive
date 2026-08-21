@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR Step 2 — Execute Database Deep Map"
+  short_description: "Deep-read one database into a resumable staging package"
+  default_prompt: "Use $grdr-execute-database-deep-map to resume this locked GRDR project, recover both database spines and the variable bridge, stage evidence-backed records without canonical writes, and close every required execution gate."

@@ -77,9 +77,15 @@ For each candidate:
 
 Separate institutional authority from task-specific fitness. Do not rank every field by one universal prestige score.
 
-## Route deep database profiling
+## Route the three-step database factory
 
-Use the installed `$grdr-deep-map-database` Skill when one database must be deep-read beyond source registration into Institution, Source, Dataset, DataStructure, DataElement & Variable, and Construct layers. DataElement and Variable are 5A and 5B inside the fifth layer. Resource is an access sidecar, not layer 4. The deep map must also close a source-native structural spine, multi-parent scientific-semantic spine, and Variable-to-Construct bridge. Audit current depth first:
+When one database must be understood beyond Source registration, dispatch three separate installed Skills in order:
+
+1. `$grdr-plan-database-deep-map` diagnoses the database, fixes the boundary and work-unit universe, composes route obligations, and creates the locked project;
+2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
+3. `$grdr-archive-database-deep-map` alone audits conflicts, promotes staged records into the canonical registry, rebuilds the catalog, and issues the receipt.
+
+The map preserves Institution and Source as provenance context; Dataset; recursive DataStructure; 5A DataElement and 5B Variable; and Construct. Resource is an access sidecar. It must also close a source-native structural spine, a multi-parent scientific-semantic spine, and the Variable-to-Construct bridge. Audit current depth first:
 
 ```bash
 python3 scripts/grdr.py audit-source-depth <source-id>
@@ -100,11 +106,15 @@ python3 scripts/grdr.py resume-database-deep-map <project>
 python3 scripts/grdr.py record-database-deep-map-stage <project> <update.json>
 python3 scripts/grdr.py record-database-deep-map-spine <project> <spine-update.json>
 python3 scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
-python3 scripts/grdr.py audit-database-deep-map <project>
-python3 scripts/grdr.py complete-database-deep-map <project>
+python3 scripts/grdr.py stage-database-deep-map-records <project> <records.jsonl>
+python3 scripts/grdr.py audit-database-deep-map-execution <project>
+python3 scripts/grdr.py prepare-database-deep-map-archive <project>
+python3 scripts/grdr.py audit-database-deep-map-archive <project>
+python3 scripts/grdr.py archive-database-deep-map <project>
+python3 scripts/grdr.py database-deep-map-archive-status <project>
 ```
 
-Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Enforce the plan, scope, and unit-manifest locks and follow the deterministic dependency-valid next target. Only the completion command may declare bounded completion; representative chains, open graph products, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
+Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Enforce the plan, scope, and unit-manifest locks and follow the deterministic dependency-valid next target. Step 2 may write only project staging; only Step 3 may write canonical registry files. Only a valid archive receipt declares bounded completion; representative chains, open graph products, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
 
 ## Keep the human catalog synchronized
 

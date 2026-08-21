@@ -105,16 +105,19 @@ start-database-deep-map
   → diagnose source and work-unit shapes
   → lock plan, dated boundary, scope, unit manifest, and expected count
   → resume-database-deep-map
-  → map and record each required unit stage
+  → map and stage each required unit stage without canonical writes
   → close structural spine, disciplinary spine, and variable bridge
   → close route-contract checks
-  → audit-database-deep-map
-  → complete-database-deep-map
+  → audit-database-deep-map-execution
+  → prepare-database-deep-map-archive
+  → audit-database-deep-map-archive
+  → archive-database-deep-map
+  → verify archive receipt
 ```
 
 The six required unit stages are Dataset, DataStructure, DataElement, Variable, Construct, and Access. Their semantic requirements remain fixed. Each unit must additionally close a source-native structural spine, multi-parent disciplinary/scientific-semantic spine, and Variable-to-Construct bridge. Route modules adapt extraction to statistical cubes, surveys, administrative systems, tables, APIs, geospatial stores, scientific arrays, biomedical repositories, knowledge graphs, corpora, and restricted environments.
 
-`resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. `complete-database-deep-map` is the only operation allowed to declare completion. It rejects unknown counts, open or blocked stages, unclosed or disconnected spines, invalid GRDR references, missing completion evidence, registry failures, and catalog drift. A 100% result is always limited to the project's explicit dated boundary.
+`resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. Step 2 may write only project-local staging. `archive-database-deep-map` is the only operation allowed to write canonical collections, and only a valid archive receipt declares completion. It rejects stale fingerprints, canonical conflicts, unknown counts, open or blocked stages, unclosed or disconnected spines, invalid references, missing evidence, registry failures, and catalog drift. A 100% result is always limited to the project's explicit dated boundary.
 
 ## Executable research-project lifecycle
 

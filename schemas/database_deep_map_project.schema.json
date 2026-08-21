@@ -4,9 +4,9 @@
   "title": "GRDR persistent database deep-map project",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "execution_contract", "locks", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
+  "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "pipeline_contract", "execution_contract", "locks", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"const": "2.0.0"},
+    "schema_version": {"const": "3.0.0"},
     "id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "title": {"type": "string", "minLength": 1},
@@ -39,12 +39,31 @@
         "expected_work_unit_count": {"type": ["integer", "null"], "minimum": 0}
       }
     },
+    "pipeline_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "steps", "step_isolation", "staged_before_archive", "canonical_writes_archive_only", "fingerprinted_handoffs"],
+      "properties": {
+        "contract_version": {"const": "3.0.0"},
+        "steps": {
+          "const": [
+            {"step": "plan", "skill": "grdr-plan-database-deep-map", "output": "locked_deep_map_project"},
+            {"step": "execute", "skill": "grdr-execute-database-deep-map", "output": "staged_deep_map_records"},
+            {"step": "archive", "skill": "grdr-archive-database-deep-map", "output": "canonical_registry_archive"}
+          ]
+        },
+        "step_isolation": {"const": true},
+        "staged_before_archive": {"const": true},
+        "canonical_writes_archive_only": {"const": true},
+        "fingerprinted_handoffs": {"const": true}
+      }
+    },
     "execution_contract": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["contract_version", "unknown_database_diagnosis", "scope_lock", "deterministic_queue", "checkpoint_resume", "deviation_rejection", "dual_spine_completion", "evidence_only_completion", "external_blocker_transparency"],
+      "required": ["contract_version", "unknown_database_diagnosis", "scope_lock", "deterministic_queue", "checkpoint_resume", "deviation_rejection", "dual_spine_completion", "evidence_only_completion", "external_blocker_transparency", "staging_only_execution", "archive_only_canonical_write"],
       "properties": {
-        "contract_version": {"const": "2.0.0"},
+        "contract_version": {"const": "3.0.0"},
         "unknown_database_diagnosis": {"const": true},
         "scope_lock": {"const": true},
         "deterministic_queue": {"const": true},
@@ -52,7 +71,9 @@
         "deviation_rejection": {"const": true},
         "dual_spine_completion": {"const": true},
         "evidence_only_completion": {"const": true},
-        "external_blocker_transparency": {"const": true}
+        "external_blocker_transparency": {"const": true},
+        "staging_only_execution": {"const": true},
+        "archive_only_canonical_write": {"const": true}
       }
     },
     "locks": {
@@ -80,8 +101,8 @@
         "completion_audit": {"$ref": "#/$defs/phase_state"}
       }
     },
-    "workflow_status": {"enum": ["initialized", "in_progress", "needs_human_review", "blocked", "ready_for_completion", "complete"]},
-    "current_phase": {"enum": ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit", "complete"]},
+    "workflow_status": {"enum": ["initialized", "in_progress", "needs_human_review", "blocked", "ready_for_archive", "complete"]},
+    "current_phase": {"enum": ["identity", "classification", "boundary", "inventory", "deep_mapping", "validation", "completion_audit", "archive", "complete"]},
     "next_actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
     "history": {"type": "array", "items": {"$ref": "#/$defs/history_event"}},
     "created_at": {"type": "string", "format": "date-time"},

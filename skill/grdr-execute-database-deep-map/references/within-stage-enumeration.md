@@ -30,19 +30,19 @@ Use this exact progress line in open-stage notes:
 enumeration=<official universe>; order=<rule>; completed_native=<count>; last_native=<id-or-none>; next_native=<id-or-none>; snapshot=<date-or-version>
 ```
 
-The next native item is the first item in the declared order that lacks a complete canonical mapping. If several native items map to one Construct, retain each native-to-Construct relationship; the Construct count is the number of distinct evidenced constructs, not automatically the Variable count.
+The next native item is the first item in the declared order that lacks a complete staged mapping. If several native items map to one Construct, retain each native-to-Construct relationship; the Construct count is the number of distinct evidenced constructs, not automatically the Variable count.
 
 ## Batch checkpoints
 
 After each bounded batch:
 
-1. write or update canonical GRDR records and relationships;
+1. stage GRDR candidate records and relationships with `stage-database-deep-map-records`;
 2. recompute `registered_ids`, `verified_count`, and the progress line;
 3. record the stage with `record-database-deep-map-stage`;
 4. run the read-only `database-deep-map-status` to confirm the next work-unit stage;
 5. preserve the native cursor in notes even if the same stage remains active.
 
-For `mapped_complete`, `next_native` must be `none`, the expected count must equal the registered canonical count, and evidence must support the complete native universe. For `verified_complete`, every registered mapping must additionally have passed the declared verification rule.
+For `mapped_complete`, `next_native` must be `none`, the expected count must equal the registered staged-or-canonical count, and evidence must support the complete native universe. For `verified_complete`, every registered mapping must additionally have passed the declared verification rule.
 
 ## Spine checkpoints
 

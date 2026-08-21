@@ -2,6 +2,30 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [3.0.0] - 2026-08-20
+
+### Added
+
+- Three independent database factory Skills: `$grdr-plan-database-deep-map`, `$grdr-execute-database-deep-map`, and `$grdr-archive-database-deep-map`, each with a single responsibility and explicit handoff artifact.
+- A schema-3 pipeline contract that binds the Plan → Execute → Archive sequence, step isolation, staging-before-archive, canonical-write ownership, and fingerprinted handoffs.
+- Project-local execution staging with schema-validated JSON/JSONL batches, per-record create/update/unchanged decisions, canonical base fingerprints, prospective merged-registry validation, atomic rejection rollback, and `stage-database-deep-map-records`.
+- A sealed archive package and immutable archive receipt, with schemas for both artifacts and a staging-manifest schema.
+- `audit-database-deep-map-execution`, `prepare-database-deep-map-archive`, `audit-database-deep-map-archive`, `database-deep-map-archive-status`, and `archive-database-deep-map` operations.
+- Optimistic canonical conflict detection and a transactional archival path that rolls back affected registry collections, catalog output, project state, manifest, and receipt if any post-write validation fails.
+- Regression coverage proving that Step 2 leaves canonical registry bytes unchanged, Step 3 requires the fingerprint chain, a valid receipt is required for completion, and repeated archival is idempotent.
+
+### Changed
+
+- The former monolithic `$grdr-deep-map-database` Skill is replaced by the three-step factory in both the repository and installed Codex Skills. Git history retains the old Skill and all earlier releases.
+- `$grdr` now acts as the factory controller: it resolves Source identity, dispatches the three database Skills, and preserves research matching as a downstream function.
+- Execution no longer writes canonical records before completion. Candidate Institution, Source, Dataset, recursive DataStructure, 5A DataElement, 5B Variable, Construct, Resource, SemanticNode, and Relationship records remain staged until Archive promotes them.
+- Database completion now requires both `execution_ready_for_archive` and a currently valid archive receipt; a fully closed Step 2 project is only ready for archival.
+- UNdata was migrated without losing or exaggerating progress: 36 datamarts, 216 required stages, 19.44% mapped, 0.93% strictly closed, 108 graph products, and 727 route obligations remain intact in an open Step 2 project.
+
+### Boundary clarification
+
+- Step isolation is a hard GRDR engineering rule. External paid, restricted, changing, deleted, undocumented, or genuinely non-enumerable content still limits the truthful upstream claim, but cannot justify silent drift, skipped obligations, direct canonical writes, or false completion.
+
 ## [2.0.0] - 2026-08-20
 
 ### Added

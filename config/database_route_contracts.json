@@ -103,7 +103,7 @@
         {"id": "cube.variable_composition", "scope": "unit", "stage": "variable", "requirement": "Define each variable by measure plus all meaning-bearing dimension selections.", "completion_evidence": "Complete declared variable universe linked to native dimension codes."},
         {"id": "cube.observation_probe", "scope": "unit", "stage": "access", "requirement": "Test structure metadata and observation retrieval independently.", "completion_evidence": "Dated probes recording query keys, response status, units, flags, and failures."}
       ],
-      "recommended_tools": ["skill/grdr-deep-map-database/scripts/inspect_sdmx.py"],
+      "recommended_tools": ["skill/grdr-execute-database-deep-map/scripts/inspect_sdmx.py"],
       "standards": [{"name": "SDMX Standards", "url": "https://sdmx.org/?page_id=5008"}],
       "fallback_routes": ["api_schema", "table_schema"]
     },

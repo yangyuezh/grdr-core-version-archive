@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/database_deep_map_archive_package.schema.json",
+  "title": "GRDR database deep-map archive handoff package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "source_id", "plan_fingerprint", "scope_fingerprint", "unit_manifest_fingerprint", "execution_ledger_fingerprint", "staging_manifest_fingerprint", "record_count", "collection_counts", "prepared_at", "package_fingerprint"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "plan_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "scope_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "unit_manifest_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "execution_ledger_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "staging_manifest_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "record_count": {"type": "integer", "minimum": 0},
+    "collection_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "prepared_at": {"type": "string", "format": "date-time"},
+    "package_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

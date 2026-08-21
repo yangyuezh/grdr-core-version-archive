@@ -12,14 +12,19 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from database_deep_map import (  # noqa: E402
+    archive_database_deep_map,
     audit_database_deep_map,
+    audit_database_deep_map_archive,
     complete_database_deep_map,
+    database_deep_map_archive_status,
     database_deep_map_status,
+    prepare_database_deep_map_archive,
     record_database_deep_map_check,
     record_database_deep_map_human_gate,
     record_database_deep_map_spine,
     record_database_deep_map_stage,
     resume_database_deep_map,
+    stage_database_deep_map_records,
     start_database_deep_map,
 )
 from database_deep_map_planner import (  # noqa: E402
@@ -29,6 +34,58 @@ from database_deep_map_planner import (  # noqa: E402
 
 
 class DatabaseDeepMapWorkflowTests(unittest.TestCase):
+    @staticmethod
+    def _close_synthetic_execution(target: Path) -> None:
+        evidence = [{
+            "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/898581-api-basic-call-structures",
+            "title": "Synthetic three-step contract fixture",
+            "evidence_type": "synthetic_test_fixture",
+            "supports": ["pipeline_contract"],
+            "retrieved_at": "2026-08-20T00:00:00Z",
+        }]
+        project = json.loads((target / "project.json").read_text(encoding="utf-8"))
+        for phase in ("identity", "classification", "boundary", "inventory"):
+            project["phase_states"][phase].update({
+                "state": "verified_complete",
+                "completion_basis": "Synthetic closure used only to test the three-step transaction contract.",
+                "evidence": evidence,
+                "blockers": [],
+            })
+        (target / "project.json").write_text(json.dumps(project, indent=2) + "\n", encoding="utf-8")
+
+        units = [json.loads(line) for line in (target / "units.jsonl").read_text(encoding="utf-8").splitlines()]
+        for unit in units:
+            for stage_name in unit["required_stages"]:
+                unit["stages"][stage_name].update({
+                    "state": "not_applicable", "expected_count": 0,
+                    "registered_ids": [], "verified_count": 0,
+                    "completion_basis": "Synthetic zero-denominator closure for transaction testing.",
+                    "evidence": evidence, "blockers": [], "notes": "Contract fixture",
+                })
+            for spine in unit["spines"].values():
+                spine.update({
+                    "state": "not_applicable", "expected_node_count": 0, "node_ids": [],
+                    "verified_node_count": 0, "expected_edge_count": 0, "edge_ids": [],
+                    "verified_edge_count": 0, "root_node_ids": [], "leaf_node_ids": [],
+                    "topology_fingerprint": None,
+                    "completion_basis": "Synthetic zero-denominator closure for transaction testing.",
+                    "evidence": evidence, "blockers": [],
+                })
+        (target / "units.jsonl").write_text(
+            "".join(json.dumps(item) + "\n" for item in units), encoding="utf-8",
+        )
+
+        checks = [json.loads(line) for line in (target / "checks.jsonl").read_text(encoding="utf-8").splitlines()]
+        for check in checks:
+            check.update({
+                "state": "not_applicable",
+                "completion_basis": "Synthetic closure used only to test the transaction boundary.",
+                "evidence": evidence, "blockers": [], "notes": "Contract fixture",
+            })
+        (target / "checks.jsonl").write_text(
+            "".join(json.dumps(item) + "\n" for item in checks), encoding="utf-8",
+        )
+
     def test_undata_has_fixed_36_unit_ledger_and_honest_progress(self) -> None:
         audit = audit_database_deep_map(ROOT / "deep_map_projects" / "undata")
         self.assertEqual(audit["errors"], [])
@@ -139,6 +196,51 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
             self.assertEqual(updated["audit"]["progress"]["strict_completion_percentage"], 16.67)
             with self.assertRaisesRegex(ValueError, "unclosed project phases"):
                 complete_database_deep_map(target)
+
+    def test_execute_stages_without_canonical_write_and_archive_is_fingerprinted(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "world-bank"
+            start_database_deep_map(ROOT / "examples" / "world_bank_deep_map_spec.json", target)
+            canonical_path = ROOT / "registry" / "sources.jsonl"
+            canonical_before = canonical_path.read_text(encoding="utf-8")
+            world_bank = next(
+                json.loads(line) for line in canonical_before.splitlines()
+                if json.loads(line)["id"] == "grdr:source:world-bank-open-data"
+            )
+            batch = Path(temporary) / "records.json"
+            batch.write_text(json.dumps(world_bank, indent=2), encoding="utf-8")
+
+            staged = stage_database_deep_map_records(target, batch)
+            self.assertEqual(staged["staging_record_count"], 1)
+            self.assertEqual(canonical_path.read_text(encoding="utf-8"), canonical_before)
+            manifest = json.loads((target / "staging_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["records"][0]["action"], "unchanged")
+
+            self._close_synthetic_execution(target)
+            execution_audit = audit_database_deep_map(target)
+            self.assertTrue(execution_audit["execution_ready_for_archive"])
+            self.assertFalse(execution_audit["completion_ready"])
+            prepared = prepare_database_deep_map_archive(target)
+            self.assertRegex(prepared["package_fingerprint"], r"^[a-f0-9]{64}$")
+            self.assertTrue(audit_database_deep_map_archive(target)["ready_to_archive"])
+
+            archived = archive_database_deep_map(target)
+            self.assertEqual(archived["workflow_status"], "complete")
+            self.assertTrue(archived["audit"]["completion_ready"])
+            self.assertEqual(canonical_path.read_text(encoding="utf-8"), canonical_before)
+            repeated = archive_database_deep_map(target)
+            self.assertEqual(repeated["status"], "already_archived")
+            archived_status = database_deep_map_archive_status(target)
+            self.assertTrue(archived_status["archive_complete"])
+            self.assertFalse(archived_status["ready_to_archive"])
+            self.assertEqual(archived_status["errors"], [])
+
+            receipt = json.loads((target / "archive_receipt.json").read_text(encoding="utf-8"))
+            receipt["receipt_fingerprint"] = "0" * 64
+            (target / "archive_receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+            invalid_receipt_status = database_deep_map_archive_status(target)
+            self.assertFalse(invalid_receipt_status["archive_complete"])
+            self.assertTrue(any("receipt" in item for item in invalid_receipt_status["errors"]))
 
     def test_dual_spines_are_mandatory_and_cannot_close_early(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

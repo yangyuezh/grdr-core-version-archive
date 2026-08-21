@@ -983,12 +983,57 @@ def record_database_deep_map_human_gate_command(args: argparse.Namespace) -> Non
     )
 
 
+def stage_database_deep_map_records_command(args: argparse.Namespace) -> None:
+    from database_deep_map import stage_database_deep_map_records
+
+    run_research_operation(
+        "stage_database_deep_map_records",
+        lambda: stage_database_deep_map_records(args.project_dir, args.records_file),
+    )
+
+
 def audit_database_deep_map_command(args: argparse.Namespace) -> None:
     from database_deep_map import audit_database_deep_map
 
     run_research_operation(
         "audit_database_deep_map",
         lambda: audit_database_deep_map(args.project_dir),
+    )
+
+
+def prepare_database_deep_map_archive_command(args: argparse.Namespace) -> None:
+    from database_deep_map import prepare_database_deep_map_archive
+
+    run_research_operation(
+        "prepare_database_deep_map_archive",
+        lambda: prepare_database_deep_map_archive(args.project_dir),
+    )
+
+
+def audit_database_deep_map_archive_command(args: argparse.Namespace) -> None:
+    from database_deep_map import audit_database_deep_map_archive
+
+    run_research_operation(
+        "audit_database_deep_map_archive",
+        lambda: audit_database_deep_map_archive(args.project_dir),
+    )
+
+
+def database_deep_map_archive_status_command(args: argparse.Namespace) -> None:
+    from database_deep_map import database_deep_map_archive_status
+
+    run_research_operation(
+        "database_deep_map_archive_status",
+        lambda: database_deep_map_archive_status(args.project_dir),
+    )
+
+
+def archive_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_deep_map import archive_database_deep_map
+
+    run_research_operation(
+        "archive_database_deep_map",
+        lambda: archive_database_deep_map(args.project_dir),
     )
 
 
@@ -1243,6 +1288,14 @@ def parser() -> argparse.ArgumentParser:
     record_deep_map_gate.add_argument("--notes", required=True)
     record_deep_map_gate.set_defaults(handler=record_database_deep_map_human_gate_command)
 
+    stage_deep_map_records = commands.add_parser(
+        "stage-database-deep-map-records",
+        help="Validate and stage candidate canonical records during Step 2 without writing the GRDR registry",
+    )
+    stage_deep_map_records.add_argument("project_dir")
+    stage_deep_map_records.add_argument("records_file")
+    stage_deep_map_records.set_defaults(handler=stage_database_deep_map_records_command)
+
     audit_deep_map = commands.add_parser(
         "audit-database-deep-map",
         help="Audit schemas, registry references, counts, blockers, and strict completion",
@@ -1250,9 +1303,44 @@ def parser() -> argparse.ArgumentParser:
     audit_deep_map.add_argument("project_dir")
     audit_deep_map.set_defaults(handler=audit_database_deep_map_command)
 
+    audit_deep_map_execution = commands.add_parser(
+        "audit-database-deep-map-execution",
+        help="Audit Step 2 staged records, ledgers, spines, route checks, and archive readiness",
+    )
+    audit_deep_map_execution.add_argument("project_dir")
+    audit_deep_map_execution.set_defaults(handler=audit_database_deep_map_command)
+
+    prepare_archive = commands.add_parser(
+        "prepare-database-deep-map-archive",
+        help="Seal the fingerprinted Step 2 execution handoff for Step 3 archival review",
+    )
+    prepare_archive.add_argument("project_dir")
+    prepare_archive.set_defaults(handler=prepare_database_deep_map_archive_command)
+
+    audit_archive = commands.add_parser(
+        "audit-database-deep-map-archive",
+        help="Audit the sealed archive package and canonical conflict conditions without writing the registry",
+    )
+    audit_archive.add_argument("project_dir")
+    audit_archive.set_defaults(handler=audit_database_deep_map_archive_command)
+
+    archive_status = commands.add_parser(
+        "database-deep-map-archive-status",
+        help="Report Step 3 archive-package, promotion, and receipt status",
+    )
+    archive_status.add_argument("project_dir")
+    archive_status.set_defaults(handler=database_deep_map_archive_status_command)
+
+    archive_deep_map = commands.add_parser(
+        "archive-database-deep-map",
+        help="Promote a sealed Step 2 package into the canonical registry and issue an archive receipt",
+    )
+    archive_deep_map.add_argument("project_dir")
+    archive_deep_map.set_defaults(handler=archive_database_deep_map_command)
+
     complete_deep_map = commands.add_parser(
         "complete-database-deep-map",
-        help="Declare bounded completion only after every strict gate passes",
+        help="Compatibility alias that prepares and archives a v2-style completed execution",
     )
     complete_deep_map.add_argument("project_dir")
     complete_deep_map.set_defaults(handler=complete_database_deep_map_command)
