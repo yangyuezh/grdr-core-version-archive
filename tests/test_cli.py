@@ -97,6 +97,12 @@ class GrdrCliTests(unittest.TestCase):
             {item["id"] for item in monitors["results"]},
         )
 
+    def test_completed_source_archives_have_a_machine_entry_point(self) -> None:
+        payload = run_cli("list-source-archives")
+        self.assertEqual(payload["operation"], "list_source_archives")
+        expected = len([line for line in (ROOT / "registry" / "source_archives.jsonl").read_text().splitlines() if line.strip()])
+        self.assertEqual(payload["result_count"], expected)
+
     def test_source_depth_audit_distinguishes_source_only_and_six_layer_chain(self) -> None:
         undata = run_cli("audit-source-depth", "grdr:source:undata")["profile"]
         world_bank = run_cli(
@@ -145,8 +151,8 @@ class GrdrCliTests(unittest.TestCase):
         )
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["operation"], "audit_database_deep_map")
-        self.assertEqual(payload["pipeline_contract"]["contract_version"], "3.0.0")
-        self.assertFalse(payload["execution_ready_for_archive"])
+        self.assertEqual(payload["pipeline_contract"]["contract_version"], "3.2.0")
+        self.assertFalse(payload["execution_ready_for_storage"])
 
     def test_data_element_is_queryable_with_linked_dataset_and_resource(self) -> None:
         payload = run_cli("get-data-element", "grdr:data-element:undata-energy-transaction")

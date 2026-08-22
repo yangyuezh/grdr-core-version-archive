@@ -160,7 +160,7 @@ def fingerprint(value: Any) -> str:
 
 def pipeline_contract() -> dict[str, Any]:
     return {
-        "contract_version": "3.0.0",
+        "contract_version": "3.2.0",
         "steps": [
             {
                 "step": "plan",
@@ -170,17 +170,21 @@ def pipeline_contract() -> dict[str, Any]:
             {
                 "step": "execute",
                 "skill": "grdr-execute-database-deep-map",
-                "output": "staged_deep_map_records",
+                "output": "sealed_deep_map_execution",
             },
             {
-                "step": "archive",
-                "skill": "grdr-archive-database-deep-map",
-                "output": "canonical_registry_archive",
+                "step": "storage",
+                "skill": "grdr-store-database-deep-map",
+                "output": "versioned_database_snapshot",
             },
         ],
         "step_isolation": True,
-        "staged_before_archive": True,
-        "canonical_writes_archive_only": True,
+        "staged_before_storage": True,
+        "canonical_writes_storage_only": True,
+        "one_repository_per_source": True,
+        "one_release_per_snapshot": True,
+        "release_elements_logical_parity": True,
+        "core_index_card_only": True,
         "fingerprinted_handoffs": True,
     }
 
@@ -214,7 +218,7 @@ def unit_manifest_payload(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def execution_contract() -> dict[str, Any]:
     return {
-        "contract_version": "3.0.0",
+        "contract_version": "3.2.0",
         "unknown_database_diagnosis": True,
         "scope_lock": True,
         "deterministic_queue": True,
@@ -224,7 +228,7 @@ def execution_contract() -> dict[str, Any]:
         "evidence_only_completion": True,
         "external_blocker_transparency": True,
         "staging_only_execution": True,
-        "archive_only_canonical_write": True,
+        "storage_only_canonical_write": True,
     }
 
 
@@ -288,11 +292,11 @@ def render_report(project: dict[str, Any], audit: dict[str, Any]) -> str:
 - 路线契约验收：**{progress['contract_check_percentage']}%**（{progress['closed_contract_checks']} / {progress['required_contract_checks']}）
 - 双主干与桥梁严格完成度：**{progress['dual_spine_percentage']}%**（{progress['closed_spines']} / {progress['required_spines']}）
 - 全部阶段及双主干完成的工作单元：{progress['fully_closed_work_units']} / {progress['work_units']}
-- 可进入 Step 3 归档：`{str(audit['execution_ready_for_archive']).lower()}`
+- 可进入 Step 3 Storage：`{str(audit['execution_ready_for_storage']).lower()}`
 - 可声明完成：`{str(audit['completion_ready']).lower()}`
-- 三步生产线：`plan → execute → archive`
+- 三步生产线：`plan → execute → storage`
 - 当前暂存记录：{audit['staging']['record_count']}（状态：`{audit['staging']['state']}`）
-- 归档包：`{str(audit['staging']['archive_package_present']).lower()}`；归档回执：`{str(audit['staging']['archive_receipt_present']).lower()}`
+- 中央入库包：`{str(audit['staging']['archive_package_present']).lower()}`；中央入库回执：`{str(audit['staging']['archive_receipt_present']).lower()}`；完整Storage回执：`{str(audit['staging']['storage_receipt_present']).lower()}`
 - 执行契约：`{project['execution_contract']['contract_version']}`（全部硬约束：`{str(all(value is True for key, value in project['execution_contract'].items() if key != 'contract_version')).lower()}`）
 - 计划锁：`{project['locks']['plan_fingerprint']}`
 - 范围锁：`{project['locks']['scope_fingerprint']}`
@@ -1115,17 +1119,22 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         if item["status"] in {"pending", "rejected"}
     ]
     plan_ready = project["diagnostic_plan"]["plan_status"] == "ready" and not project["diagnostic_plan"]["unresolved_critical"]
-    execution_ready_for_archive = (
+    execution_ready_for_storage = (
         not errors and plan_ready and not unresolved_gates
         and core_phases_closed and total > 0 and closed == total and blocked == 0
         and required_spines and closed_spines == len(required_spines) and blocked_spines == 0
         and required_checks and closed_checks == len(required_checks)
         and blocked_checks == failed_checks == human_checks == 0
     )
-    archive_complete = archive_receipt_is_valid(target, project)
-    completion_ready = execution_ready_for_archive and archive_complete
+    canonical_archive_complete = archive_receipt_is_valid(target, project)
+    try:
+        from database_storage import storage_receipt_is_valid
+        storage_complete = storage_receipt_is_valid(target, project)
+    except (ImportError, RuntimeError, ValueError, OSError):
+        storage_complete = False
+    completion_ready = execution_ready_for_storage and canonical_archive_complete and storage_complete
     if project["workflow_status"] == "complete" and not completion_ready:
-        errors.append("project is marked complete but the strict execution and archive contracts are not satisfied")
+        errors.append("project is marked complete but the strict Plan → Execute → Storage contract is not satisfied")
     if mapped == total and closed < total:
         warnings.append("All required unit stages are mapped, but one or more still lack full verification.")
     if expected_units is None:
@@ -1134,15 +1143,17 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         warnings.append("Diagnostic plan retains critical unresolved dimensions; classification or boundary work must continue.")
     if unresolved_gates:
         warnings.append("Diagnostic plan retains human gates; protected operations and final completion remain unavailable.")
-    queue = [] if errors or project["workflow_status"] in {"ready_for_archive", "complete"} else action_queue(project, units, checks)
+    queue = [] if errors or project["workflow_status"] in {"ready_for_storage", "complete"} else action_queue(project, units, checks)
     if queue:
         effective_next_actions = [queue[0]["command"]]
     elif project["workflow_status"] == "complete":
-        effective_next_actions = ["database-deep-map-archive-status"]
-    elif (target / ARCHIVE_PACKAGE_FILE).is_file() and execution_ready_for_archive:
+        effective_next_actions = ["database-storage-status"]
+    elif canonical_archive_complete and execution_ready_for_storage:
+        effective_next_actions = ["prepare-database-storage"]
+    elif (target / ARCHIVE_PACKAGE_FILE).is_file() and execution_ready_for_storage:
         effective_next_actions = ["archive-database-deep-map"]
-    elif execution_ready_for_archive:
-        effective_next_actions = ["prepare-database-deep-map-archive"]
+    elif execution_ready_for_storage:
+        effective_next_actions = ["prepare-database-deep-map-storage"]
     else:
         effective_next_actions = project["next_actions"]
     return {
@@ -1157,6 +1168,7 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "manifest_fingerprint": staging_manifest_fingerprint(manifest),
             "archive_package_present": (target / ARCHIVE_PACKAGE_FILE).is_file(),
             "archive_receipt_present": (target / ARCHIVE_RECEIPT_FILE).is_file(),
+            "storage_receipt_present": (target / "storage_receipt.json").is_file(),
         },
         "database_profile": project["database_profile"],
         "diagnostic_plan": {
@@ -1184,8 +1196,11 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         },
         "stage_summary": stage_summary, "spine_summary": spine_summary,
         "phase_states": project["phase_states"],
-        "execution_ready_for_archive": execution_ready_for_archive,
-        "archive_complete": archive_complete,
+        "execution_ready_for_storage": execution_ready_for_storage,
+        "execution_ready_for_archive": execution_ready_for_storage,
+        "canonical_archive_complete": canonical_archive_complete,
+        "archive_complete": canonical_archive_complete,
+        "storage_complete": storage_complete,
         "completion_ready": completion_ready,
         "errors": errors, "warnings": warnings, "next_target": queue[0] if queue else None,
         "queue_preview": queue[:10], "next_actions": effective_next_actions,
@@ -1276,7 +1291,7 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     if plan_expected is not None and spec["scope"]["expected_work_unit_count"] != plan_expected:
         raise ValueError("start expected work-unit count does not match the diagnostic plan")
     project = {
-        "schema_version": "3.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
+        "schema_version": "3.2.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
         "database_profile": {**spec["database_profile"], "route_modules": diagnostic_plan["selected_route_modules"]},
         "diagnostic_plan": diagnostic_plan, "scope": spec["scope"],
         "pipeline_contract": pipeline_contract(),
@@ -1328,10 +1343,12 @@ def infer_content_modalities(archetypes: list[str]) -> list[str]:
 
 
 def normalize_pipeline_workflow(project: dict[str, Any]) -> None:
-    if project.get("workflow_status") in {"ready_for_completion", "complete"}:
-        project["workflow_status"] = "ready_for_archive"
-        project["current_phase"] = "archive"
-        project["next_actions"] = ["prepare-database-deep-map-archive"]
+    if project.get("workflow_status") in {"ready_for_completion", "ready_for_archive", "complete"}:
+        if project.get("workflow_status") == "complete" and not project.get("next_actions") == ["database-storage-status"]:
+            project["phase_states"]["completion_audit"] = phase_state("in_progress", now())
+        project["workflow_status"] = "ready_for_storage"
+        project["current_phase"] = "storage"
+        project["next_actions"] = ["prepare-database-storage", "database-storage-status"]
 
 
 def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
@@ -1350,11 +1367,11 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     ):
         original_project = json.loads(json.dumps(project))
         timestamp = now()
-        project["schema_version"] = "3.0.0"
+        project["schema_version"] = "3.2.0"
         project["pipeline_contract"] = pipeline_contract()
         project["execution_contract"] = execution_contract()
         normalize_pipeline_workflow(project)
-        append_history(project, "upgrade-database-deep-map", "Split the monolithic deep-map workflow into locked Plan, staged Execute, and canonical Archive steps.")
+        append_history(project, "upgrade-database-deep-map", "Fixed the database factory as locked Plan, staged Execute, and versioned Storage steps.")
         write_json(target / PROJECT_FILE, project)
         write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, timestamp))
         audit = audit_database_deep_map(target)
@@ -1365,10 +1382,17 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         sync_report(target, project, audit)
         return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_three_step_pipeline", "audit": audit}
     if (
-        project.get("schema_version") == "3.0.0"
+        project.get("schema_version") in {"3.0.0", "3.2.0"}
         and project.get("diagnostic_plan", {}).get("route_contract_version") == current_contract_version
         and (target / CHECK_FILE).is_file()
     ):
+        if project.get("schema_version") == "3.0.0" or project.get("pipeline_contract") != pipeline_contract():
+            project["schema_version"] = "3.2.0"
+            project["pipeline_contract"] = pipeline_contract()
+            project["execution_contract"] = execution_contract()
+            normalize_pipeline_workflow(project)
+            append_history(project, "upgrade-database-deep-map", "Replaced the Archive-only third step with the complete Storage contract.")
+            write_json(target / PROJECT_FILE, project)
         if not (target / STAGING_MANIFEST_FILE).is_file():
             write_json(target / STAGING_MANIFEST_FILE, empty_staging_manifest(project, now()))
         checks = read_jsonl(target / CHECK_FILE)
@@ -1404,7 +1428,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         project["diagnostic_plan"]["required_facets"] = merge_facets(selected, routes)
         project["diagnostic_plan"]["generated_at"] = timestamp
         project["database_profile"]["route_modules"] = selected
-        project["schema_version"] = "3.0.0"
+        project["schema_version"] = "3.2.0"
         project["pipeline_contract"] = pipeline_contract()
         project["execution_contract"] = execution_contract()
         normalize_pipeline_workflow(project)
@@ -1477,7 +1501,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "evidence": plan_evidence,
     }
     diagnostic_plan = build_database_deep_map_plan_from_intake(intake)
-    project["schema_version"] = "3.0.0"
+    project["schema_version"] = "3.2.0"
     project["diagnostic_plan"] = diagnostic_plan
     project["database_profile"]["route_modules"] = diagnostic_plan["selected_route_modules"]
     project["pipeline_contract"] = pipeline_contract()
@@ -1765,7 +1789,7 @@ def stage_database_deep_map_records(project_dir: str | Path, records_file: str |
     write_json(target / STAGING_MANIFEST_FILE, manifest)
     project["workflow_status"] = "in_progress"; project["current_phase"] = "deep_mapping"
     project["next_actions"] = ["database-deep-map-status", "resume-database-deep-map"]
-    append_history(project, "stage-database-deep-map-records", f"Staged {len(batch)} canonical candidate records for Step 3 archival review.")
+    append_history(project, "stage-database-deep-map-records", f"Staged {len(batch)} canonical candidate records for the Step 3 Storage transaction.")
     write_json(target / PROJECT_FILE, project)
     errors = staging_errors(target, project, manifest) + validate_merged_registry(target)
     if not errors:
@@ -1950,6 +1974,7 @@ def record_database_deep_map_execution_batch(
         "stage_update_count": len(payload["stages"]),
         "spine_update_count": len(payload["spines"]),
         "check_update_count": len(payload["checks"]),
+        "execution_ready_for_storage": audit["execution_ready_for_storage"],
         "execution_ready_for_archive": audit["execution_ready_for_archive"],
         "audit": audit,
     }
@@ -2073,10 +2098,10 @@ def resume_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             target_label = queue[0].get("upstream_id") or queue[0].get("phase") or queue[0].get("facet_id") or queue[0].get("gate")
             target_stage = queue[0].get("stage") or queue[0].get("phase") or queue[0].get("required_before")
             summary = f"Next target: {target_label} / {target_stage}."
-        elif audit["execution_ready_for_archive"]:
-            project["workflow_status"] = "ready_for_archive"; project["current_phase"] = "archive"
-            project["next_actions"] = ["prepare-database-deep-map-archive"]
-            summary = "Step 2 execution is closed; seal the fingerprinted handoff package for Step 3 archival review."
+        elif audit["execution_ready_for_storage"]:
+            project["workflow_status"] = "ready_for_storage"; project["current_phase"] = "storage"
+            project["next_actions"] = ["prepare-database-deep-map-storage"]
+            summary = "Step 2 execution is closed; seal the fingerprinted handoff package for Step 3 Storage."
         else:
             project["workflow_status"] = "in_progress"; project["current_phase"] = "validation"
             project["next_actions"] = ["record-database-deep-map-phase"]
@@ -2100,7 +2125,7 @@ def prepare_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]
     early_open = [name for name in EARLY_PHASES if project["phase_states"][name]["state"] not in CLOSED_STATES]
     if early_open:
         raise ValueError("cannot prepare archive; unclosed project phases: " + ", ".join(early_open))
-    if not audit["execution_ready_for_archive"]:
+    if not audit["execution_ready_for_storage"]:
         raise ValueError("cannot prepare archive; strict unit-stage, dual-spine, route-contract, execution-lock, diagnostic-plan, or human-gate requirements are not satisfied")
     errors = validate_merged_registry(target)
     if errors:
@@ -2114,9 +2139,9 @@ def prepare_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]
     write_json(target / ARCHIVE_PACKAGE_FILE, package)
     project["phase_states"]["deep_mapping"] = phase_state("verified_complete", timestamp, "Step 2 closed every required stage, structural spine, disciplinary spine, variable bridge, and route obligation within the locked boundary.", project["phase_states"]["boundary"]["evidence"])
     project["phase_states"]["validation"] = phase_state("in_progress", timestamp)
-    project["workflow_status"] = "ready_for_archive"; project["current_phase"] = "archive"
-    project["next_actions"] = ["database-deep-map-archive-status", "archive-database-deep-map"]
-    append_history(project, "prepare-database-deep-map-archive", "Sealed the fingerprinted Step 2 handoff package for Step 3 archival review.")
+    project["workflow_status"] = "ready_for_storage"; project["current_phase"] = "storage"
+    project["next_actions"] = ["archive-database-deep-map", "prepare-database-storage"]
+    append_history(project, "prepare-database-deep-map-storage", "Sealed the fingerprinted Step 2 handoff package for Step 3 Storage.")
     write_json(target / PROJECT_FILE, project)
     package_audit = audit_database_deep_map_archive(target)
     if package_audit["errors"]:
@@ -2128,7 +2153,7 @@ def prepare_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]
     return {
         "operation": "prepare_database_deep_map_archive",
         "project_id": project["id"],
-        "workflow_status": "ready_for_archive",
+        "workflow_status": "ready_for_storage",
         "archive_package": str(target / ARCHIVE_PACKAGE_FILE),
         "package_fingerprint": package["package_fingerprint"],
         "archive_audit": package_audit,
@@ -2154,7 +2179,7 @@ def audit_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]:
         errors.extend(validate_schema(package, "database_deep_map_archive_package.schema.json", ARCHIVE_PACKAGE_FILE))
     execution_audit = audit_database_deep_map(target)
     errors.extend(execution_audit["errors"])
-    if not execution_audit["execution_ready_for_archive"]:
+    if not execution_audit["execution_ready_for_storage"]:
         errors.append("Step 2 execution is not ready for archive")
     if not manifest_path.is_file():
         errors.append(f"missing {STAGING_MANIFEST_FILE}")
@@ -2236,7 +2261,7 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         return {
             "operation": "archive_database_deep_map",
             "project_id": existing_project["id"],
-            "workflow_status": "complete",
+            "workflow_status": "ready_for_storage",
             "status": "already_archived",
             "archive_receipt": str(target / ARCHIVE_RECEIPT_FILE),
             "receipt": existing_receipt,
@@ -2259,24 +2284,30 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     try:
         for filename in affected_files:
             write_jsonl(ROOT / "registry" / filename, prospective[filename])
-        validation = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "validate_registry.py")],
-            cwd=ROOT, capture_output=True, text=True,
-        )
-        if validation.returncode:
-            raise ValueError(validation.stderr or validation.stdout)
-        catalog_build = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "build_catalog.py")],
-            cwd=ROOT, capture_output=True, text=True,
-        )
-        if catalog_build.returncode:
-            raise ValueError(catalog_build.stderr or catalog_build.stdout)
-        catalog_check = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "build_catalog.py"), "--check"],
-            cwd=ROOT, capture_output=True, text=True,
-        )
-        if catalog_check.returncode:
-            raise ValueError(catalog_check.stderr or catalog_check.stdout)
+        if affected_files:
+            validation = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "validate_registry.py")],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            if validation.returncode:
+                raise ValueError(validation.stderr or validation.stdout)
+            catalog_build = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_catalog.py")],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            if catalog_build.returncode:
+                raise ValueError(catalog_build.stderr or catalog_build.stdout)
+            catalog_check = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_catalog.py"), "--check"],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            if catalog_check.returncode:
+                raise ValueError(catalog_check.stderr or catalog_check.stdout)
+            validation_message = validation.stdout.strip()
+            catalog_message = catalog_check.stdout.strip()
+        else:
+            validation_message = "Prospective canonical registry was Schema-valid and byte-identical to the current registry; no post-write validation was required."
+            catalog_message = "Canonical records were unchanged; the existing generated catalog required no rebuild."
         timestamp = now()
         action_counts = {
             action: sum(item["action"] == action for item in manifest["records"])
@@ -2292,8 +2323,8 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
             "updated_count": action_counts["update"],
             "unchanged_count": action_counts["unchanged"],
             "collection_counts": package["collection_counts"],
-            "registry_validation": validation.stdout.strip(),
-            "catalog_validation": catalog_check.stdout.strip(),
+            "registry_validation": validation_message,
+            "catalog_validation": catalog_message,
             "archived_at": timestamp,
         }
         receipt["receipt_fingerprint"] = fingerprint(receipt)
@@ -2301,15 +2332,15 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         manifest["state"] = "archived"; manifest["updated_at"] = timestamp
         write_json(target / STAGING_MANIFEST_FILE, manifest)
         write_json(target / ARCHIVE_RECEIPT_FILE, receipt)
-        project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "Step 3 validated the prospective canonical registry, promoted staged records, and rebuilt the human catalog.", project["phase_states"]["boundary"]["evidence"])
-        project["phase_states"]["completion_audit"] = phase_state("verified_complete", timestamp, "The fingerprinted Plan → Execute → Archive chain closed with a canonical archive receipt.", project["phase_states"]["boundary"]["evidence"])
-        project["workflow_status"] = "complete"; project["current_phase"] = "complete"
-        project["next_actions"] = ["database-deep-map-archive-status"]
-        append_history(project, "archive-database-deep-map", "Step 3 promoted the sealed execution package into the canonical GRDR registry and issued an archive receipt.")
+        project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "The Storage transaction validated the prospective canonical registry, promoted staged records, and rebuilt the human catalog.", project["phase_states"]["boundary"]["evidence"])
+        project["phase_states"]["completion_audit"] = phase_state("in_progress", timestamp)
+        project["workflow_status"] = "ready_for_storage"; project["current_phase"] = "storage"
+        project["next_actions"] = ["prepare-database-storage", "database-storage-status"]
+        append_history(project, "archive-database-deep-map", "Storage sub-transaction promoted the sealed execution package into the canonical GRDR registry and issued its internal archive receipt.")
         write_json(target / PROJECT_FILE, project)
         final_audit = audit_database_deep_map(target)
-        if final_audit["errors"] or not final_audit["completion_ready"]:
-            raise ValueError("archived project failed final audit: " + "; ".join(final_audit["errors"]))
+        if final_audit["errors"] or not final_audit["canonical_archive_complete"]:
+            raise ValueError("canonical Storage sub-transaction failed final audit: " + "; ".join(final_audit["errors"]))
     except Exception:
         for filename, content in original_contents.items():
             atomic_write_text(ROOT / "registry" / filename, content)
@@ -2325,7 +2356,7 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     return {
         "operation": "archive_database_deep_map",
         "project_id": project["id"],
-        "workflow_status": "complete",
+        "workflow_status": "ready_for_storage",
         "archive_receipt": str(target / ARCHIVE_RECEIPT_FILE),
         "receipt": receipt,
         "audit": final_audit,
@@ -2333,8 +2364,14 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
 
 
 def complete_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
-    """Compatibility wrapper for v2 callers; the v3 Skills use explicit prepare and archive steps."""
+    """Compatibility wrapper that closes only the internal canonical promotion sub-transaction."""
     target = resolve_project_dir(project_dir)
     if not (target / ARCHIVE_PACKAGE_FILE).is_file():
         prepare_database_deep_map_archive(target)
     return archive_database_deep_map(target)
+
+
+def prepare_database_deep_map_storage(project_dir: str | Path) -> dict[str, Any]:
+    """Public Step 2 handoff name for the Plan → Execute → Storage pipeline."""
+    result = prepare_database_deep_map_archive(project_dir)
+    return {**result, "operation": "prepare_database_deep_map_storage"}

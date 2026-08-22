@@ -26,6 +26,7 @@ ENTITY_FILES = {
     "storage": "storage.jsonl",
     "monitor": "monitors.jsonl",
     "source_profile": "source_profiles.jsonl",
+    "source_archive": "source_archives.jsonl",
 }
 VERIFICATION_RANK = {
     "verified": 0,
@@ -728,6 +729,15 @@ def list_storage(args: argparse.Namespace) -> None:
     emit({"operation": "list_storage", "registry_version": REGISTRY_VERSION, "result_count": len(records), "results": records})
 
 
+def list_source_archives(args: argparse.Namespace) -> None:
+    records = [
+        item
+        for item in load_jsonl("source_archives.jsonl")
+        if args.source_id is None or item["source_id"] == args.source_id
+    ]
+    emit({"operation": "list_source_archives", "registry_version": REGISTRY_VERSION, "result_count": len(records), "results": records})
+
+
 def list_monitors(args: argparse.Namespace) -> None:
     records = [
         item
@@ -1019,6 +1029,71 @@ def prepare_database_deep_map_archive_command(args: argparse.Namespace) -> None:
     )
 
 
+def prepare_database_deep_map_storage_command(args: argparse.Namespace) -> None:
+    from database_deep_map import prepare_database_deep_map_storage
+
+    run_research_operation(
+        "prepare_database_deep_map_storage",
+        lambda: prepare_database_deep_map_storage(args.project_dir),
+    )
+
+
+def prepare_database_storage_command(args: argparse.Namespace) -> None:
+    from database_storage import prepare_database_storage
+
+    run_research_operation(
+        "prepare_database_storage",
+        lambda: prepare_database_storage(args.project_dir, args.spec_file),
+    )
+
+
+def audit_database_storage_command(args: argparse.Namespace) -> None:
+    from database_storage import audit_database_storage
+
+    run_research_operation(
+        "audit_database_storage",
+        lambda: audit_database_storage(args.project_dir),
+    )
+
+
+def database_storage_status_command(args: argparse.Namespace) -> None:
+    from database_storage import database_storage_status
+
+    run_research_operation(
+        "database_storage_status",
+        lambda: database_storage_status(args.project_dir),
+    )
+
+
+def record_database_storage_publication_command(args: argparse.Namespace) -> None:
+    from database_storage import record_database_storage_publication
+
+    run_research_operation(
+        "record_database_storage_publication",
+        lambda: record_database_storage_publication(args.project_dir, args.publication_file),
+    )
+
+
+def publish_database_storage_command(args: argparse.Namespace) -> None:
+    from database_storage import publish_database_storage
+
+    run_research_operation(
+        "publish_database_storage",
+        lambda: publish_database_storage(args.project_dir),
+    )
+
+
+def store_database_deep_map_command(args: argparse.Namespace) -> None:
+    from database_storage import prepare_database_storage, publish_database_storage
+
+    def operation() -> dict:
+        prepared = prepare_database_storage(args.project_dir, args.spec_file)
+        published = publish_database_storage(args.project_dir)
+        return {"operation": "store_database_deep_map", "prepared": prepared, "published": published}
+
+    run_research_operation("store_database_deep_map", operation)
+
+
 def audit_database_deep_map_archive_command(args: argparse.Namespace) -> None:
     from database_deep_map import audit_database_deep_map_archive
 
@@ -1089,6 +1164,7 @@ def stats(_args: argparse.Namespace) -> None:
                         "storage": "storage_records",
                         "monitor": "monitors",
                         "source_profile": "source_profiles",
+                        "source_archive": "source_archives",
                     }[name]: len(records)
                     for name, records in collections.items()
                 },
@@ -1334,6 +1410,58 @@ def parser() -> argparse.ArgumentParser:
     prepare_archive.add_argument("project_dir")
     prepare_archive.set_defaults(handler=prepare_database_deep_map_archive_command)
 
+    prepare_storage_handoff = commands.add_parser(
+        "prepare-database-deep-map-storage",
+        help="Seal the fingerprinted Step 2 execution handoff for Step 3 Storage",
+    )
+    prepare_storage_handoff.add_argument("project_dir")
+    prepare_storage_handoff.set_defaults(handler=prepare_database_deep_map_storage_command)
+
+    prepare_storage = commands.add_parser(
+        "prepare-database-storage",
+        help="Build the source repository, complete Release assets, Agent index, observations, and matching Elements snapshot",
+    )
+    prepare_storage.add_argument("project_dir")
+    prepare_storage.add_argument("spec_file")
+    prepare_storage.set_defaults(handler=prepare_database_storage_command)
+
+    audit_storage = commands.add_parser(
+        "audit-database-storage",
+        help="Verify logical parity across the source repository, Release assets, and Elements snapshot",
+    )
+    audit_storage.add_argument("project_dir")
+    audit_storage.set_defaults(handler=audit_database_storage_command)
+
+    storage_status = commands.add_parser(
+        "database-storage-status",
+        help="Report Step 3 Storage preparation, publication, parity, receipt, and completion state",
+    )
+    storage_status.add_argument("project_dir")
+    storage_status.set_defaults(handler=database_storage_status_command)
+
+    record_storage_publication = commands.add_parser(
+        "record-database-storage-publication",
+        help="Record a verified GitHub repository and Release, seal the Storage receipt, and update the central card",
+    )
+    record_storage_publication.add_argument("project_dir")
+    record_storage_publication.add_argument("publication_file")
+    record_storage_publication.set_defaults(handler=record_database_storage_publication_command)
+
+    publish_storage = commands.add_parser(
+        "publish-database-storage",
+        help="Publish prepared source-repository files and snapshot assets to a private GitHub repository and Release",
+    )
+    publish_storage.add_argument("project_dir")
+    publish_storage.set_defaults(handler=publish_database_storage_command)
+
+    store_deep_map = commands.add_parser(
+        "store-database-deep-map",
+        help="Run the complete Step 3 Storage transaction from local materialization through verified GitHub publication",
+    )
+    store_deep_map.add_argument("project_dir")
+    store_deep_map.add_argument("spec_file")
+    store_deep_map.set_defaults(handler=store_database_deep_map_command)
+
     audit_archive = commands.add_parser(
         "audit-database-deep-map-archive",
         help="Audit the sealed archive package and canonical conflict conditions without writing the registry",
@@ -1432,6 +1560,10 @@ def parser() -> argparse.ArgumentParser:
     storage.add_argument("--dataset-id")
     storage.add_argument("--mode", choices=["local_snapshot", "federated_access", "controlled_access_pointer"])
     storage.set_defaults(handler=list_storage)
+
+    source_archives = commands.add_parser("list-source-archives", help="List completed distributed source snapshots and their repository and Release entry points")
+    source_archives.add_argument("--source-id")
+    source_archives.set_defaults(handler=list_source_archives)
 
     monitors = commands.add_parser("list-monitors", help="List upstream monitors")
     monitors.add_argument("--status", choices=["passing", "changed", "degraded", "failing", "never_run", "disabled"])

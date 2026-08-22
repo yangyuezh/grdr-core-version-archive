@@ -15,7 +15,7 @@ research question -> literature evidence -> indicator hierarchy -> operational r
 GRDR source profile -> official datasets -> official variables ----+-> variable matching
 ```
 
-Use `$grdr-plan-database-deep-map`, `$grdr-execute-database-deep-map`, and `$grdr-archive-database-deep-map` in sequence to establish a database's native structure-to-variable mapping topology. Use `$grdr` to coordinate registry search, source expansion, gap diagnosis, and final matching. Do not write question-specific indicators, literature evidence, or mappings into the canonical global `registry/*.jsonl` collections.
+Use `$grdr-plan-database-deep-map`, `$grdr-execute-database-deep-map`, and `$grdr-store-database-deep-map` in sequence to establish and store a database's native structure-to-variable mapping topology. Use `$grdr` to coordinate registry search, source expansion, gap diagnosis, and final matching. Do not write question-specific indicators, literature evidence, or mappings into the canonical global `registry/*.jsonl` collections.
 
 Store each project under:
 

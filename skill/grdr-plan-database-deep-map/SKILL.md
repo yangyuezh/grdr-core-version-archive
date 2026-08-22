@@ -1,6 +1,6 @@
 ---
 name: grdr-plan-database-deep-map
-description: "Diagnose an authoritative database before GRDR ingestion, define an honest bounded work-unit universe, compose database-shape route contracts, resolve required human gates, and create a fingerprint-locked deep-map project. Use when Codex receives a database name, URL, catalog, GRDR Source ID, intake, or legacy deep-map project and must perform Step 1 of the GRDR Plan → Execute → Archive factory without beginning content extraction."
+description: "Diagnose an authoritative database before GRDR ingestion, define an honest bounded work-unit universe, compose database-shape route contracts, resolve required human gates, and create a fingerprint-locked deep-map project. Use when Codex receives a database name, URL, catalog, GRDR Source ID, intake, or legacy deep-map project and must perform Step 1 of the GRDR Plan → Execute → Storage factory without beginning content extraction."
 ---
 
 # GRDR Step 1 — Plan Database Deep Map
@@ -9,7 +9,7 @@ description: "Diagnose an authoritative database before GRDR ingestion, define a
 
 Convert one database into an audited, executable plan. This Skill owns diagnosis, boundary design, work-unit inventory, route selection, human-gate definition, and creation or migration of the locked project. Its sole handoff is a `locked_deep_map_project`.
 
-Do not deep-read unit content, stage candidate registry records, edit `registry/*.jsonl`, seal an archive package, or declare completion. Step 2 belongs to `$grdr-execute-database-deep-map`; Step 3 belongs to `$grdr-archive-database-deep-map`.
+Do not deep-read unit content, stage candidate registry records, edit `registry/*.jsonl`, seal a Storage package, or declare completion. Step 2 belongs to `$grdr-execute-database-deep-map`; Step 3 belongs to `$grdr-store-database-deep-map`.
 
 Use `$grdr` first when the database lacks a canonical Source identity. Step 1 requires a resolved `grdr:source:...` record so the plan can lock stable identity and provenance rather than a temporary URL label.
 
@@ -78,7 +78,7 @@ The start specification must align with the audited plan and contain the ordered
 
 A valid Step 1 handoff contains:
 
-- `project.json` at schema `3.0.0`, including the three-step pipeline contract;
+- `project.json` at schema `3.2.0`, including the Plan → Execute → Storage contract;
 - audited plan, explicit boundary, selected route modules, typed risks, human gates, and SHA-256 plan/scope/unit locks;
 - `units.jsonl` with deterministic order and stable upstream identities;
 - `checks.jsonl` with every applicable route obligation;

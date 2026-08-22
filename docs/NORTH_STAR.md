@@ -13,7 +13,7 @@ It combines:
 - literature-grounded, multi-level research-indicator construction;
 - continuous, evidence-backed snowball expansion.
 
-GRDR is not primarily a website and is not, at the current stage, a system that copies every upstream dataset into one physical warehouse. Global scale, licensing, privacy, access controls, and update costs make authoritative metadata, access paths, variable mappings, relationships, and provenance the correct foundation.
+GRDR is not primarily a website and never combines every upstream source into one monolithic warehouse. It keeps a broad global registry and knowledge graph, while every database selected for full deep reading is stored as its own distributed, versioned snapshot: one source repository, one Release per snapshot, and one matching expanded Elements copy containing knowledge, Agent index, and captured observations.
 
 ## Core capabilities
 
@@ -71,4 +71,4 @@ Never collapse source authority and task-specific fitness into one opaque score.
 
 ## Long-term evolution
 
-After the registry and knowledge graph are mature, GRDR may add more source adapters, federated queries, and lawful local snapshots. Those capabilities extend the infrastructure; they do not redefine its foundation.
+As the registry expands, GRDR adds more independently versioned source snapshots without copying the shared Core into those repositories. The central registry remains the unified Agent entry point; source repositories and snapshot artifacts provide the durable database-specific storage layer.

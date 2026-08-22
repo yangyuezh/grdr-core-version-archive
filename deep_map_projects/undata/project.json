@@ -559,9 +559,8 @@
     }
   },
   "execution_contract": {
-    "archive_only_canonical_write": true,
     "checkpoint_resume": true,
-    "contract_version": "3.0.0",
+    "contract_version": "3.2.0",
     "deterministic_queue": true,
     "deviation_rejection": true,
     "dual_spine_completion": true,
@@ -569,6 +568,7 @@
     "external_blocker_transparency": true,
     "scope_lock": true,
     "staging_only_execution": true,
+    "storage_only_canonical_write": true,
     "unknown_database_diagnosis": true
   },
   "history": [
@@ -631,6 +631,11 @@
       "operation": "resume-database-deep-map",
       "summary": "Next target: EDATA / variable.",
       "timestamp": "2026-08-21T03:23:22.445234+00:00"
+    },
+    {
+      "operation": "upgrade-database-deep-map",
+      "summary": "Replaced the Archive-only third step with the complete Storage contract.",
+      "timestamp": "2026-08-22T15:52:42.943417+00:00"
     }
   ],
   "id": "grdr:deep-map-project:undata",
@@ -819,10 +824,14 @@
     }
   },
   "pipeline_contract": {
-    "canonical_writes_archive_only": true,
-    "contract_version": "3.0.0",
+    "canonical_writes_storage_only": true,
+    "contract_version": "3.2.0",
+    "core_index_card_only": true,
     "fingerprinted_handoffs": true,
-    "staged_before_archive": true,
+    "one_release_per_snapshot": true,
+    "one_repository_per_source": true,
+    "release_elements_logical_parity": true,
+    "staged_before_storage": true,
     "step_isolation": true,
     "steps": [
       {
@@ -831,18 +840,18 @@
         "step": "plan"
       },
       {
-        "output": "staged_deep_map_records",
+        "output": "sealed_deep_map_execution",
         "skill": "grdr-execute-database-deep-map",
         "step": "execute"
       },
       {
-        "output": "canonical_registry_archive",
-        "skill": "grdr-archive-database-deep-map",
-        "step": "archive"
+        "output": "versioned_database_snapshot",
+        "skill": "grdr-store-database-deep-map",
+        "step": "storage"
       }
     ]
   },
-  "schema_version": "3.0.0",
+  "schema_version": "3.2.0",
   "scope": {
     "boundary_statement": "All 36 datamarts listed in the official UNdata Sources catalog at the 2026-08-18 snapshot; six glossary entries are access/documentation sidecars rather than Dataset work units.",
     "boundary_type": "catalog_snapshot",
@@ -853,6 +862,6 @@
   },
   "source_id": "grdr:source:undata",
   "title": "UNdata bounded deep-map project",
-  "updated_at": "2026-08-21T03:23:22.445234+00:00",
+  "updated_at": "2026-08-22T15:52:42.943417+00:00",
   "workflow_status": "in_progress"
 }

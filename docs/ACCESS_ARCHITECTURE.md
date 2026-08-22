@@ -1,6 +1,6 @@
-# Later-Phase Access and Storage Architecture
+# GRDR Access and Distributed Storage Architecture
 
-This document describes optional later-phase access and storage extensions. It is not the current project center. The current foundation is the Data Source Registry, Dataset Knowledge Graph, and Agent Research Data Infrastructure defined in `NORTH_STAR.md`.
+This document separates broad Source registration from the full three-step database factory. The Data Source Registry may register sources without copying them; a database selected for Plan → Execute → Storage must finish as a complete distributed snapshot.
 
 GRDR separates its registered knowledge from the optional mechanisms that retrieve or store upstream data. The GRDR Skill operates both when appropriate.
 
@@ -16,7 +16,7 @@ The architecture contains seven layers:
 6. **Adapters and storage** — retrieval code plus local snapshots, caches, indexes, or federated queries where permitted.
 7. **Monitoring and provenance** — revisions, upstream producers, transformations, migrations, licenses, and historical versions.
 
-The current repository implements the foundation of layers 1–5. Layers 6–7 are the next major engineering work.
+The repository implements layers 1–5 globally and the first source-scoped implementation of layers 6–7 through the Storage Skill.
 
 ## Skill layer
 
@@ -34,13 +34,20 @@ The Skill tells an AI agent how to operate GRDR. Its core operations are:
 
 ## Storage policy
 
-Use three storage modes:
+The broad registry retains three access descriptions:
 
 - `local_snapshot`: store a versioned copy when licensing, privacy, cost, and scale permit;
 - `federated_access`: retain metadata and query the authoritative upstream system when copying is unsuitable;
 - `controlled_access_pointer`: retain metadata, application instructions, and governance constraints without attempting unauthorized retrieval.
 
-GRDR must never equate “not locally copied” with “not included.” A restricted clinical cohort, commercial financial database, or physical archive can be fully registered while remaining externally controlled.
+These modes do not define completion for the three-step factory. A source that is only federated or externally controlled may remain registered, but it is not eligible to receive a complete Storage receipt. The factory's selected databases require a full local snapshot, complete Release assets, and the matching Elements copy.
+
+## Distributed snapshot topology
+
+- GRDR Core stores shared schemas, Skills, programs, global search, and one latest-snapshot card per stored Source.
+- Each stored Source has one private Git repository containing small reviewable configuration and manifests.
+- Each snapshot has one GitHub Release containing complete knowledge, Agent index, and observations.
+- Each snapshot has one Elements directory containing the same logical files in expanded form.
 
 ## Canonical local locations
 

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/source_archive.schema.json",
+  "title": "GRDR central source snapshot index card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "source_id", "repository", "latest_snapshot", "release", "manifest", "archive_fingerprint", "core_version", "status", "updated_at"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "id": {"type": "string", "pattern": "^grdr:source-archive:[a-z0-9][a-z0-9-]*$"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "repository": {"type": "string", "format": "uri"},
+    "latest_snapshot": {"type": "string", "minLength": 1},
+    "release": {"type": "string", "format": "uri"},
+    "manifest": {"type": "string", "format": "uri"},
+    "archive_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "core_version": {"type": "string", "minLength": 1},
+    "status": {"const": "complete"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  }
+}

@@ -2,25 +2,25 @@
 
 GRDR is AI-agent-native, all-discipline infrastructure for global data-source registration, discovery, assessment, connection, and research design.
 
-**Current status:** foundation, a transaction-isolated three-step database deep-reading factory, the first persistent real database project, and the first executable research-question closed loop. The repository provides evidence models, ontology, initial registry, Agent commands, all 36 UNdata datamarts, deep Energy/GHG examples, 29 composable database-route contracts, locked Plan → staged Execute → canonical Archive handoffs, two graph spines, a Variable-to-Construct bridge, and persisted indicator matching with data-gap-driven source expansion. The immediate goal is a verified first-round registry of approximately 100 cross-disciplinary sources, followed by multi-round snowball expansion. See [North Star](docs/NORTH_STAR.md).
+**Current status:** foundation, a transaction-isolated Plan → Execute → Storage database factory, the first persistent real database project, and the first executable research-question closed loop. The repository provides evidence models, ontology, initial registry, Agent commands, all 36 UNdata datamarts, 29 composable database-route contracts, two graph spines, a Variable-to-Construct bridge, a source-repository/Release/Elements Storage engine, and persisted indicator matching with data-gap-driven expansion. See [North Star](docs/NORTH_STAR.md).
 
-It is not primarily a website and does not initially copy every upstream dataset. It combines:
+It is not primarily a website and does not combine every upstream dataset into one monolithic warehouse. It combines:
 
 - a versioned data-source registry;
 - a dataset and measurement knowledge graph;
 - task-specific source-fit and data-gap assessment;
 - stable interfaces for Codex, Claude, and other agents;
-- optional adapters for representative sources with stable programmatic access.
+- source-scoped adapters and complete distributed snapshots for databases selected for deep reading.
 
-Research-question matching, source combination, and data-gap diagnosis are central Agent capabilities built on top of the registry. Local snapshots and federated access are later extensions where licensing, privacy, cost, and scale permit.
+Research-question matching, source combination, and data-gap diagnosis are central Agent capabilities built on top of the registry. A database that enters the complete three-step factory finishes as one independent private source repository, one Release per snapshot, and one matching expanded Elements copy.
 
 ## 数据库六层拆解
 
-GRDR uses three dedicated Skills in sequence: `$grdr-plan-database-deep-map` diagnoses and locks the pass; `$grdr-execute-database-deep-map` deeply maps and stages records; `$grdr-archive-database-deep-map` alone promotes them into the canonical registry and issues a receipt. The content chain is Institution → Source → Dataset → recursive DataStructure → 5A DataElement / 5B Variable → Construct. API、CSV、下载、认证与许可作为 Resource 旁路挂接，不占第4层。One populated chain is never reported as a complete upstream inventory. See [the database deep-mapping protocol](docs/SOURCE_PROFILING_PROTOCOL.md).
+GRDR uses three dedicated Skills in sequence: `$grdr-plan-database-deep-map` diagnoses and locks the pass; `$grdr-execute-database-deep-map` deeply maps and stages records; `$grdr-store-database-deep-map` promotes the sealed records, builds the source repository and complete snapshot, publishes the GitHub Release, materializes Elements, verifies parity, and issues the Storage receipt. The content chain is Institution → Source → Dataset → recursive DataStructure → 5A DataElement / 5B Variable → Construct. API、CSV、下载、认证与许可作为 Resource 旁路挂接，不占第4层。
 
 These records close two trunks and one bridge: the source-native structure spine preserves Dataset → DataStructure → DataElement → Variable topology; the multi-parent scientific-semantic spine places Constructs under evidenced disciplines, fields, objects, systems, phenomena, populations, units, applications, and methods; the Variable → Construct bridge records what each operational quantity can legitimately measure. Object counts, graph closure, and database-shape route checks are audited separately.
 
-Every nontrivial pass is a persistent engineering project under `deep_map_projects/<source-or-pass>/`. Step 1 fingerprints the audited plan, scope, and ordered work-unit manifest. Step 2 follows a deterministic dependency-aware queue and writes only project-local staging. Step 3 rechecks every fingerprint and canonical base version, validates the prospective registry, promotes transactionally, rebuilds the human catalog, and issues `archive_receipt.json`. Without that receipt, execution is not complete. Upstream inaccessibility or genuine non-enumerability remains an explicit boundary—not an invented promise of completeness. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
+Every nontrivial pass is a persistent engineering project under `deep_map_projects/<source-or-pass>/`. Step 1 fingerprints the audited plan, scope, and ordered work-unit manifest. Step 2 follows a deterministic dependency-aware queue and writes only project-local staging. Step 3 preserves the internal canonical archive receipt but completes only after the source repository, complete knowledge artifact, Agent SQLite index, observation artifacts, GitHub Release, Elements snapshot, central card, and `storage_receipt.json` all pass audit. See [the executable deep-map workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md).
 
 ```bash
 python3 scripts/grdr.py list-database-route-modules
@@ -30,8 +30,10 @@ python3 scripts/grdr.py resume-database-deep-map deep_map_projects/undata
 python3 scripts/grdr.py stage-database-deep-map-records deep_map_projects/<source-slug> <records.jsonl>
 python3 scripts/grdr.py record-database-deep-map-spine deep_map_projects/<source-slug> <spine-update.json>
 python3 scripts/grdr.py audit-database-deep-map-execution deep_map_projects/undata
-python3 scripts/grdr.py prepare-database-deep-map-archive deep_map_projects/<source-slug>
-python3 scripts/grdr.py archive-database-deep-map deep_map_projects/<source-slug>
+python3 scripts/grdr.py prepare-database-deep-map-storage deep_map_projects/<source-slug>
+python3 scripts/grdr.py prepare-database-storage deep_map_projects/<source-slug> <storage-spec.json>
+python3 scripts/grdr.py publish-database-storage deep_map_projects/<source-slug>
+python3 scripts/grdr.py database-storage-status deep_map_projects/<source-slug>
 ```
 
 ## 研究指标构建器
@@ -101,7 +103,7 @@ The first persisted test project is [population, energy, income, industrial stru
 | [OpenAlex](https://openalex.org/) | OurResearch | multidisciplinary、science studies | `undeclared` | `source_only` | 0.0% | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/openalex/README.md) |
 | [RCSB Protein Data Bank](https://www.rcsb.org/) | Research Collaboratory for Structural Bioinformatics Protein Data Bank | structural biology、biochemistry、bioinformatics | `undeclared` | `source_only` | 0.0% | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/rcsb-pdb/README.md) |
 | [UN Comtrade](https://comtradeplus.un.org/) | United Nations Statistics Division | economics、international trade | `undeclared` | `source_only` | 0.0% | 待验证候选 (`unverified`) | [查看六层目录](catalog/sources/un-comtrade/README.md) |
-| [UNdata](https://data.un.org/) | Food and Agriculture Organization of the United Nations<br>International Labour Organization<br>International Monetary Fund<br>International Telecommunications Union<br>Organisation for Economic Co-operation and Development<br>United Nations Population Division<br>World Tourism Organization<br>Joint United Nations Programme on HIV/AIDS<br>United Nations Development Programme<br>UNESCO Institute for Statistics<br>United Nations Framework Convention on Climate Change<br>United Nations High Commissioner for Refugees<br>United Nations Children's Fund<br>United Nations Industrial Development Organization<br>United Nations Office on Drugs and Crime<br>United Nations Statistics Division<br>World Health Organization<br>World Meteorological Organization<br>World Bank | multidisciplinary | `exhaustive_snapshot` | `six_layer_chain_present` | 0.93% | 已验证 (`verified`) | [查看六层目录](catalog/sources/undata/README.md) |
+| [UNdata](https://data.un.org/) | Food and Agriculture Organization of the United Nations<br>International Labour Organization<br>International Monetary Fund<br>International Telecommunications Union<br>Organisation for Economic Co-operation and Development<br>United Nations Population Division<br>World Tourism Organization<br>Joint United Nations Programme on HIV/AIDS<br>United Nations Development Programme<br>UNESCO Institute for Statistics<br>United Nations Framework Convention on Climate Change<br>United Nations High Commissioner for Refugees<br>United Nations Children's Fund<br>United Nations Industrial Development Organization<br>United Nations Office on Drugs and Crime<br>United Nations Statistics Division<br>World Health Organization<br>World Meteorological Organization<br>World Bank | multidisciplinary | `exhaustive_snapshot` | `six_layer_chain_present` | 100.0% | 已验证 (`verified`) | [查看六层目录](catalog/sources/undata/README.md) |
 | [UNESCO UIS Data Browser](https://databrowser.uis.unesco.org/) | UNESCO Institute for Statistics | education、science studies、culture | `undeclared` | `source_only` | 0.0% | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/unesco-uis-data/README.md) |
 | [WHO Data](https://data.who.int/) | World Health Organization | medicine、public health | `undeclared` | `source_only` | 0.0% | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/who-data/README.md) |
 | [World Bank Open Data](https://data.worldbank.org/) | World Bank | multidisciplinary | `representative_chain` | `six_layer_chain_present` | 0.0% | 部分验证 (`partially_verified`) | [查看六层目录](catalog/sources/world-bank-open-data/README.md) |
@@ -125,7 +127,7 @@ GRDR should help an agent determine:
 - **Task fit is separate from source authority.** An authoritative source may still be unsuitable for a particular question.
 - **Claims require evidence.** Authority, coverage, access, and methodological claims must point to verifiable evidence.
 - **Unknown is a valid value.** The registry must not turn unverified assumptions into facts.
-- **Metadata before mirroring.** GRDR catalogs and connects data before considering storage or redistribution.
+- **Registry breadth, source-scoped storage.** GRDR can register broadly; every database selected for full deep reading receives its own complete versioned snapshot.
 - **Dataset and variable granularity matter.** A source-level URL list is insufficient for research design.
 - **Provenance is preserved.** Original production, harmonization, publication, and mirroring are distinct relationships.
 - **Expansion has no fixed ceiling.** Initial seeds support iterative, audited snowball expansion.
@@ -209,6 +211,11 @@ grdr/
 │   ├── database_deep_map_staging_manifest.schema.json
 │   ├── database_deep_map_archive_package.schema.json
 │   ├── database_deep_map_archive_receipt.schema.json
+│   ├── database_storage_spec.schema.json
+│   ├── database_storage_package.schema.json
+│   ├── database_storage_publication.schema.json
+│   ├── database_storage_receipt.schema.json
+│   ├── source_archive.schema.json
 │   └── database_route_contracts.schema.json
 ├── research_projects/
 │   └── <project-id>/
@@ -225,6 +232,7 @@ grdr/
 │   ├── indicator_builder.py
 │   ├── database_deep_map.py
 │   ├── database_deep_map_planner.py
+│   ├── database_storage.py
 │   ├── research_project.py
 │   ├── grdr.py
 │   └── validate_registry.py
@@ -232,7 +240,7 @@ grdr/
 │   ├── grdr/
 │   ├── grdr-plan-database-deep-map/
 │   ├── grdr-execute-database-deep-map/
-│   ├── grdr-archive-database-deep-map/
+│   ├── grdr-store-database-deep-map/
 │   └── grdr-indicator-builder/
 └── tests/
     ├── test_catalog.py
@@ -244,7 +252,7 @@ grdr/
 
 ## Current phase
 
-Version `3.1.0` completes the first production demonstration of the three independent database Skills. Plan fingerprint-locked all 36 official UNdata datamarts; Execute enumerated their dated source-exposed metadata, staged 62,013 validated records, and closed 216/216 content stages, 108/108 graph products, and 638/638 route obligations; Archive transactionally promoted 61,975 creates and 38 updates and issued an immutable receipt. The dated boundary contains 8,719 Explorer hierarchy nodes, 9,334 variables, 194 data elements, 41 semantic nodes, and 43,000 relationships, while mirroring zero observation rows and preserving failed/degraded access outcomes. The earlier 19.44%-mapped UNdata project remains visible as historical evidence rather than being rewritten. High-cardinality Variable and Construct catalogs are now paginated for people while canonical JSONL remains complete for agents. The engineering guarantee applies to the locked, resumable, auditable GRDR process; upstream inaccessibility or genuine non-enumerability remains an explicit blocker or boundary. The target of roughly 100 high-value sources remains a first pass, not a collection limit.
+Version `3.2.0` fixes the database factory as three independent Skills: Plan, Execute, and Storage. Storage retains transactional canonical promotion but adds one private repository per Source, one Release per snapshot, complete knowledge and observation artifacts, a source-scoped Agent SQLite index, the matching expanded Elements copy, SHA-256 logical-parity audits, a central source-archive card, and a final Storage receipt. The completed UNdata metadata execution is now reported honestly as `ready_for_storage`: its 36 datamarts and knowledge graph remain canonically archived, while zero captured observation rows means the full database snapshot is not yet complete.
 
 Every completed development batch increments `VERSION`, updates `CHANGELOG.md`, passes validation, and is published to GitHub according to [the release process](docs/RELEASE_PROCESS.md).
 
@@ -284,6 +292,7 @@ python3 scripts/grdr.py get-semantic-node <semantic-node-id>
 python3 scripts/grdr.py trace-provenance grdr:variable:wdi-sp-pop-totl
 python3 scripts/grdr.py list-adapters --status operational
 python3 scripts/grdr.py list-storage --mode federated_access
+python3 scripts/grdr.py list-source-archives
 python3 scripts/grdr.py list-monitors --status passing
 python3 scripts/grdr.py diagnose-coverage examples/population_emissions_request.json
 python3 scripts/grdr.py audit-source-depth grdr:source:undata
@@ -299,10 +308,11 @@ python3 scripts/grdr.py stage-database-deep-map-records deep_map_projects/<sourc
 python3 scripts/grdr.py audit-database-deep-map-execution deep_map_projects/undata
 python3 scripts/grdr.py record-database-deep-map-spine deep_map_projects/<source-slug> <spine-update.json>
 python3 scripts/grdr.py record-database-deep-map-check deep_map_projects/<source-slug> <check-update.json>
-python3 scripts/grdr.py prepare-database-deep-map-archive deep_map_projects/<source-slug>
-python3 scripts/grdr.py audit-database-deep-map-archive deep_map_projects/<source-slug>
-python3 scripts/grdr.py archive-database-deep-map deep_map_projects/<source-slug>
-python3 scripts/grdr.py database-deep-map-archive-status deep_map_projects/<source-slug>
+python3 scripts/grdr.py prepare-database-deep-map-storage deep_map_projects/<source-slug>
+python3 scripts/grdr.py prepare-database-storage deep_map_projects/<source-slug> <storage-spec.json>
+python3 scripts/grdr.py audit-database-storage deep_map_projects/<source-slug>
+python3 scripts/grdr.py publish-database-storage deep_map_projects/<source-slug>
+python3 scripts/grdr.py database-storage-status deep_map_projects/<source-slug>
 python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
 python3 scripts/grdr.py research-project-status research_projects/<project-id>
 .venv/bin/python scripts/validate_registry.py

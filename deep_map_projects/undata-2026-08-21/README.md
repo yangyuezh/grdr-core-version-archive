@@ -4,8 +4,8 @@
 
 - 项目：`grdr:deep-map-project:undata-2026-08-21`
 - 数据库：`grdr:source:undata`
-- 工作状态：`complete`
-- 当前阶段：`complete`
+- 工作状态：`ready_for_storage`
+- 当前阶段：`storage`
 - 范围模式：`exhaustive_snapshot`
 - 完成声明：`exhaustive_snapshot`
 - 边界：All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars.
@@ -16,12 +16,12 @@
 - 路线契约验收：**100.0%**（638 / 638）
 - 双主干与桥梁严格完成度：**100.0%**（108 / 108）
 - 全部阶段及双主干完成的工作单元：36 / 36
-- 可进入 Step 3 归档：`true`
-- 可声明完成：`true`
-- 三步生产线：`plan → execute → archive`
+- 可进入 Step 3 Storage：`true`
+- 可声明完成：`false`
+- 三步生产线：`plan → execute → storage`
 - 当前暂存记录：62013（状态：`archived`）
-- 归档包：`true`；归档回执：`true`
-- 执行契约：`3.0.0`（全部硬约束：`true`）
+- 中央入库包：`true`；中央入库回执：`true`；完整Storage回执：`false`
+- 执行契约：`3.2.0`（全部硬约束：`true`）
 - 计划锁：`e1c8dafe60d361ca6862612dba5b9231924237e7aba138e3caf234061af72a20`
 - 范围锁：`6e89435584ad360ecaca90b5e53d0d2bb7d8b980b40b515844a274f799d7c959`
 - 工作单元清单锁：`e91b880648c041b253eb878c92ec2863894575c110fa22b558da013de4340e89`
@@ -68,7 +68,8 @@
 
 - 当前没有可执行的工作单元目标；请检查审计错误或项目级完成门槛。
 
-- `database-deep-map-archive-status`
+- `prepare-database-storage`
+- `database-storage-status`
 
 ## 阻塞
 

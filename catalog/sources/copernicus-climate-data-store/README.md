@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:copernicus-climate-data-store"
 record_type: "source_catalog"
-registry_version: "3.1.0"
+registry_version: "3.2.0"
 verification_status: "unverified"
 canonical_url: "https://cds.climate.copernicus.eu/"
 ---

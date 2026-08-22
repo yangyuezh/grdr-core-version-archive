@@ -1,6 +1,6 @@
 {
   "created_at": "2026-08-21T03:35:34.797584+00:00",
-  "current_phase": "complete",
+  "current_phase": "storage",
   "database_profile": {
     "access_regime": "mixed",
     "classification_notes": "UNdata is an official UNSD aggregation and presentation portal. Each work unit keeps its own structural routes and upstream producer lineage.",
@@ -534,9 +534,8 @@
     }
   },
   "execution_contract": {
-    "archive_only_canonical_write": true,
     "checkpoint_resume": true,
-    "contract_version": "3.0.0",
+    "contract_version": "3.2.0",
     "deterministic_queue": true,
     "deviation_rejection": true,
     "dual_spine_completion": true,
@@ -544,6 +543,7 @@
     "external_blocker_transparency": true,
     "scope_lock": true,
     "staging_only_execution": true,
+    "storage_only_canonical_write": true,
     "unknown_database_diagnosis": true
   },
   "history": [
@@ -571,6 +571,11 @@
       "operation": "archive-database-deep-map",
       "summary": "Step 3 promoted the sealed execution package into the canonical GRDR registry and issued an archive receipt.",
       "timestamp": "2026-08-21T04:54:04.368689+00:00"
+    },
+    {
+      "operation": "upgrade-database-deep-map",
+      "summary": "Replaced the Archive-only third step with the complete Storage contract.",
+      "timestamp": "2026-08-22T15:52:44.118593+00:00"
     }
   ],
   "id": "grdr:deep-map-project:undata-2026-08-21",
@@ -581,7 +586,8 @@
     "unit_manifest_fingerprint": "e91b880648c041b253eb878c92ec2863894575c110fa22b558da013de4340e89"
   },
   "next_actions": [
-    "database-deep-map-archive-status"
+    "prepare-database-storage",
+    "database-storage-status"
   ],
   "phase_states": {
     "boundary": {
@@ -632,26 +638,10 @@
     },
     "completion_audit": {
       "blockers": [],
-      "completion_basis": "The fingerprinted Plan → Execute → Archive chain closed with a canonical archive receipt.",
-      "evidence": [
-        {
-          "evidence_type": "official_catalog",
-          "retrieved_at": "2026-08-21T03:32:45Z",
-          "supports": [
-            "identity",
-            "classification",
-            "boundary",
-            "inventory",
-            "deep_mapping",
-            "validation",
-            "completion_audit"
-          ],
-          "title": "UNdata dated exhaustive metadata boundary",
-          "url": "https://data.un.org/DataMartInfo.aspx"
-        }
-      ],
-      "state": "verified_complete",
-      "updated_at": "2026-08-21T04:54:04.289282+00:00"
+      "completion_basis": null,
+      "evidence": [],
+      "state": "in_progress",
+      "updated_at": "2026-08-22T15:52:44.118593+00:00"
     },
     "deep_mapping": {
       "blockers": [],
@@ -747,10 +737,14 @@
     }
   },
   "pipeline_contract": {
-    "canonical_writes_archive_only": true,
-    "contract_version": "3.0.0",
+    "canonical_writes_storage_only": true,
+    "contract_version": "3.2.0",
+    "core_index_card_only": true,
     "fingerprinted_handoffs": true,
-    "staged_before_archive": true,
+    "one_release_per_snapshot": true,
+    "one_repository_per_source": true,
+    "release_elements_logical_parity": true,
+    "staged_before_storage": true,
     "step_isolation": true,
     "steps": [
       {
@@ -759,18 +753,18 @@
         "step": "plan"
       },
       {
-        "output": "staged_deep_map_records",
+        "output": "sealed_deep_map_execution",
         "skill": "grdr-execute-database-deep-map",
         "step": "execute"
       },
       {
-        "output": "canonical_registry_archive",
-        "skill": "grdr-archive-database-deep-map",
-        "step": "archive"
+        "output": "versioned_database_snapshot",
+        "skill": "grdr-store-database-deep-map",
+        "step": "storage"
       }
     ]
   },
-  "schema_version": "3.0.0",
+  "schema_version": "3.2.0",
   "scope": {
     "boundary_statement": "All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars.",
     "boundary_type": "catalog_snapshot",
@@ -781,6 +775,6 @@
   },
   "source_id": "grdr:source:undata",
   "title": "UNdata 2026-08-21 exhaustive metadata deep-map",
-  "updated_at": "2026-08-21T04:54:04.368689+00:00",
-  "workflow_status": "complete"
+  "updated_at": "2026-08-22T15:52:44.118593+00:00",
+  "workflow_status": "ready_for_storage"
 }

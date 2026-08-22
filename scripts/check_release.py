@@ -40,7 +40,7 @@ def main() -> int:
     for deep_map_skill in (
         "grdr-plan-database-deep-map",
         "grdr-execute-database-deep-map",
-        "grdr-archive-database-deep-map",
+        "grdr-store-database-deep-map",
     ):
         skill_path = ROOT / "skill" / deep_map_skill / "SKILL.md"
         if not skill_path.is_file():
@@ -55,6 +55,9 @@ def main() -> int:
 
     if (ROOT / "skill" / "grdr-source-profiler").exists():
         errors.append("superseded grdr-source-profiler Skill bundle still exists")
+
+    if (ROOT / "skill" / "grdr-archive-database-deep-map").exists():
+        errors.append("superseded grdr-archive-database-deep-map Skill bundle still exists")
 
     indicator_skill = ROOT / "skill" / "grdr-indicator-builder" / "SKILL.md"
     if not indicator_skill.is_file():
@@ -81,14 +84,21 @@ def main() -> int:
         ROOT / "schemas" / "database_deep_map_staging_manifest.schema.json",
         ROOT / "schemas" / "database_deep_map_archive_package.schema.json",
         ROOT / "schemas" / "database_deep_map_archive_receipt.schema.json",
+        ROOT / "schemas" / "database_storage_spec.schema.json",
+        ROOT / "schemas" / "database_storage_package.schema.json",
+        ROOT / "schemas" / "database_storage_publication.schema.json",
+        ROOT / "schemas" / "database_storage_receipt.schema.json",
+        ROOT / "schemas" / "source_archive.schema.json",
         ROOT / "schemas" / "database_route_contracts.schema.json",
         ROOT / "config" / "database_route_contracts.json",
         ROOT / "requirements-validation.txt",
         ROOT / "registry" / "data_structures.jsonl",
         ROOT / "registry" / "semantic_nodes.jsonl",
+        ROOT / "registry" / "source_archives.jsonl",
         ROOT / "scripts" / "research_project.py",
         ROOT / "scripts" / "database_deep_map.py",
         ROOT / "scripts" / "database_deep_map_planner.py",
+        ROOT / "scripts" / "database_storage.py",
         ROOT / "deep_map_projects" / "undata" / "project.json",
         ROOT / "deep_map_projects" / "undata" / "units.jsonl",
         ROOT / "deep_map_projects" / "undata" / "checks.jsonl",
@@ -107,8 +117,9 @@ def main() -> int:
         ROOT / "skill" / "grdr-execute-database-deep-map" / "references" / "check-update.example.json",
         ROOT / "skill" / "grdr-execute-database-deep-map" / "scripts" / "inspect_sdmx.py",
         ROOT / "skill" / "grdr-execute-database-deep-map" / "scripts" / "audit_execution.py",
-        ROOT / "skill" / "grdr-archive-database-deep-map" / "references" / "archive-contract.md",
-        ROOT / "skill" / "grdr-archive-database-deep-map" / "references" / "completion-contract.md",
+        ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "storage-contract.md",
+        ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "repository-layout.md",
+        ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "completion-contract.md",
     ]:
         if not required_path.is_file():
             errors.append(f"required research workflow file is missing: {required_path.relative_to(ROOT)}")
@@ -131,6 +142,14 @@ def main() -> int:
         "stage-database-deep-map-records",
         "audit-database-deep-map",
         "audit-database-deep-map-execution",
+        "prepare-database-deep-map-storage",
+        "prepare-database-storage",
+        "audit-database-storage",
+        "database-storage-status",
+        "record-database-storage-publication",
+        "publish-database-storage",
+        "store-database-deep-map",
+        "list-source-archives",
         "prepare-database-deep-map-archive",
         "audit-database-deep-map-archive",
         "database-deep-map-archive-status",

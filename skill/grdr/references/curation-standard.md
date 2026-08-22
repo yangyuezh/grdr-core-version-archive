@@ -33,7 +33,7 @@ Capture parent source, scope, population, observation unit, spatial and temporal
 
 ## Minimum deep-map chain
 
-Use `$grdr-plan-database-deep-map`, then `$grdr-execute-database-deep-map`, then `$grdr-archive-database-deep-map`. Recover a Dataset's native DataStructure before staging DataElements and research-matchable Variables. Keep APIs, files, authentication, and licenses as access Resources attached to the content chain; never substitute them for the database-internal structure. Only the Archive Skill may promote staged records into the canonical registry.
+Use `$grdr-plan-database-deep-map`, then `$grdr-execute-database-deep-map`, then `$grdr-store-database-deep-map`. Recover a Dataset's native DataStructure before staging DataElements and research-matchable Variables. Keep APIs, files, authentication, and licenses as access Resources attached to the content chain; never substitute them for the database-internal structure. Only the Storage Skill may promote staged records, build the source snapshot, publish its Release, materialize Elements, and write the central archive card.
 
 ## Unknowns and conflicts
 

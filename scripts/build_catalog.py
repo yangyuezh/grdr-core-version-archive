@@ -210,6 +210,14 @@ def linked_records(source: dict[str, Any], context: dict[str, Any]) -> dict[str,
     deep_map_projects = [
         item for item in context["deep_map_projects"] if item["source_id"] == source["id"]
     ]
+    deep_map_projects.sort(
+        key=lambda item: (
+            item.get("scope", {}).get("snapshot_at", ""),
+            item.get("progress", {}).get("strict_completion_percentage", 0.0),
+            item.get("project_id", ""),
+        ),
+        reverse=True,
+    )
     return {
         "institutions": institutions,
         "datasets": datasets,
@@ -247,7 +255,10 @@ def deep_map_summary(linked: dict[str, list[dict[str, Any]]]) -> str:
     if not linked["deep_map_projects"]:
         return "尚未建立持久化深度映射工程"
     return "；".join(
-        f"{item['progress']['mapping_percentage']}% mapped / {item['progress']['strict_completion_percentage']}% strict / {item['progress']['dual_spine_percentage']}% dual-spine"
+        f"{item['title']} [{item['workflow_status']}]: "
+        f"{item['progress']['mapping_percentage']}% mapped / "
+        f"{item['progress']['strict_completion_percentage']}% strict / "
+        f"{item['progress']['dual_spine_percentage']}% dual-spine"
         for item in linked["deep_map_projects"]
     )
 
@@ -272,6 +283,9 @@ def render_deep_map_projects(records: list[dict[str, Any]]) -> str:
                     ("双主干与桥梁完成度", f"{progress['dual_spine_percentage']}%"),
                     ("完整闭合工作单元", f"{progress['fully_closed_work_units']} / {progress['work_units']}"),
                     ("阻塞阶段", progress["blocked_unit_stages"]),
+                    ("Execute可交Storage", item["execution_ready_for_storage"]),
+                    ("中央注册表事务入库", item["canonical_archive_complete"]),
+                    ("完整Storage", item["storage_complete"]),
                     ("可声明完成", item["completion_ready"]),
                     ("工程详情", f"[打开工程台账](../../../deep_map_projects/{slug}/README.md)"),
                 ]

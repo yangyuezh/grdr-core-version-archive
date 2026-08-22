@@ -1,7 +1,7 @@
 ---
 grdr_id: "grdr:source:undata"
 record_type: "source_catalog"
-registry_version: "3.1.0"
+registry_version: "3.2.0"
 verification_status: "verified"
 canonical_url: "https://data.un.org/"
 ---
@@ -30,7 +30,7 @@ canonical_url: "https://data.un.org/"
 | 已关联构念 | 9347 |
 | 已登记学科语义节点 | 41 |
 | 当前拆解阶段 | `six_layer_chain_present` |
-| 持久化深度映射 | 19.44% mapped / 0.93% strict / 0.0% dual-spine；100.0% mapped / 100.0% strict / 100.0% dual-spine |
+| 持久化深度映射 | UNdata 2026-08-21 exhaustive metadata deep-map [ready_for_storage]: 100.0% mapped / 100.0% strict / 100.0% dual-spine；UNdata bounded deep-map project [in_progress]: 19.44% mapped / 0.93% strict / 0.0% dual-spine |
 | 已声明拆解范围 | `exhaustive_snapshot` |
 | 上游目录完整度 | `exhaustive_snapshot`；存在六层链不等于完整枚举 |
 
@@ -51,6 +51,25 @@ canonical_url: "https://data.un.org/"
 
 ## 持久化数据库深度映射工程
 
+#### UNdata 2026-08-21 exhaustive metadata deep-map
+
+| 字段 | 内容 |
+|---|---|
+| 工程ID | `grdr:deep-map-project:undata-2026-08-21` |
+| 工程状态 | `ready_for_storage` |
+| 边界 | All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars. |
+| 工作单元 | 36 / 36 |
+| 映射进度 | 100.0% |
+| 严格完成度 | 100.0% |
+| 双主干与桥梁完成度 | 100.0% |
+| 完整闭合工作单元 | 36 / 36 |
+| 阻塞阶段 | 0 |
+| Execute可交Storage | 是 |
+| 中央注册表事务入库 | 是 |
+| 完整Storage | 否 |
+| 可声明完成 | 否 |
+| 工程详情 | [打开工程台账](../../../deep_map_projects/undata-2026-08-21/README.md) |
+
 #### UNdata bounded deep-map project
 
 | 字段 | 内容 |
@@ -64,24 +83,11 @@ canonical_url: "https://data.un.org/"
 | 双主干与桥梁完成度 | 0.0% |
 | 完整闭合工作单元 | 0 / 36 |
 | 阻塞阶段 | 2 |
+| Execute可交Storage | 否 |
+| 中央注册表事务入库 | 否 |
+| 完整Storage | 否 |
 | 可声明完成 | 否 |
 | 工程详情 | [打开工程台账](../../../deep_map_projects/undata/README.md) |
-
-#### UNdata 2026-08-21 exhaustive metadata deep-map
-
-| 字段 | 内容 |
-|---|---|
-| 工程ID | `grdr:deep-map-project:undata-2026-08-21` |
-| 工程状态 | `complete` |
-| 边界 | All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars. |
-| 工作单元 | 36 / 36 |
-| 映射进度 | 100.0% |
-| 严格完成度 | 100.0% |
-| 双主干与桥梁完成度 | 100.0% |
-| 完整闭合工作单元 | 36 / 36 |
-| 阻塞阶段 | 0 |
-| 可声明完成 | 是 |
-| 工程详情 | [打开工程台账](../../../deep_map_projects/undata-2026-08-21/README.md) |
 
 ## 六层目录
 

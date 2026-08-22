@@ -51,7 +51,7 @@ Build the first approximately 100-source pass across every coverage track. Treat
 
 Create dataset records for at least one canonical dataset within each verified source. Capture version, coverage, observation unit, methodology, access resources, citation, and provenance.
 
-Use the `$grdr-plan-database-deep-map` → `$grdr-execute-database-deep-map` → `$grdr-archive-database-deep-map` factory and `docs/SOURCE_PROFILING_PROTOCOL.md` to declare whether each pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive. A single six-layer chain tests the ontology but does not establish catalog completeness, and no execution is canonical until Archive issues a receipt.
+Use the `$grdr-plan-database-deep-map` → `$grdr-execute-database-deep-map` → `$grdr-store-database-deep-map` factory and `docs/SOURCE_PROFILING_PROTOCOL.md` to declare whether each pass is representative, question-driven, priority-catalog, catalog-level, or exhaustive. A single six-layer chain tests the ontology but does not establish catalog completeness. Canonical promotion requires the internal archive receipt; completed database storage additionally requires the source repository, Release, Elements, central card, and Storage receipt.
 
 ### WP4 — Build access adapters and storage decisions
 

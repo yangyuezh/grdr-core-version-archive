@@ -14,8 +14,9 @@ Treat GRDR as:
 - Agent Research Data Infrastructure;
 - a source-matching and data-gap reasoning system;
 - a continuously expanding cross-disciplinary knowledge base.
+- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, and matching Elements copy.
 
-Do not redefine the current project as a physical warehouse that copies every upstream dataset. Add adapters or snapshots only as representative or later-phase extensions.
+Do not build one monolithic warehouse or copy every registered upstream source. The global registry remains broad; databases selected for the three-step deep-map factory must finish as complete, source-scoped snapshots with knowledge, Agent index, and captured observations.
 
 ## Follow the current phase
 
@@ -54,6 +55,7 @@ Run the bundled wrapper:
 
 ```bash
 python3 scripts/grdr.py stats
+python3 scripts/grdr.py list-source-archives
 python3 scripts/grdr.py search-sources --query climate
 python3 scripts/grdr.py search-datasets --topic population
 python3 scripts/grdr.py search-variables --construct population
@@ -83,7 +85,7 @@ When one database must be understood beyond Source registration, dispatch three 
 
 1. `$grdr-plan-database-deep-map` diagnoses the database, fixes the boundary and work-unit universe, composes route obligations, and creates the locked project;
 2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
-3. `$grdr-archive-database-deep-map` alone audits conflicts, promotes staged records into the canonical registry, rebuilds the catalog, and issues the receipt.
+3. `$grdr-store-database-deep-map` alone promotes the sealed records, builds the source repository and full snapshot artifacts, publishes one private GitHub Release, materializes the matching Elements directory, writes the central card, and issues the Storage receipt.
 
 The map preserves Institution and Source as provenance context; Dataset; recursive DataStructure; 5A DataElement and 5B Variable; and Construct. Resource is an access sidecar. It must also close a source-native structural spine, a multi-parent scientific-semantic spine, and the Variable-to-Construct bridge. Audit current depth first:
 
@@ -108,13 +110,14 @@ python3 scripts/grdr.py record-database-deep-map-spine <project> <spine-update.j
 python3 scripts/grdr.py record-database-deep-map-check <project> <check-update.json>
 python3 scripts/grdr.py stage-database-deep-map-records <project> <records.jsonl>
 python3 scripts/grdr.py audit-database-deep-map-execution <project>
-python3 scripts/grdr.py prepare-database-deep-map-archive <project>
-python3 scripts/grdr.py audit-database-deep-map-archive <project>
-python3 scripts/grdr.py archive-database-deep-map <project>
-python3 scripts/grdr.py database-deep-map-archive-status <project>
+python3 scripts/grdr.py prepare-database-deep-map-storage <project>
+python3 scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
+python3 scripts/grdr.py audit-database-storage <project>
+python3 scripts/grdr.py publish-database-storage <project>
+python3 scripts/grdr.py database-storage-status <project>
 ```
 
-Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Enforce the plan, scope, and unit-manifest locks and follow the deterministic dependency-valid next target. Step 2 may write only project staging; only Step 3 may write canonical registry files. Only a valid archive receipt declares bounded completion; representative chains, open graph products, open route checks, unresolved human gates, partial verification, and blockers never equal 100%.
+Diagnose origin, structure, modality, lifecycle, versioning, access, sensitivity, scale, metadata maturity, boundary, denominator, and constraints before starting. Compose machine route contracts; use `open_world_custom` for unexplained shapes instead of forcing a closed taxonomy. Keep projects under `deep_map_projects/<source-or-pass>/`. Enforce the plan, scope, and unit-manifest locks and follow the deterministic dependency-valid next target. Step 2 may write only project staging; only Step 3 may write canonical registry files and source-archive cards. Only a valid Storage receipt declares bounded factory completion; a canonical archive receipt alone proves registry promotion, not database storage.
 
 ## Keep the human catalog synchronized
 

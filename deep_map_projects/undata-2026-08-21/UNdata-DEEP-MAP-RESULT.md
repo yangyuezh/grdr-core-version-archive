@@ -11,10 +11,12 @@
 - Required stages closed: **216 / 216**
 - Required spines closed: **108 / 108**
 - Required route checks closed: **638 / 638**
-- Step 2 archive readiness: **true**
-- Step 3 canonical archive complete: **true**
-- Archive receipt fingerprint: **`0c669af0cd885fedb4ca7f3422e44bd79e69189e7a5342e50cd5ba32109f125f`**
+- Step 2 Storage readiness: **true**
+- Storage internal canonical archive: **true**
+- Internal archive receipt fingerprint: **`0c669af0cd885fedb4ca7f3422e44bd79e69189e7a5342e50cd5ba32109f125f`**
 - Observation rows mirrored: **0**
+- Complete GitHub Release + Elements snapshot: **false**
+- Final Storage receipt: **absent**
 
 ## Per-datamart variable denominator
 
@@ -59,4 +61,4 @@
 
 ## Interpretation boundary
 
-This is an exhaustive, dated **source-exposed metadata** snapshot. It does not copy observation rows, does not turn UNdata into the primary authority for every provider dataset, and does not hide failed or degraded observation endpoints. Before substantive inference, agents must retain source units and flags and check the named upstream provider's methodology, revisions, comparability, and modeled-estimate status.
+This is an exhaustive, dated **source-exposed metadata** deep map whose knowledge records are canonically archived. It does not copy observation rows, so under GRDR 3.2 it is `ready_for_storage`, not a completed database snapshot. Step 3 must still capture the observations, create the independent UNdata repository and GitHub Release, materialize the matching Elements directory, verify parity, and issue the final Storage receipt. It does not turn UNdata into the primary authority for every provider dataset; agents must retain source units and flags and check the named upstream provider's methodology, revisions, comparability, and modeled-estimate status.

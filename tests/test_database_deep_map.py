@@ -307,8 +307,9 @@ class DatabaseDeepMapWorkflowTests(unittest.TestCase):
             self.assertTrue(audit_database_deep_map_archive(target)["ready_to_archive"])
 
             archived = archive_database_deep_map(target)
-            self.assertEqual(archived["workflow_status"], "complete")
-            self.assertTrue(archived["audit"]["completion_ready"])
+            self.assertEqual(archived["workflow_status"], "ready_for_storage")
+            self.assertTrue(archived["audit"]["canonical_archive_complete"])
+            self.assertFalse(archived["audit"]["completion_ready"])
             self.assertEqual(canonical_path.read_text(encoding="utf-8"), canonical_before)
             repeated = archive_database_deep_map(target)
             self.assertEqual(repeated["status"], "already_archived")

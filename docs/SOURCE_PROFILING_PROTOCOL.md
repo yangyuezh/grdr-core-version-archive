@@ -2,7 +2,7 @@
 
 ## 目的
 
-数据库进入 GRDR 不能止于名称和主页。`$grdr-plan-database-deep-map` → `$grdr-execute-database-deep-map` → `$grdr-archive-database-deep-map` 三步工厂把一个数据库深读并正式建立为 AI Agent 可检索、可核验、可连接的六层内容脉络：
+数据库进入 GRDR 不能止于名称和主页。`$grdr-plan-database-deep-map` → `$grdr-execute-database-deep-map` → `$grdr-store-database-deep-map` 三步工厂把一个数据库深读、存储并正式建立为 AI Agent 可检索、可核验、可连接的六层内容脉络：
 
 ```text
 1 机构 → 2 数据库 → 3 数据集 → 4 数据库内部结构
@@ -97,7 +97,7 @@ Resource 不会使阶段前进。
 7. 使用 `record-database-deep-map-spine` 闭合数据库原生结构主干、学科语义主干和变量—构念桥梁。
 8. 同时闭合 `checks.jsonl` 中由数据库形态决定的路线契约；六层对象齐全或主干连通均不能替代路线义务。
 9. 运行执行审计并生成带指纹的密封归档包。
-10. 由 Archive Skill 检查正式库冲突、验证合并前景、事务性写入注册表、重建目录并签发归档收据。
+10. 由 Storage Skill检查正式库冲突、事务性写入中央注册表，再生成独立源仓库、完整知识与观测制品、Agent索引、GitHub Release和Elements镜像，通过一致性核验后签发Storage回执。
 11. 报告新增 ID、层级数量、双主干、桥梁、路线检查、证据、边界、人工门槛、阻塞、包/收据指纹与下一轮。
 
 一轮只有在范围已声明、结构化记录通过验证、人类目录同步、验证升级有证据、未覆盖内容明确、没有夸大完整度并且存在有效 `archive_receipt.json` 时才完成。

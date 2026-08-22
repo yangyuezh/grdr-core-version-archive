@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import json
 import sys
 from pathlib import Path
@@ -28,6 +29,7 @@ COLLECTIONS = {
     "monitors": (REGISTRY / "monitors.jsonl", SCHEMAS / "monitor.schema.json"),
     "relationships": (REGISTRY / "relationships.jsonl", SCHEMAS / "relationship.schema.json"),
     "source_profiles": (REGISTRY / "source_profiles.jsonl", SCHEMAS / "source_profile.schema.json"),
+    "source_archives": (REGISTRY / "source_archives.jsonl", SCHEMAS / "source_archive.schema.json"),
 }
 
 
@@ -77,7 +79,7 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
 
     if None in known_ids:
         errors.append("one or more records are missing an id")
-    duplicate_ids = sorted({record_id for record_id in ids if ids.count(record_id) > 1})
+    duplicate_ids = sorted(record_id for record_id, count in Counter(ids).items() if count > 1)
     for record_id in duplicate_ids:
         errors.append(f"duplicate id: {record_id}")
 
@@ -205,6 +207,14 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
         if profile.get("source_id") in profiled_source_ids:
             errors.append(f"{profile.get('id')}: duplicate current profile for {profile.get('source_id')}")
         profiled_source_ids.add(profile.get("source_id"))
+
+    archived_source_ids: set[str] = set()
+    for archive in collections.get("source_archives", []):
+        if archive.get("source_id") not in source_ids:
+            errors.append(f"{archive.get('id')}: unknown source_id {archive.get('source_id')}")
+        if archive.get("source_id") in archived_source_ids:
+            errors.append(f"{archive.get('id')}: duplicate current archive card for {archive.get('source_id')}")
+        archived_source_ids.add(archive.get("source_id"))
 
     return errors
 

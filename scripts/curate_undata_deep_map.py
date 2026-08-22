@@ -991,7 +991,7 @@ def write_result(summary: dict, audit: dict) -> None:
         f"- Required stages closed: **{audit['progress']['closed_unit_stages']} / {audit['progress']['required_unit_stages']}**",
         f"- Required spines closed: **{audit['progress']['closed_spines']} / {audit['progress']['required_spines']}**",
         f"- Required route checks closed: **{audit['progress']['closed_contract_checks']} / {audit['progress']['required_contract_checks']}**",
-        f"- Step 2 archive readiness: **{str(audit['execution_ready_for_archive']).lower()}**",
+        f"- Step 2 Storage readiness: **{str(audit['execution_ready_for_storage']).lower()}**",
         f"- Step 3 canonical archive complete: **{str(audit['archive_complete']).lower()}**",
         f"- Archive receipt fingerprint: **`{receipt['receipt_fingerprint'] if receipt else 'not-issued'}`**",
         "- Observation rows mirrored: **0**",
@@ -1039,7 +1039,7 @@ def run(args: argparse.Namespace) -> dict:
         "snapshot_file": str(args.snapshot),
         "result_file": str(RESULT_FILE),
         "build": build,
-        "execution_ready_for_archive": audit["execution_ready_for_archive"],
+        "execution_ready_for_storage": audit["execution_ready_for_storage"],
         "errors": audit["errors"],
         "progress": audit["progress"],
     }

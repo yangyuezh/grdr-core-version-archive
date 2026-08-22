@@ -1,15 +1,15 @@
 ---
 name: grdr-execute-database-deep-map
-description: "Execute a fingerprint-locked GRDR database deep-map project: resume its deterministic queue, deeply recover each work unit's native data structure and disciplinary semantics, build the DataElement-to-Variable-to-Construct bridge, stage evidence-backed canonical candidates, and close every route obligation without writing the canonical registry. Use for Step 2 when an existing schema-3 deep-map project must be started, resumed, repaired, or audited through a sealed archive handoff."
+description: "Execute a fingerprint-locked GRDR database deep-map project: resume its deterministic queue, deeply recover each work unit's native data structure and disciplinary semantics, build the DataElement-to-Variable-to-Construct bridge, stage evidence-backed canonical candidates, and close every route obligation without writing the canonical registry. Use for Step 2 when an existing schema-3.2 deep-map project must be started, resumed, repaired, or audited through a sealed Storage handoff."
 ---
 
 # GRDR Step 2 — Execute Database Deep Map
 
 ## Mission and exclusive boundary
 
-Deep-read one database inside the exact Step 1 boundary and produce a sealed `staged_deep_map_records` handoff. This Skill owns evidence acquisition, deterministic enumeration, candidate record staging, content-stage closure, both graph spines, the variable bridge, route checks, typed blockers, recovery, and archive-package preparation.
+Deep-read one database inside the exact Step 1 boundary and produce a sealed `sealed_deep_map_execution` handoff. This Skill owns evidence acquisition, deterministic enumeration, candidate record staging, content-stage closure, both graph spines, the variable bridge, route checks, typed blockers, recovery, and Storage-handoff preparation.
 
-Never edit `registry/*.jsonl` directly or call `archive-database-deep-map`. Only `$grdr-archive-database-deep-map` may promote staged records into the canonical registry. Do not silently change the plan, scope, denominator, work-unit order, or route assignment; start a new bounded pass or use an explicit migration.
+Never edit `registry/*.jsonl` directly or call the internal canonical-promotion command. Only `$grdr-store-database-deep-map` may promote staged records and store the final snapshot. Do not silently change the plan, scope, denominator, work-unit order, or route assignment; start a new bounded pass or use an explicit migration.
 
 Locate GRDR at `${GRDR_ROOT}` or `/Users/jasper/Documents/codex/grdr`. Read `docs/DATABASE_DEEP_MAP_WORKFLOW.md` and the task-relevant references:
 
@@ -107,17 +107,16 @@ Agents may prepare evidence but may not self-approve named human gates. Use the 
 
 ## Seal the Step 2 handoff
 
-Repeat status, resume, stage, and update operations until the audit reports `execution_ready_for_archive: true`. Then:
+Repeat status, resume, stage, and update operations until the audit reports `execution_ready_for_storage: true`. Then:
 
 ```bash
-"$GRDR_PYTHON" scripts/grdr.py prepare-database-deep-map-archive <project>
-"$GRDR_PYTHON" scripts/grdr.py audit-database-deep-map-archive <project>
+"$GRDR_PYTHON" scripts/grdr.py prepare-database-deep-map-storage <project>
 ```
 
-Preparation seals the staging manifest and writes a fingerprinted `archive_package.json`. After sealing, do not alter staged records or execution ledgers. If correction is necessary, create a new bounded execution pass rather than mutating the handoff.
+Preparation seals the staging manifest and writes a fingerprinted internal canonical-promotion package. After sealing, do not alter staged records or execution ledgers. If correction is necessary, create a new bounded execution pass rather than mutating the handoff.
 
 ## Handoff and report
 
-Return project and Source IDs, locked boundary, work-unit denominator, selected routes, stage/spine/check progress, staged record IDs and action counts, human gates, blockers, next native cursor, execution audit, staging fingerprint, archive-package fingerprint, and exact Step 3 command.
+Return project and Source IDs, locked boundary, work-unit denominator, selected routes, stage/spine/check progress, staged record IDs and action counts, human gates, blockers, next native cursor, execution audit, staging fingerprint, sealed-package fingerprint, and exact Step 3 Storage command.
 
-Never report canonical ingestion until Step 3 issues a valid archive receipt.
+Never report database storage until Step 3 issues a valid Storage receipt.

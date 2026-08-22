@@ -2,6 +2,29 @@
 
 All notable changes to GRDR are documented here. Versions follow Semantic Versioning.
 
+## [3.2.0] - 2026-08-22
+
+### Added
+
+- The official third database Skill, `$grdr-store-database-deep-map`, completing the fixed Plan → Execute → Storage factory.
+- A deterministic Storage engine that builds one private source-repository layout, complete knowledge archives, a source-scoped Agent SQLite index, partitionable observation artifacts, one GitHub Release per snapshot, and the matching expanded Elements directory.
+- Machine schemas for Storage specifications, materialized packages, verified GitHub publications, final Storage receipts, and central source-archive index cards.
+- SHA-256 and byte-level logical-parity audits proving that Release assets expand to the same knowledge, Agent, and observation files stored on Elements.
+- CLI operations for Storage handoff, local materialization, audit, status, verified publication recording, GitHub publication, and end-to-end storage.
+- Regression coverage for complete local materialization, Release-to-Elements parity, actual-observation requirements, and tamper detection.
+
+### Changed
+
+- Replaced the public Archive Skill with Storage. Canonical archive package and receipt files remain as an internal, compatibility-preserving sub-transaction; they no longer imply whole-database storage completion.
+- Deep-map project schema and machine pipeline contract are now `3.2.0`, with `ready_for_storage`, `execution_ready_for_storage`, `canonical_archive_complete`, `storage_complete`, and final `completion_ready` states.
+- UNdata's production metadata execution is migrated from misleading factory completion to `ready_for_storage`: its canonical knowledge archive remains valid, but it has zero captured observation rows and therefore no complete Storage receipt.
+- GRDR's North Star now distinguishes the broad global registry from distributed, complete source snapshots instead of presenting physical storage as a later optional concern.
+- Registry duplicate-ID validation now uses linear counting instead of repeated full-list scans, removing a quadratic bottleneck exposed by repeated Storage transaction audits.
+
+### Storage invariant
+
+- A database factory run is complete only after its source repository, GitHub Release, full knowledge package, Agent index, actual observation data, matching Elements copy, central card, and final Storage receipt all validate. An internal canonical archive receipt alone is insufficient.
+
 ## [3.1.0] - 2026-08-20
 
 ### Added
