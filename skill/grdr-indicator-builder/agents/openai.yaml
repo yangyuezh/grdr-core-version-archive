@@ -1,4 +1,0 @@
-interface:
-  display_name: "GRDR Indicator Builder"
-  short_description: "Build literature-grounded research indicators"
-  default_prompt: "Use $grdr-indicator-builder to turn this research question and literature corpus into a cited indicator hierarchy ready for GRDR data matching."

@@ -1,0 +1,8 @@
+{
+  "core_repository": "https://github.com/yangyuezh/grdr-core",
+  "core_version": "3.2.1",
+  "latest_snapshot": "2026-08-23-r1",
+  "release_tag": "undata-2026-08-23-r1",
+  "schema_version": "1.0.0",
+  "source_id": "grdr:source:undata"
+}
