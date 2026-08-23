@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "validated_on": "2026-08-23",
+  "core_version": "4.0.0",
+  "source_id": "grdr:source:undata",
+  "snapshot_id": "2026-08-23-r2",
+  "research_question": "How many people live in moderate or severe food insecurity by country and year?",
+  "indicator_id": "grdr:research-indicator:undata-food-insecurity-population-integration-test-food-insecurity-population",
+  "semantic_candidate_count": 25,
+  "selected_construct_id": "grdr:construct:undata-sdgs-2026-08-21-601a4fd76ba48476",
+  "selected_variable_id": "grdr:variable:undata-sdgs-2026-08-21-601a4fd76ba48476",
+  "mapping_relation": "exact_match",
+  "semantic_path_count": 1,
+  "mapping_status": "direct_match",
+  "source_runtime_protocol": "grdr-source-runtime/1.0",
+  "official_access_mode": "official_sdmx_rest",
+  "official_dataflow_id": "DF_SDG_GLH",
+  "official_series_code": "AG_PRD_FIESMSN",
+  "official_request_dry_run": "passed",
+  "core_registry_templates_after_run": "byte_identical_and_empty",
+  "core_unit_tests": {
+    "passed": 30,
+    "failed": 0
+  },
+  "skill_validation": {
+    "passed": 6,
+    "failed": 0
+  },
+  "result": "passed"
+}

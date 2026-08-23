@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/semantic_path.schema.json",
+  "title": "GRDR persisted research semantic-to-data graph path",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "id", "path_fingerprint", "project_id", "indicator_id",
+    "alignment_id", "mapping_relation", "alignment_role", "target_type",
+    "target_id", "semantic_node_ids", "construct_id", "variable_id",
+    "data_element_ids", "data_structure_ids", "dataset_ids", "source_id",
+    "snapshot_id", "release", "edges", "callable", "verification_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "id": {"type": "string", "pattern": "^grdr:semantic-path:[a-z0-9][a-z0-9-]*$"},
+    "path_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "indicator_id": {"type": "string", "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "alignment_id": {"type": "string", "pattern": "^grdr:semantic-alignment:[a-z0-9][a-z0-9-]*$"},
+    "mapping_relation": {"enum": ["exact_match", "close_match", "broader_match", "narrower_match", "related_match"]},
+    "alignment_role": {"enum": ["primary", "component", "alternative"]},
+    "target_type": {"enum": ["semantic_node", "construct"]},
+    "target_id": {"type": "string", "pattern": "^grdr:(semantic-node|construct):[a-z0-9][a-z0-9-]*$"},
+    "semantic_node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:semantic-node:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "construct_id": {"type": "string", "pattern": "^grdr:construct:[a-z0-9][a-z0-9-]*$"},
+    "variable_id": {"type": "string", "pattern": "^grdr:variable:[a-z0-9][a-z0-9-]*$"},
+    "data_element_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:data-element:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "data_structure_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "dataset_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "source_id": {"type": ["string", "null"], "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "snapshot_id": {"type": ["string", "null"]},
+    "release": {"type": ["string", "null"], "format": "uri"},
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["relationship_id", "subject_id", "predicate", "object_id", "traversal_direction"],
+        "properties": {
+          "relationship_id": {"type": ["string", "null"]},
+          "subject_id": {"type": "string", "minLength": 1},
+          "predicate": {"type": "string", "minLength": 1},
+          "object_id": {"type": "string", "minLength": 1},
+          "traversal_direction": {"enum": ["forward", "reverse", "payload_link"]}
+        }
+      }
+    },
+    "callable": {"type": "boolean"},
+    "verification_status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable", "unknown"]}
+  }
+}

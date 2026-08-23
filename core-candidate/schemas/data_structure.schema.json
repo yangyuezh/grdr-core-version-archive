@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/data_structure.schema.json",
+  "title": "GRDR database-internal data structure record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "label",
+    "source_id",
+    "dataset_ids",
+    "parent_structure_ids",
+    "child_structure_ids",
+    "structure_type",
+    "structure_family",
+    "native_type",
+    "native_path",
+    "structural_level",
+    "native_identity",
+    "grain",
+    "ordering",
+    "key_element_ids",
+    "semantic_node_ids",
+    "lineage",
+    "description",
+    "resource_ids",
+    "verification",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "id": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "label": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "dataset_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "parent_structure_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "child_structure_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "structure_type": {
+      "enum": [
+        "catalog_hierarchy",
+        "dataflow",
+        "multidimensional_schema",
+        "table",
+        "view",
+        "api_schema",
+        "file_layout",
+        "questionnaire",
+        "instrument",
+        "scientific_array",
+        "knowledge_graph_schema",
+        "other"
+      ]
+    },
+    "structure_family": {
+      "enum": [
+        "catalog", "tabular", "multidimensional", "array", "graph", "corpus",
+        "event_or_stream", "survey_or_instrument", "experiment", "simulation",
+        "physical_collection", "software_or_workflow", "federated", "other"
+      ]
+    },
+    "native_type": {"type": "string", "minLength": 1},
+    "native_path": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "structural_level": {"type": "integer", "minimum": 0},
+    "native_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "agency_id", "object_class", "object_id", "version"],
+      "properties": {
+        "system": {"type": "string", "minLength": 1},
+        "agency_id": {"type": ["string", "null"]},
+        "object_class": {"type": "string", "minLength": 1},
+        "object_id": {"type": "string", "minLength": 1},
+        "version": {"type": ["string", "null"]}
+      }
+    },
+    "grain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "description"],
+      "properties": {
+        "kind": {"enum": ["catalog_item", "entity", "event", "measurement", "relationship", "coordinate_cell", "document_or_segment", "object_or_specimen", "model_run", "mixed", "unknown"]},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "ordering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "stable"],
+      "properties": {
+        "rule": {"type": "string", "minLength": 1},
+        "stable": {"type": "boolean"},
+        "position": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "key_element_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:data-element:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "semantic_node_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:semantic-node:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "lineage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["relation", "target_id", "notes"],
+        "properties": {
+          "relation": {"enum": ["contains", "derived_from", "generated_by", "references", "joins_to", "alternate_representation", "other"]},
+          "target_id": {"type": "string", "pattern": "^grdr:(dataset|data-structure|resource):[a-z0-9][a-z0-9-]*$"},
+          "notes": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "description": {"type": "string", "minLength": 1},
+    "resource_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:resource:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "verification": {"$ref": "#/$defs/verification"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}, "minItems": 1}
+  },
+  "$defs": {
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]},
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "title": {"type": "string", "minLength": 1},
+        "publisher": {"type": ["string", "null"]},
+        "evidence_type": {"enum": ["data_structure", "api_documentation", "official_documentation", "codebook", "schema", "live_test", "other"]},
+        "supports": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "archived_url": {"type": ["string", "null"], "format": "uri"}
+      }
+    }
+  }
+}

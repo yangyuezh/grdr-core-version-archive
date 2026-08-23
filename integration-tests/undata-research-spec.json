@@ -1,0 +1,25 @@
+{
+  "title": "UNdata food insecurity population integration test",
+  "research_question": "How many people live in moderate or severe food insecurity by country and year?",
+  "analysis_methods": ["theory_deduction"],
+  "model": "integration-test-agent",
+  "indicators": [
+    {
+      "key": "food-insecurity-population",
+      "name": "Population in moderate or severe food insecurity",
+      "node_type": "operational_requirement",
+      "definition": "Number of people in moderate or severe food insecurity for each country and year.",
+      "synonyms": ["food insecure population", "moderate or severe food insecurity population"],
+      "operational_spec": {
+        "unit": "persons",
+        "denominator": null,
+        "population": "people in moderate or severe food insecurity",
+        "observation_unit": "country-year",
+        "spatial_scope": "global",
+        "temporal_scope": "annual",
+        "direction": "higher_more",
+        "proxy_allowed": false
+      }
+    }
+  ]
+}

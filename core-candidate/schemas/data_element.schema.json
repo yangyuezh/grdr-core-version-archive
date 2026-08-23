@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/data_element.schema.json",
+  "title": "GRDR source-native data element",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "label",
+    "dataset_ids",
+    "data_structure_ids",
+    "resource_ids",
+    "element_type",
+    "source_native",
+    "definition",
+    "unit",
+    "representation",
+    "codelist",
+    "roles",
+    "verification",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:data-element:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "label": {"type": "string", "minLength": 1},
+    "dataset_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "data_structure_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:data-structure:[a-z0-9][a-z0-9-]*$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "resource_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:resource:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "element_type": {
+      "enum": ["measure", "dimension", "identifier", "time_dimension", "attribute", "weight", "flag", "derived_variable", "other"]
+    },
+    "source_native": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "agency_id", "dataflow_id", "data_structure_id", "structure_version", "native_id", "position", "attachment_level"],
+      "properties": {
+        "system": {"type": "string", "minLength": 1},
+        "agency_id": {"type": ["string", "null"]},
+        "dataflow_id": {"type": ["string", "null"]},
+        "data_structure_id": {"type": ["string", "null"]},
+        "structure_version": {"type": ["string", "null"]},
+        "native_id": {"type": "string", "minLength": 1},
+        "position": {"type": ["integer", "null"], "minimum": 1},
+        "attachment_level": {"type": ["string", "null"]}
+      }
+    },
+    "definition": {"type": ["string", "null"]},
+    "unit": {"type": ["string", "null"]},
+    "representation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_type", "allowed_values_note"],
+      "properties": {
+        "data_type": {"type": ["string", "null"]},
+        "allowed_values_note": {"type": ["string", "null"]}
+      }
+    },
+    "codelist": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "agency_id", "version", "url", "code_count"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "agency_id": {"type": ["string", "null"]},
+            "version": {"type": ["string", "null"]},
+            "url": {"type": ["string", "null"], "format": "uri"},
+            "code_count": {"type": ["integer", "null"], "minimum": 0}
+          }
+        }
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "items": {"enum": ["measure", "filter", "join_key", "time_key", "geographic_key", "unit", "multiplier", "status", "conversion", "weight", "other"]},
+      "uniqueItems": true
+    },
+    "verification": {"$ref": "#/$defs/verification"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]},
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "title": {"type": "string"},
+        "publisher": {"type": ["string", "null"]},
+        "evidence_type": {"enum": ["data_structure", "codelist", "data_dictionary", "codebook", "official_definition", "official_methodology", "live_test", "other"]},
+        "supports": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "archived_url": {"type": ["string", "null"], "format": "uri"}
+      }
+    }
+  }
+}
