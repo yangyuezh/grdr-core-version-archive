@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/database_storage_receipt.schema.json",
+  "title": "GRDR complete database snapshot storage receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "source_id", "snapshot_id", "package_fingerprint", "publication_fingerprint", "repository_url", "release_url", "elements_snapshot_path", "logical_content_fingerprint", "canonical_archive_fingerprint", "runtime_protocol_version", "runtime_asset", "status", "stored_at", "receipt_fingerprint"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "package_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "publication_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repository_url": {"type": "string", "format": "uri"},
+    "release_url": {"type": "string", "format": "uri"},
+    "elements_snapshot_path": {"type": "string", "minLength": 1},
+    "logical_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "canonical_archive_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "runtime_protocol_version": {"const": "grdr-source-runtime/1.0"},
+    "runtime_asset": {"type": "string", "minLength": 1},
+    "status": {"const": "complete"},
+    "stored_at": {"type": "string", "format": "date-time"},
+    "receipt_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/source_runtime.schema.json",
+  "title": "GRDR source-scoped Agent runtime descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_version", "source_id", "entrypoint", "agent_index", "operations", "official_domains"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "protocol_version": {"const": "grdr-source-runtime/1.0"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "entrypoint": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.py$"},
+    "agent_index": {"const": "grdr-agent-index.sqlite"},
+    "operations": {
+      "type": "array",
+      "items": {"enum": ["self-test", "search", "resolve-variable", "fetch-variable"]},
+      "minItems": 4,
+      "uniqueItems": true,
+      "allOf": [
+        {"contains": {"const": "self-test"}},
+        {"contains": {"const": "search"}},
+        {"contains": {"const": "resolve-variable"}},
+        {"contains": {"const": "fetch-variable"}}
+      ]
+    },
+    "official_domains": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Za-z0-9.-]+$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "notes": {"type": ["string", "null"]}
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/data_gap.schema.json",
+  "title": "GRDR research project data gap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "project_id", "indicator_id", "status", "gap_type", "requirement", "search_terms", "candidate_source_ids", "candidate_dataset_ids", "recommended_actions", "created_at", "updated_at"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:data-gap:[a-z0-9][a-z0-9-]*$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "indicator_id": {"type": "string", "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "status": {"enum": ["open", "expansion_planned", "resolved", "accepted_unresolved"]},
+    "gap_type": {"enum": ["variable_not_registered", "definition_mismatch", "population_mismatch", "unit_mismatch", "temporal_mismatch", "spatial_mismatch", "access_blocked", "other"]},
+    "requirement": {"type": "object"},
+    "search_terms": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "candidate_source_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "candidate_dataset_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "recommended_actions": {"type": "array", "items": {"enum": ["deepen_existing_source", "discover_new_source", "verify_definition", "resolve_access", "collect_subjective_data", "collect_primary_data", "accept_unresolved"]}, "minItems": 1, "uniqueItems": true},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  }
+}

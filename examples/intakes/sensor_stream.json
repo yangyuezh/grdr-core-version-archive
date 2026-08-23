@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "source": {"source_id": null, "name": "Rolling earth-observation sensor example", "url": "https://example.org/earth-stream"},
+  "goal": {"scope_mode": "rolling_window", "completion_claim": "rolling_current", "research_question": null},
+  "observations": {
+    "disciplines": ["earth science", "environmental science"],
+    "origin_types": ["primary"],
+    "provenance_roles": ["original_producer"],
+    "production_modes": ["sensor", "scientific_observation", "instrument_measurement"],
+    "structural_archetypes": ["sensor_time_series", "event_stream", "geospatial_raster", "scientific_array", "instrument_archive"],
+    "content_modalities": ["time_series", "geospatial_raster", "multidimensional"],
+    "lifecycle_modes": ["real_time_stream", "append_only", "rolling_window"],
+    "versioning_models": ["event_time_plus_processing_version"],
+    "access_regimes": ["api", "open"],
+    "sensitivity_classes": ["public"],
+    "scale_classes": ["unbounded_stream"],
+    "metadata_maturity": "machine_readable",
+    "languages": ["en"]
+  },
+  "scope": {"boundary_type": "rolling_window", "boundary_statement": "The most recent complete seven UTC days, pinned by event-time range and processing version.", "snapshot_at": "2026-08-19T00:00:00Z"},
+  "work_unit_strategy": {"unit_types": ["sensor_day_partition"], "identity_rule": "Sensor platform, UTC date, processing version, and partition checksum.", "partition_rule": "One sensor-day partition per unit.", "ordering_rule": "Event-time then stable sensor identifier.", "denominator_strategy": "rolling_window", "expected_count": null},
+  "constraints": {"authorized_access": ["public_metadata", "public_observations"], "prohibited_actions": [], "compute_limit": "Probe metadata and bounded samples; do not mirror the stream.", "notes": null},
+  "explicit_route_modules": [],
+  "evidence": [{"url": "https://example.org/earth-stream/schema", "title": "Example stream schema", "evidence_type": "synthetic_test_fixture", "supports": ["planning_test_only"], "retrieved_at": "2026-08-19T00:00:00Z"}]
+}

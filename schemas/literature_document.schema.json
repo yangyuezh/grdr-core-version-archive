@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/literature_document.schema.json",
+  "title": "GRDR literature document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "project_id", "study_id", "title", "authors", "year", "doi", "url", "citation", "access_basis", "full_text_status", "decision", "exclusion_reason", "sections_present", "reference_list_processed", "quality_appraisal"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:literature-document:[a-z0-9][a-z0-9-]*$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "study_id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "authors": {"type": "array", "items": {"type": "string"}},
+    "year": {"type": ["integer", "null"], "minimum": 1500, "maximum": 2100},
+    "doi": {"type": ["string", "null"]},
+    "url": {"type": ["string", "null"], "format": "uri"},
+    "citation": {"type": "string", "minLength": 1},
+    "access_basis": {"enum": ["user_provided", "open_access", "licensed", "institutional_access", "metadata_only", "unknown"]},
+    "full_text_status": {"enum": ["available", "partial", "abstract_only", "unavailable"]},
+    "decision": {"enum": ["included", "excluded", "pending"]},
+    "exclusion_reason": {"type": ["string", "null"]},
+    "sections_present": {
+      "type": "array",
+      "items": {"enum": ["title", "abstract", "introduction", "literature_review", "theory", "methods", "results", "discussion", "conclusion", "references", "table", "figure", "appendix", "supplement", "other"]},
+      "uniqueItems": true
+    },
+    "reference_list_processed": {"type": "boolean"},
+    "quality_appraisal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "notes"],
+      "properties": {
+        "status": {"enum": ["not_assessed", "low_concern", "some_concern", "high_concern", "not_applicable"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

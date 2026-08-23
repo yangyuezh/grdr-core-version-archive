@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/semantic_alignment_decision.schema.json",
+  "title": "GRDR Agent semantic-alignment decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "indicator_id", "target_type", "target_id", "mapping_relation",
+    "alignment_role", "confidence", "rationale"
+  ],
+  "properties": {
+    "indicator_id": {"type": "string", "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "target_type": {"type": ["string", "null"], "enum": ["semantic_node", "construct", null]},
+    "target_id": {"type": ["string", "null"], "pattern": "^grdr:(semantic-node|construct):[a-z0-9][a-z0-9-]*$"},
+    "mapping_relation": {"enum": ["exact_match", "close_match", "broader_match", "narrower_match", "related_match", "no_match"]},
+    "alignment_role": {"enum": ["primary", "component", "alternative"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "rationale": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mapping_relation": {"const": "no_match"}}},
+      "then": {
+        "properties": {
+          "target_type": {"type": "null"},
+          "target_id": {"type": "null"},
+          "alignment_role": {"const": "primary"}
+        }
+      },
+      "else": {
+        "properties": {
+          "target_type": {"enum": ["semantic_node", "construct"]},
+          "target_id": {"type": "string"}
+        }
+      }
+    }
+  ]
+}
