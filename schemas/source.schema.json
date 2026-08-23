@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/source.schema.json",
+  "title": "GRDR source record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "canonical_url",
+    "maintainer_ids",
+    "source_classes",
+    "scope",
+    "authority",
+    "access",
+    "verification",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "canonical_url": {"type": "string", "format": "uri"},
+    "maintainer_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:institution:[a-z0-9][a-z0-9-]*$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "source_classes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "official_statistics",
+          "administrative_records",
+          "census",
+          "survey",
+          "experiment",
+          "clinical_or_health_data",
+          "scientific_observation",
+          "remote_sensing_or_geospatial",
+          "sensor_or_iot",
+          "business_or_market_data",
+          "scholarly_or_patent_metadata",
+          "knowledge_graph",
+          "archive_or_repository",
+          "multimodal_corpus",
+          "subjective_measurement",
+          "digital_trace",
+          "reference_or_standard",
+          "other"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disciplines", "topics", "geographic_scope", "observation_units", "modalities"],
+      "properties": {
+        "disciplines": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "topics": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "geographic_scope": {
+          "enum": ["global", "multiregional", "regional", "national", "subnational", "site_specific", "non_geographic", "mixed", "unknown"]
+        },
+        "observation_units": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "modalities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "temporal_coverage_note": {"type": ["string", "null"]}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roles", "provenance_position"],
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "statutory_primary_producer",
+              "intergovernmental_domain_authority",
+              "official_harmonizer",
+              "scientific_curator_or_consortium",
+              "research_institution_producer",
+              "commercial_producer",
+              "repository_or_archive",
+              "derivative_aggregator",
+              "community_maintained",
+              "unknown"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "provenance_position": {"enum": ["primary", "harmonizer", "aggregator", "repository", "mixed", "unknown"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["availability", "modes", "registration_required", "machine_access", "license_status"],
+      "properties": {
+        "availability": {"enum": ["open", "partially_open", "restricted", "commercial", "mixed", "unknown"]},
+        "modes": {
+          "type": "array",
+          "items": {"enum": ["browser_query", "bulk_download", "api", "cloud", "application", "secure_enclave", "physical_access", "other", "unknown"]},
+          "uniqueItems": true
+        },
+        "registration_required": {"type": ["boolean", "null"]},
+        "machine_access": {"enum": ["documented", "partial", "none", "unknown"]},
+        "license_status": {"enum": ["documented_open", "documented_restricted", "custom_or_mixed", "unknown"]},
+        "access_notes": {"type": ["string", "null"]}
+      }
+    },
+    "refresh_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_interval_days"],
+      "properties": {
+        "review_interval_days": {"type": "integer", "minimum": 1},
+        "last_change_detected_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "verification": {"$ref": "#/$defs/verification"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {
+          "enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]
+        },
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "title": {"type": "string"},
+        "publisher": {"type": ["string", "null"]},
+        "evidence_type": {
+          "enum": ["official_homepage", "official_catalog", "official_methodology", "official_mandate", "api_documentation", "data_paper", "peer_reviewed_validation", "license", "other"]
+        },
+        "supports": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "archived_url": {"type": ["string", "null"], "format": "uri"}
+      }
+    }
+  }
+}

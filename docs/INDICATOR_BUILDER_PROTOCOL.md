@@ -1,0 +1,156 @@
+# 研究指标构建协议
+
+## 1. 定位
+
+研究指标构建器是 GRDR 的“研究侧入口”。它把研究问题与文献证据转化为多层指标体系和可操作的数据需求，再与数据库拆解器产出的官方变量进行匹配。
+
+它既不是独立的通用文本分析工具，也不替代数据库收录与六层拆解。三项核心能力的关系是：
+
+```text
+研究侧：研究问题 + 文献 -> 证据单元 -> 多层指标体系 -> 叶级数据需求
+                                                          |
+数据侧：权威数据库 -> 六层拆解 -> 官方数据集与变量 ---------+-> 指标—数据匹配
+```
+
+研究项目材料存放在 `research_projects/<project-id>/`，不写入全局 `registry/*.jsonl`，避免把某一个课题的理论判断当成数据库本身的通用事实。
+
+## 2. 两个生产阶段
+
+### 2.1 主题脚手架阶段
+
+只有研究主题或问题时，AI Agent 可以全自动拆分研究侧面、候选构念、机制、结果、控制、情境与操作化要求。输出必须标为：
+
+- `evidence_stage: topic_scaffold`
+- `provenance_type: topic_scaffold`
+- `review_status: agent_candidate`
+
+该阶段不需要人工才能运行，但不得声称已经得到文献支持、已经验证、完整或最终确定。
+
+若只是对话中的内存探索且未创建五个项目文件，应明确写出“未运行项目审计”、`formal_evidence_ready: false` 和 `mapping_ready: false`。尚未执行变量匹配时不创建占位或虚构映射，映射数记为 0。
+
+### 2.2 文献约束的正式构建阶段
+
+输入达到综述分析需要的文献语料后，Agent 按已声明的方法进行理论演绎、内容分析、扎根理论编码、主题综合或混合分析。文献数量不设统一下限；是否充分取决于检索边界、相关性、观点差异、证据覆盖和理论饱和度。
+
+## 3. 项目文件
+
+每个研究项目必须包含：
+
+```text
+research_projects/<project-id>/
+├── project.json
+├── literature.jsonl
+├── evidence_units.jsonl
+├── indicators.jsonl
+├── mappings.jsonl
+├── workflow.json
+└── data_gaps.jsonl
+```
+
+- `project.json`：问题、方法、语料协议、证据阶段和人工闸门。
+- `literature.jsonl`：论文/报告、研究族、纳入决定、全文状态、质量评价。
+- `evidence_units.jsonl`：来自具体章节和精确位置的原子证据。
+- `indicators.jsonl`：领域—构念—子构念—指标—操作要求的层级图。
+- `mappings.jsonl`：叶级指标与 GRDR 全局变量的兼容性判断。
+- `workflow.json`：当前步骤、运行次数、下一步和完整操作历史。
+- `data_gaps.jsonl`：当前快照未匹配指标的需求、候选库/数据集和扩展动作。
+
+前五个文件是研究证据与指标体系的规范内容；后两个文件是可恢复运行的协调状态，不改变研究内容层级。
+
+## 4. 正式流程
+
+### 4.1 定义问题与语料协议
+
+Agent 起草检索来源、检索策略、时间与语言边界、纳入排除标准、研究族去重规则和饱和停止规则。排除和待定文献也要留下记录。
+
+### 4.2 人工闸门一：语料边界
+
+人工确认正式分析要包含哪些文献、排除哪些文献及为什么。Agent 不能批准自己选择的语料边界。未经批准仍可探索，但不能升级为正式证据分析。
+
+### 4.3 AI 全文解析与证据提取
+
+在合法访问范围内，Agent 处理题名、摘要、引言、文献综述/理论、方法、结果、讨论、结论、表格、图、附录、补充材料和参考文献。每条证据记录文献、章节、页码/段落/表图等精确定位、释义、可选短引文、证据功能和复核状态。
+
+参考文献表只用于滚雪球发现。只有被引论文自身被纳入并分析后，才能作为实质证据。
+
+### 4.4 AI 编码、综合与指标操作化
+
+Agent 按项目声明的方法构建多层指标体系。每个正式节点都必须关联证据，并注明：
+
+- `source_reported`：来源直接提出或定义；
+- `normalized`：跨文献术语规范化，但不改变证据支持的含义；
+- `agent_synthesized`：由多条证据综合形成；
+- `topic_scaffold`：无正式文献主张，仅限探索阶段。
+
+叶级节点必须记录单位、分母、总体、观察单位、时间、空间、方向和是否允许代理等操作化要求。不同文献的冲突不得被隐藏或强行平均。
+
+### 4.5 人工闸门二：指标体系
+
+Agent 提交完整层级、定义、证据链、冲突、遗漏和操作化要求。人工确认指标体系后，项目才能标为 `human_reviewed` 并进入正式匹配。
+
+### 4.6 AI 指标—数据匹配
+
+Agent 仅把叶级指标与 GRDR 变量匹配，并比较构念、总体、单位、时间、空间、分母、观察单位和测量类型。匹配结果为：
+
+- `direct_match`
+- `transform_required`
+- `composite_required`
+- `proxy_candidate`
+- `definition_conflict`
+- `not_found_registry_snapshot`
+
+最后一项只表示当前 GRDR 快照中尚未找到，不能解释为全网不存在；它会触发新数据库发现或已有数据库的进一步六层拆解。
+
+### 4.7 人工闸门三：争议映射
+
+只有出现 `proxy_candidate` 或 `definition_conflict` 时才需要人工确认。明确的直接匹配、可复现转换、组合构造和“当前快照未找到”可由 Agent 自动记录，除非具体研究方案要求更严格复核。
+
+### 4.8 可执行闭环
+
+```bash
+python3 scripts/grdr.py start-research-project <spec.json>
+python3 scripts/grdr.py research-project-status <project-id>
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py expand-from-data-gaps <project-id>
+# 用数据库拆解器深化候选库后：
+python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py rerun-matching <project-id>
+```
+
+`approve-human-gate` 不属于 AI 可以自行完成的自动步骤。只有研究者明确给出批准意见后，Agent 才能记录 reviewer、时间和 notes。首次匹配使用 `match-indicators`，后续注册表扩展后的复查使用 `rerun-matching`；两者不能混用以覆盖运行历史。
+
+## 5. AI 与人工责任
+
+| 工作 | 默认责任方 | 是否阻断自动运行 |
+|---|---|---|
+| 问题拆解与主题脚手架 | AI | 否 |
+| 文献整理、研究族去重建议、章节解析 | AI | 否 |
+| 证据抽取、编码、综合、指标生成与操作化 | AI | 否 |
+| 语料纳入边界批准 | 人工 | 阻断正式证据阶段，不阻断探索 |
+| 最终指标体系批准 | 人工 | 阻断正式数据匹配 |
+| 变量检索、适配比较、直接/转换/组合/未找到判定 | AI | 否 |
+| 代理变量与定义冲突批准 | 人工 | 仅在发生争议映射时阻断该映射 |
+| 引用、审计、版本与缺口报告 | AI | 否 |
+
+因此，操作并非要求研究者脱离系统自行完成内容分析或扎根编码。AI 完成主体工作，人工只对会显著改变研究有效性的少数边界作出明确判断。人工也可选择加审，但系统不把逐篇手工编码设为默认前提。
+
+## 6. 审计和完成条件
+
+运行：
+
+```bash
+python3 scripts/grdr.py audit-indicator-project research_projects/<project-id>
+```
+
+审计检查文件模式、跨文件 ID、证据—文献引用、指标父子层级和环、叶级操作化、变量 ID、映射约束和人工闸门。只有无错误且闸门满足时，才返回 `formal_evidence_ready: true` 或 `mapping_ready: true`。
+
+## 7. 边界与诚信
+
+- 不从数据库主题标签反推变量存在。
+- 不给没有证据的正式指标伪造引用。
+- 不把摘要等同于完整全文。
+- 不把标签相似当作测量一致。
+- 不把代理变量写成直接测量。
+- 不绕过付费、认证、许可、伦理审查、知情同意或数据使用协议。
+- 不把当前注册表缺口写成全网数据不存在。
