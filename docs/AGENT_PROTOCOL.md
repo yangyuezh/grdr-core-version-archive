@@ -9,7 +9,10 @@ scientific question
   → topic scaffold or literature-grounded evidence extraction
   → multi-level indicator hierarchy
   → human-approved leaf-level operational requirements
-  → registry and knowledge-graph retrieval
+  → full-text B candidate recall
+  → evidence-constrained ResearchIndicator-to-B alignment
+  → persisted B-to-A graph traversal
+  → variable-fit classification and path explanation
   → source authority and task-fit assessment
   → temporal, spatial, level, definition, and identifier compatibility
   → candidate source combination
@@ -49,6 +52,11 @@ The registry must also support direct source discovery and curation without requ
 - `synthesize_indicator_hierarchy`
 - `audit_indicator_evidence`
 - `map_indicators_to_data`
+- `prepare_semantic_candidates`
+- `align_research_indicators`
+- `traverse_semantic_paths`
+- `explain_indicator_match`
+- `fetch_indicator_data`
 - `build_data_requirements`
 - `diagnose_data_gaps`
 - `recommend_measurements`
@@ -132,7 +140,12 @@ The persisted CLI closed loop is:
 start-research-project
   → research-project-status
   → resume-research-project
+  → prepare-semantic-candidates
+  → align-research-indicators
+  → traverse-semantic-paths
   → match-indicators
+  → explain-indicator-match
+  → fetch-indicator-data
   → expand-from-data-gaps
   → deepen or discover candidate sources
   → resume-research-project
@@ -141,7 +154,7 @@ start-research-project
 
 `approve-human-gate` is a separate decision-recording operation, not an automatic workflow step. Invoke it only after a human explicitly supplies the reviewer identity, decision, and notes. Topic scaffolds may be matched exploratorily while their formal-readiness fields remain false; corpus-grounded projects cannot enter formal matching until their indicator framework is approved.
 
-`match-indicators` writes the first mapping attempt. Later attempts must use `rerun-matching`, which replaces the current mapping snapshot while retaining attempt counts and history. `expand-from-data-gaps` turns only `not_found_registry_snapshot` outcomes into candidate deep-profiling records. Candidate ranking is a search lead and never proof that a compatible upstream variable exists.
+`prepare-semantic-candidates` writes recall results only. `align-research-indicators` persists the project-scoped R→B decision, while `traverse-semantic-paths` follows the same stored B→A graph produced by the database factory. `match-indicators` writes the first mapping attempt. Later attempts must rebuild semantic artifacts against the updated registry and use `rerun-matching`, which replaces the current mapping snapshot while retaining attempt counts and history. `expand-from-data-gaps` turns only `not_found_registry_snapshot` outcomes into candidate deep-profiling records. Candidate ranking is a search lead and never proof that a compatible upstream variable exists.
 
 ## Research request contract
 

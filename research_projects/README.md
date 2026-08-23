@@ -12,9 +12,12 @@ Each project uses:
 ├── indicators.jsonl
 ├── mappings.jsonl
 ├── workflow.json
-└── data_gaps.jsonl
+├── data_gaps.jsonl
+├── semantic_candidates.jsonl
+├── semantic_alignments.jsonl
+└── semantic_paths.jsonl
 ```
 
-The first five files preserve the research definition, literature, evidence, hierarchy, and mappings. `workflow.json` records resumable execution state and history; `data_gaps.jsonl` turns current-registry misses into bounded deep-profiling or source-discovery tasks.
+The first five files preserve the research definition, literature, evidence, hierarchy, and mappings. `workflow.json` records resumable execution state and history; `data_gaps.jsonl` turns current-registry misses into bounded deep-profiling or source-discovery tasks. The three semantic files preserve full-text B recall, evidence-constrained R→B decisions, and deterministic B→A paths without mutating canonical registry records.
 
-Follow `docs/INDICATOR_BUILDER_PROTOCOL.md` and the seven research-project schemas. A project-level `README.md` may summarize the machine records for human review. Do not commit copyrighted full texts, credentials, sensitive research material, or restricted data.
+Follow `docs/INDICATOR_BUILDER_PROTOCOL.md`, the semantic-resolution Skill, and the research-project schemas. A project-level `README.md` may summarize the machine records for human review. Do not commit copyrighted full texts, credentials, sensitive research material, or restricted data.

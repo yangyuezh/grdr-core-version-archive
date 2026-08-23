@@ -26,6 +26,11 @@ PROJECT_FILES = {
     "workflow": "workflow.json",
     "gaps": "data_gaps.jsonl",
 }
+SEMANTIC_PROJECT_FILES = {
+    "candidates": "semantic_candidates.jsonl",
+    "alignments": "semantic_alignments.jsonl",
+    "paths": "semantic_paths.jsonl",
+}
 VERIFICATION_RANK = {
     "verified": 0,
     "partially_verified": 1,
@@ -128,6 +133,9 @@ def validate_auxiliary(project_dir: Path) -> list[str]:
             for error in validator.iter_errors(value):
                 location = ".".join(str(part) for part in error.path) or "<record>"
                 errors.append(f"{filename}:{index}:{location}: {error.message}")
+    from semantic_resolver import semantic_file_errors
+
+    errors.extend(semantic_file_errors(project_dir))
     return sorted(errors)
 
 
@@ -238,6 +246,8 @@ def start_research_project(spec_file: str | Path, project_dir: str | Path | None
     write_jsonl(target / "mappings.jsonl", [])
     write_json(target / "workflow.json", workflow)
     write_jsonl(target / "data_gaps.jsonl", [])
+    for filename in SEMANTIC_PROJECT_FILES.values():
+        write_jsonl(target / filename, [])
     audit = audit_project(target, ROOT)
     auxiliary_errors = validate_auxiliary(target)
     if audit["errors"] or auxiliary_errors:
@@ -262,6 +272,9 @@ def resume_research_project(project_dir: str | Path) -> dict[str, Any]:
     indicators = read_jsonl(target / "indicators.jsonl")
     mappings = read_jsonl(target / "mappings.jsonl")
     gaps = read_jsonl(target / "data_gaps.jsonl")
+    semantic_candidates = read_jsonl(target / SEMANTIC_PROJECT_FILES["candidates"]) if (target / SEMANTIC_PROJECT_FILES["candidates"]).is_file() else []
+    semantic_alignments = read_jsonl(target / SEMANTIC_PROJECT_FILES["alignments"]) if (target / SEMANTIC_PROJECT_FILES["alignments"]).is_file() else []
+    semantic_paths = read_jsonl(target / SEMANTIC_PROJECT_FILES["paths"]) if (target / SEMANTIC_PROJECT_FILES["paths"]).is_file() else []
     audit = audit_project(target, ROOT)
     if audit["errors"]:
         workflow["workflow_status"] = "blocked"
@@ -281,18 +294,33 @@ def resume_research_project(project_dir: str | Path) -> dict[str, Any]:
     elif mappings and any(item["status"] in {"open", "expansion_planned"} for item in gaps):
         workflow["workflow_status"] = "ready_to_match"
         workflow["current_step"] = "rematching"
-        workflow["next_actions"] = ["rerun-matching"]
-        summary = "Gap expansion records exist; project is ready for rematching after registry updates."
+        workflow["next_actions"] = ["prepare-semantic-candidates --replace"]
+        summary = "Gap expansion records exist; rebuild semantic recall against the updated distributed registry before rematching."
+    elif not semantic_candidates:
+        workflow["workflow_status"] = "ready_to_match"
+        workflow["current_step"] = "matching"
+        workflow["next_actions"] = ["prepare-semantic-candidates"]
+        summary = "Project is ready for full-text B candidate recall."
+    elif not semantic_alignments:
+        workflow["workflow_status"] = "ready_to_match"
+        workflow["current_step"] = "matching"
+        workflow["next_actions"] = ["align-research-indicators"]
+        summary = "Semantic candidates exist; the Agent must persist one R→B decision for every leaf indicator."
+    elif not semantic_paths and any(item["mapping_relation"] != "no_match" for item in semantic_alignments):
+        workflow["workflow_status"] = "ready_to_match"
+        workflow["current_step"] = "matching"
+        workflow["next_actions"] = ["traverse-semantic-paths"]
+        summary = "R→B alignments exist; traverse the stored graph to A variables and data structures."
     elif mappings:
         workflow["workflow_status"] = "completed"
         workflow["current_step"] = "completed"
         workflow["next_actions"] = ["research-project-status"]
-        summary = "All current leaf indicators have mapping outcomes and no open data gaps remain."
+        summary = "All current leaf indicators have mapping outcomes, complete semantic artifacts, and no open data gaps."
     else:
         workflow["workflow_status"] = "ready_to_match"
         workflow["current_step"] = "matching"
         workflow["next_actions"] = ["match-indicators"]
-        summary = "Project is ready for exploratory variable matching." if project["evidence_stage"] == "topic_scaffold" else "Project is ready for formal variable matching."
+        summary = "The persisted semantic graph is ready for variable-fit matching."
     append_history(workflow, "resume-research-project", summary)
     write_json(target / "workflow.json", workflow)
     return {
@@ -331,6 +359,13 @@ def approve_human_gate(project_dir: str | Path, gate: str, reviewer: str, notes:
             if mapping["mapping_status"] in {"proxy_candidate", "definition_conflict"}:
                 mapping["review_status"] = "human_approved"
         write_jsonl(target / "mappings.jsonl", mappings)
+        alignment_path = target / SEMANTIC_PROJECT_FILES["alignments"]
+        if alignment_path.is_file():
+            alignments = read_jsonl(alignment_path)
+            for alignment in alignments:
+                if alignment.get("human_review_required"):
+                    alignment["review_status"] = "human_approved"
+            write_jsonl(alignment_path, alignments)
     write_json(target / "project.json", project)
     workflow["workflow_status"] = "initialized"
     workflow["current_step"] = "human_gate"
@@ -344,6 +379,12 @@ def fit_value(required: str | None, actual: str | None) -> str:
     if not required or not actual:
         return "unknown"
     left, right = normalize(required), normalize(actual)
+    unknown_markers = (
+        "source specific", "unknown", "unspecified", "not specified", "varies",
+        "dataset specific", "present in the selected source native series",
+    )
+    if any(marker in left or marker in right for marker in unknown_markers):
+        return "unknown"
     if left == right or left in right or right in left:
         return "exact"
     left_tokens, right_tokens = set(left.split()), set(right.split())
@@ -375,9 +416,18 @@ def choose_variable(indicator: dict[str, Any], variables: list[dict[str, Any]]) 
     )[0]
 
 
-def perform_matching(project_dir: str | Path, rerun: bool = False) -> dict[str, Any]:
+def perform_matching(
+    project_dir: str | Path,
+    rerun: bool = False,
+    elements_root: str | Path | None = None,
+) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     require_project(target)
+    semantic_alignment_path = target / SEMANTIC_PROJECT_FILES["alignments"]
+    if semantic_alignment_path.is_file() and read_jsonl(semantic_alignment_path):
+        from semantic_resolver import perform_semantic_matching
+
+        return perform_semantic_matching(target, rerun=rerun, elements_root=elements_root)
     project = read_json(target / "project.json")
     workflow = read_json(target / "workflow.json")
     indicators = read_jsonl(target / "indicators.jsonl")
@@ -548,6 +598,9 @@ def research_project_status(project_dir: str | Path) -> dict[str, Any]:
     workflow = read_json(target / "workflow.json")
     mappings = read_jsonl(target / "mappings.jsonl")
     gaps = read_jsonl(target / "data_gaps.jsonl")
+    semantic_candidates = read_jsonl(target / SEMANTIC_PROJECT_FILES["candidates"]) if (target / SEMANTIC_PROJECT_FILES["candidates"]).is_file() else []
+    semantic_alignments = read_jsonl(target / SEMANTIC_PROJECT_FILES["alignments"]) if (target / SEMANTIC_PROJECT_FILES["alignments"]).is_file() else []
+    semantic_paths = read_jsonl(target / SEMANTIC_PROJECT_FILES["paths"]) if (target / SEMANTIC_PROJECT_FILES["paths"]).is_file() else []
     audit = audit_project(target, ROOT)
     auxiliary_errors = validate_auxiliary(target)
     outcomes: dict[str, int] = {}
@@ -562,7 +615,13 @@ def research_project_status(project_dir: str | Path) -> dict[str, Any]:
         "research_question": project["research_question"], "evidence_stage": project["evidence_stage"],
         "workflow_status": workflow["workflow_status"], "current_step": workflow["current_step"],
         "matching_attempt": workflow["matching_attempt"], "gap_expansion_round": workflow["gap_expansion_round"],
-        "counts": {**audit.get("counts", {}), "open_data_gaps": sum(1 for item in gaps if item["status"] in {"open", "expansion_planned"})},
+        "counts": {
+            **audit.get("counts", {}),
+            "semantic_candidates": len(semantic_candidates),
+            "semantic_alignments": len(semantic_alignments),
+            "semantic_paths": len(semantic_paths),
+            "open_data_gaps": sum(1 for item in gaps if item["status"] in {"open", "expansion_planned"}),
+        },
         "mapping_outcomes": dict(sorted(outcomes.items())),
         "leaf_match_coverage": {"matched": matched, "total": leaves, "ratio": (matched / leaves) if leaves else 0.0},
         "human_gates": project["human_gates"],

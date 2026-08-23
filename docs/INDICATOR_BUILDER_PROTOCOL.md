@@ -44,7 +44,10 @@ research_projects/<project-id>/
 ├── indicators.jsonl
 ├── mappings.jsonl
 ├── workflow.json
-└── data_gaps.jsonl
+├── data_gaps.jsonl
+├── semantic_candidates.jsonl
+├── semantic_alignments.jsonl
+└── semantic_paths.jsonl
 ```
 
 - `project.json`：问题、方法、语料协议、证据阶段和人工闸门。
@@ -54,8 +57,11 @@ research_projects/<project-id>/
 - `mappings.jsonl`：叶级指标与 GRDR 全局变量的兼容性判断。
 - `workflow.json`：当前步骤、运行次数、下一步和完整操作历史。
 - `data_gaps.jsonl`：当前快照未匹配指标的需求、候选库/数据集和扩展动作。
+- `semantic_candidates.jsonl`：全文召回得到的 B 候选，仅用于检索，不代表语义等价。
+- `semantic_alignments.jsonl`：研究指标 R 与 Storage 中既有 B 的项目级对齐决策。
+- `semantic_paths.jsonl`：从 B 沿已存关系遍历至 A 中变量、数据元素、数据结构和数据集的路径。
 
-前五个文件是研究证据与指标体系的规范内容；后两个文件是可恢复运行的协调状态，不改变研究内容层级。
+前五个文件是研究证据与指标体系的规范内容；workflow 与 data_gaps 是可恢复运行的协调状态；三个 semantic 文件固定 R→B→A 的调用证据，不改变研究内容层级，也不写入全局 B。
 
 ## 4. 正式流程
 
@@ -90,7 +96,7 @@ Agent 提交完整层级、定义、证据链、冲突、遗漏和操作化要�
 
 ### 4.6 AI 指标—数据匹配
 
-Agent 仅把叶级指标与 GRDR 变量匹配，并比较构念、总体、单位、时间、空间、分母、观察单位和测量类型。匹配结果为：
+Agent 把叶级指标交给 `grdr-resolve-research-semantics`：先召回 B 候选，再固定 R→B 语义决策，沿既有 B→A 关系找到变量，并比较构念、总体、单位、时间、空间、分母、观察单位和测量类型。匹配结果为：
 
 - `direct_match`
 - `transform_required`
@@ -111,7 +117,12 @@ Agent 仅把叶级指标与 GRDR 变量匹配，并比较构念、总体、单�
 python3 scripts/grdr.py start-research-project <spec.json>
 python3 scripts/grdr.py research-project-status <project-id>
 python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py prepare-semantic-candidates <project-id>
+python3 scripts/grdr.py align-research-indicators <project-id> <decisions.jsonl>
+python3 scripts/grdr.py traverse-semantic-paths <project-id>
 python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py explain-indicator-match <project-id> <indicator-id>
+python3 scripts/grdr.py fetch-indicator-data <project-id> <indicator-id> --dry-run
 python3 scripts/grdr.py expand-from-data-gaps <project-id>
 # 用数据库拆解器深化候选库后：
 python3 scripts/grdr.py resume-research-project <project-id>

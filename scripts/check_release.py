@@ -67,11 +67,23 @@ def main() -> int:
     ):
         errors.append("version-controlled indicator Skill identity is not 'grdr-indicator-builder'")
 
+    resolver_skill = ROOT / "skill" / "grdr-resolve-research-semantics" / "SKILL.md"
+    if not resolver_skill.is_file():
+        errors.append("version-controlled grdr-resolve-research-semantics Skill is missing")
+    elif not resolver_skill.read_text(encoding="utf-8").startswith(
+        "---\nname: grdr-resolve-research-semantics\n"
+    ):
+        errors.append("version-controlled resolver Skill identity is not 'grdr-resolve-research-semantics'")
+
     for required_path in [
         ROOT / "schemas" / "research_workflow.schema.json",
         ROOT / "schemas" / "data_gap.schema.json",
         ROOT / "schemas" / "data_structure.schema.json",
         ROOT / "schemas" / "semantic_node.schema.json",
+        ROOT / "schemas" / "semantic_candidate.schema.json",
+        ROOT / "schemas" / "semantic_alignment_decision.schema.json",
+        ROOT / "schemas" / "semantic_alignment.schema.json",
+        ROOT / "schemas" / "semantic_path.schema.json",
         ROOT / "schemas" / "database_deep_map_project.schema.json",
         ROOT / "schemas" / "database_deep_map_unit.schema.json",
         ROOT / "schemas" / "database_deep_map_phase_update.schema.json",
@@ -97,6 +109,7 @@ def main() -> int:
         ROOT / "registry" / "semantic_nodes.jsonl",
         ROOT / "registry" / "source_archives.jsonl",
         ROOT / "scripts" / "research_project.py",
+        ROOT / "scripts" / "semantic_resolver.py",
         ROOT / "scripts" / "database_deep_map.py",
         ROOT / "scripts" / "database_deep_map_planner.py",
         ROOT / "scripts" / "database_storage.py",
@@ -119,6 +132,9 @@ def main() -> int:
         ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "storage-contract.md",
         ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "repository-layout.md",
         ROOT / "skill" / "grdr-store-database-deep-map" / "references" / "completion-contract.md",
+        ROOT / "skill" / "grdr-resolve-research-semantics" / "references" / "semantic-alignment-contract.md",
+        ROOT / "skill" / "grdr-resolve-research-semantics" / "references" / "alignment-decisions.example.jsonl",
+        ROOT / "skill" / "grdr-resolve-research-semantics" / "scripts" / "grdr_semantics.py",
     ]:
         if not required_path.is_file():
             errors.append(f"required research workflow file is missing: {required_path.relative_to(ROOT)}")
@@ -177,6 +193,11 @@ def main() -> int:
         "approve-human-gate",
         "resume-research-project",
         "match-indicators",
+        "prepare-semantic-candidates",
+        "align-research-indicators",
+        "traverse-semantic-paths",
+        "explain-indicator-match",
+        "fetch-indicator-data",
         "expand-from-data-gaps",
         "rerun-matching",
     ]:

@@ -12,10 +12,10 @@ Treat this Skill as the research-side chain of GRDR:
 ```text
 research question -> literature evidence -> indicator hierarchy -> operational requirements
                                                                   |
-GRDR source profile -> official datasets -> official variables ----+-> variable matching
+GRDR stored B spine -> B-to-A graph -> official variables ----------+-> semantic resolution and variable matching
 ```
 
-Use `$grdr-plan-database-deep-map`, `$grdr-execute-database-deep-map`, and `$grdr-store-database-deep-map` in sequence to establish and store a database's native structure-to-variable mapping topology. Use `$grdr` to coordinate registry search, source expansion, gap diagnosis, and final matching. Do not write question-specific indicators, literature evidence, or mappings into the canonical global `registry/*.jsonl` collections.
+Use `$grdr-plan-database-deep-map`, `$grdr-execute-database-deep-map`, and `$grdr-store-database-deep-map` in sequence to establish and store a database's native structure-to-variable mapping topology. Hand approved leaf indicators to `$grdr-resolve-research-semantics` for persisted R→B alignment, B→A traversal, variable fit, explanation, and source-runtime invocation. Use `$grdr` to coordinate registry search, source expansion, and gap diagnosis. Do not write question-specific indicators, literature evidence, alignments, paths, or mappings into the canonical global `registry/*.jsonl` collections.
 
 Store each project under:
 
@@ -28,9 +28,12 @@ research_projects/<project-id>/
   mappings.jsonl
   workflow.json
   data_gaps.jsonl
+  semantic_candidates.jsonl
+  semantic_alignments.jsonl
+  semantic_paths.jsonl
 ```
 
-Follow the five research-content schemas plus the workflow and data-gap schemas in GRDR's `schemas/` directory. The last two files coordinate resumable execution; they do not add content layers to the indicator hierarchy.
+Follow the research-content, workflow, data-gap, and semantic-resolution schemas in GRDR's `schemas/` directory. The workflow and gap files coordinate resumable execution. The three semantic files preserve recall, project-scoped R→B decisions, and deterministic B→A paths; they do not add content layers to the indicator hierarchy or modify canonical B.
 
 ## Choose the evidence stage
 
@@ -101,7 +104,7 @@ Present the complete hierarchy, definitions, evidence trace, conflicts, and cove
 
 ### 6. Match leaf indicators to GRDR variables
 
-Only map leaf indicators. Compare construct definition, population, unit, time, space, denominator, observation unit, and measurement class.
+Stop Indicator Builder after approved leaf operational requirements are ready, then invoke `$grdr-resolve-research-semantics`. That Skill alone persists full-text candidate recall, R→B decisions, B→A paths, and final leaf mappings. Compare construct definition, population, unit, time, space, denominator, observation unit, and measurement class.
 
 Use exactly one outcome per mapping:
 
@@ -134,6 +137,9 @@ For persisted orchestration, use the main GRDR CLI:
 python3 scripts/grdr.py start-research-project <spec.json>
 python3 scripts/grdr.py research-project-status <project-id>
 python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py prepare-semantic-candidates <project-id>
+python3 scripts/grdr.py align-research-indicators <project-id> <decisions.jsonl>
+python3 scripts/grdr.py traverse-semantic-paths <project-id>
 python3 scripts/grdr.py match-indicators <project-id>
 python3 scripts/grdr.py expand-from-data-gaps <project-id>
 python3 scripts/grdr.py rerun-matching <project-id>

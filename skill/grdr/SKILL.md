@@ -143,13 +143,14 @@ Generate pages only from canonical registry records. Display missing depth as un
 When the user provides a scientific question:
 
 1. use `$grdr-indicator-builder` when the constructs or indicators must be derived from a topic or literature corpus;
-2. identify constructs, outcomes, exposures, mechanisms, confounders, moderators, population, unit, time, and geography;
-3. create a data-requirement matrix from approved leaf indicators;
-4. retrieve candidate sources, datasets, and variables;
-5. assess construct, population, time, space, granularity, access, and joinability fit;
-6. distinguish direct measures, constructed measures, modeled estimates, forecasts, and proxies;
-7. diagnose missing objective, subjective, administrative, experimental, observational, or multimodal data;
-8. recommend additional sources without claiming unfound data already exists.
+2. use `$grdr-resolve-research-semantics` to recall persisted B candidates, align every leaf ResearchIndicator to the existing B spine, traverse B→A, assess fit, explain paths, and invoke mapped source runtimes;
+3. identify constructs, outcomes, exposures, mechanisms, confounders, moderators, population, unit, time, and geography;
+4. create a data-requirement matrix from approved leaf indicators;
+5. retrieve candidate sources, datasets, and variables;
+6. assess construct, population, time, space, granularity, access, and joinability fit;
+7. distinguish direct measures, constructed measures, modeled estimates, forecasts, and proxies;
+8. diagnose missing objective, subjective, administrative, experimental, observational, or multimodal data;
+9. recommend additional sources without claiming unfound data already exists.
 
 Use:
 
@@ -166,14 +167,19 @@ For a persisted topic-scaffold project, use the executable lifecycle:
 python3 scripts/grdr.py start-research-project <spec.json>
 python3 scripts/grdr.py research-project-status <project-id>
 python3 scripts/grdr.py resume-research-project <project-id>
+python3 scripts/grdr.py prepare-semantic-candidates <project-id>
+python3 scripts/grdr.py align-research-indicators <project-id> <decisions.jsonl>
+python3 scripts/grdr.py traverse-semantic-paths <project-id>
 python3 scripts/grdr.py match-indicators <project-id>
+python3 scripts/grdr.py explain-indicator-match <project-id> <indicator-id>
+python3 scripts/grdr.py fetch-indicator-data <project-id> <indicator-id> --dry-run
 python3 scripts/grdr.py expand-from-data-gaps <project-id>
 # After candidate sources have been deepened or new sources registered:
 python3 scripts/grdr.py resume-research-project <project-id>
 python3 scripts/grdr.py rerun-matching <project-id>
 ```
 
-The Agent may run every command above automatically. `approve-human-gate` is different: call it only after the human explicitly provides the reviewer identity and approval notes. Never use it to convert an Agent-generated topic scaffold into a formal, literature-grounded result. Preserve `workflow.json` and `data_gaps.jsonl` with the five research-content files.
+The Agent may run every command above automatically. `approve-human-gate` is different: call it only after the human explicitly provides the reviewer identity and approval notes. Never use it to convert an Agent-generated topic scaffold into a formal, literature-grounded result. Preserve `workflow.json`, `data_gaps.jsonl`, `semantic_candidates.jsonl`, `semantic_alignments.jsonl`, and `semantic_paths.jsonl` with the five research-content files. Project-scoped R→B decisions must never be copied into canonical registry collections.
 
 ## Use access extensions carefully
 

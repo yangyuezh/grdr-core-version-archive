@@ -14,6 +14,10 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 
 These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, mounts a verified snapshot, resolves a variable to its source-native access plan, and invokes the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
 
+## Research use plane
+
+GRDR has six formal Skills in total. `grdr` is the coordinator; the three Skills above produce database snapshots; `grdr-indicator-builder` converts a research question and literature into evidence-linked leaf indicators; and `grdr-resolve-research-semantics` persists the missing R→B entry bridge, traverses the stored B→A graph, evaluates variable fit, explains every selected route, and invokes official data through the source runtime. Agent Runtime and source-specific runtimes are versioned execution code rather than additional Skills.
+
 ## Core architecture: two spines and one bridge
 
 ```mermaid
@@ -67,11 +71,12 @@ flowchart TB
     STORE --> ELEMENTS["Elements<br/>same logical snapshot, expanded"]
     RELEASE <-->|"same logical snapshot + SHA-256 parity"| ELEMENTS
 
-    subgraph RUNTIME["Independent Agent Runtime — 使用面"]
+    subgraph RUNTIME["Research use plane — 研究调用面"]
         direction LR
-        QUESTION["Research question"] --> SEARCH["Unified variable/construct search"] --> MOUNT["Locate or materialize verified snapshot"] --> RESOLVE["Resolve source-native access plan"] --> FETCH["Call official upstream and return data + provenance"]
+        QUESTION["Research question + literature"] --> INDICATOR["Indicator Builder<br/>research-side R"] --> SEMRES["Research Semantic Resolver<br/>R→B alignment + B→A traversal"] --> FIT["Variable fit + explainable path"] --> MOUNT["Locate or materialize verified snapshot"] --> RESOLVE["Resolve source-native access plan"] --> FETCH["Call official upstream and return data + provenance"]
     end
-    CARD --> SEARCH
+    CARD --> SEMRES
+    STORE --> SEMRES
     RELEASE --> MOUNT
     ELEMENTS --> MOUNT
 ```
@@ -118,6 +123,12 @@ python3 -m venv .venv
 .venv/bin/python scripts/grdr.py publish-database-storage <project>
 .venv/bin/python scripts/grdr.py database-storage-status <project>
 .venv/bin/python scripts/grdr.py source-snapshot-status --source-id <source-id> --verify
+.venv/bin/python scripts/grdr.py prepare-semantic-candidates <research-project>
+.venv/bin/python scripts/grdr.py align-research-indicators <research-project> <decisions.jsonl>
+.venv/bin/python scripts/grdr.py traverse-semantic-paths <research-project>
+.venv/bin/python scripts/grdr.py match-indicators <research-project>
+.venv/bin/python scripts/grdr.py explain-indicator-match <research-project> <indicator-id>
+.venv/bin/python scripts/grdr.py fetch-indicator-data <research-project> <indicator-id> --dry-run
 .venv/bin/python scripts/grdr.py search-variables --construct <construct>
 .venv/bin/python scripts/grdr.py resolve-variable-access <variable-id>
 .venv/bin/python scripts/grdr.py fetch-variable <variable-id> --dry-run
@@ -134,4 +145,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.3.0` adds the independent distributed Agent Runtime and callable snapshot artifact format. Plan → Execute → Storage remains the three-step production factory; Runtime is the separate AI-use plane.
+Version `3.4.0` adds the sixth formal Skill and the persisted, explainable R→B→A research-semantic resolution workflow. Plan → Execute → Storage remains the three-step production factory; Indicator Builder, Research Semantic Resolver, and Runtime form the separate AI-use plane.

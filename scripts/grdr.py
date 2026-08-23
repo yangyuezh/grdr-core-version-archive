@@ -447,6 +447,12 @@ def search_variables(args: argparse.Namespace) -> None:
 
 def search_semantic_nodes(args: argparse.Namespace) -> None:
     records = load_jsonl("semantic_nodes.jsonl")
+    records.extend(
+        distributed.distributed_entity_records(
+            load_jsonl("source_archives.jsonl"), "semantic_nodes", args.elements_root
+        )
+    )
+    records = list({item["id"]: item for item in records}.values())
     results = [
         item for item in records
         if contains(item, args.query)
@@ -456,6 +462,7 @@ def search_semantic_nodes(args: argparse.Namespace) -> None:
         VERIFICATION_RANK.get(item["verification"]["status"], 99),
         item["preferred_label"].casefold(),
     ))
+    results = results[:args.limit]
     emit({
         "operation": "search_semantic_nodes", "registry_version": REGISTRY_VERSION,
         "result_count": len(results), "results": results,
@@ -554,14 +561,19 @@ def get_variable(args: argparse.Namespace) -> None:
 
 
 def get_semantic_node(args: argparse.Namespace) -> None:
-    records = {item["id"]: item for item in load_jsonl("semantic_nodes.jsonl")}
+    semantic_records = load_jsonl("semantic_nodes.jsonl")
+    cards = load_jsonl("source_archives.jsonl")
+    semantic_records.extend(distributed.distributed_entity_records(cards, "semantic_nodes", args.elements_root))
+    records = {item["id"]: item for item in semantic_records}
     node = records.get(args.semantic_node_id)
     if node is None:
         emit({"operation": "get_semantic_node", "registry_version": REGISTRY_VERSION, "error": "semantic_node_not_found", "semantic_node_id": args.semantic_node_id})
         return
     children = [item for item in records.values() if node["id"] in item.get("parent_ids", [])]
+    relationship_records = load_jsonl("relationships.jsonl")
+    relationship_records.extend(distributed.distributed_relationship_records(cards, args.elements_root))
     relationships = [
-        item for item in load_jsonl("relationships.jsonl")
+        item for item in relationship_records
         if node["id"] in {item["subject_id"], item["object_id"]}
     ]
     emit({
@@ -950,7 +962,7 @@ def match_indicators_command(args: argparse.Namespace) -> None:
 
     run_research_operation(
         "match_indicators",
-        lambda: perform_matching(args.project_dir),
+        lambda: perform_matching(args.project_dir, elements_root=args.elements_root),
     )
 
 
@@ -968,7 +980,83 @@ def rerun_matching_command(args: argparse.Namespace) -> None:
 
     run_research_operation(
         "rerun_matching",
-        lambda: perform_matching(args.project_dir, rerun=True),
+        lambda: perform_matching(args.project_dir, rerun=True, elements_root=args.elements_root),
+    )
+
+
+def prepare_semantic_candidates_command(args: argparse.Namespace) -> None:
+    from semantic_resolver import prepare_semantic_candidates
+
+    run_research_operation(
+        "prepare_semantic_candidates",
+        lambda: prepare_semantic_candidates(
+            args.project_dir,
+            args.queries,
+            limit=args.limit,
+            elements_root=args.elements_root,
+            replace=args.replace,
+        ),
+    )
+
+
+def align_research_indicators_command(args: argparse.Namespace) -> None:
+    from semantic_resolver import record_semantic_alignments
+
+    run_research_operation(
+        "align_research_indicators",
+        lambda: record_semantic_alignments(
+            args.project_dir, args.decision_file, replace=args.replace
+        ),
+    )
+
+
+def traverse_semantic_paths_command(args: argparse.Namespace) -> None:
+    from semantic_resolver import traverse_semantic_paths
+
+    run_research_operation(
+        "traverse_semantic_paths",
+        lambda: traverse_semantic_paths(
+            args.project_dir,
+            elements_root=args.elements_root,
+            limit_per_alignment=args.limit,
+            replace=args.replace,
+        ),
+    )
+
+
+def explain_indicator_match_command(args: argparse.Namespace) -> None:
+    from semantic_resolver import explain_indicator_match
+
+    run_research_operation(
+        "explain_indicator_match",
+        lambda: explain_indicator_match(args.project_dir, args.indicator_id),
+    )
+
+
+def fetch_indicator_data_command(args: argparse.Namespace) -> None:
+    from semantic_resolver import fetch_indicator_data
+
+    extra_args = []
+    for option, value in (
+        ("--output-dir", args.output_dir),
+        ("--country", args.country),
+        ("--start-period", args.start_period),
+        ("--end-period", args.end_period),
+        ("--timeout", args.timeout),
+    ):
+        if value is not None:
+            extra_args.extend([option, str(value)])
+    if args.dry_run:
+        extra_args.append("--dry-run")
+    run_research_operation(
+        "fetch_indicator_data",
+        lambda: fetch_indicator_data(
+            args.project_dir,
+            args.indicator_id,
+            variable_id=args.variable_id,
+            elements_root=args.elements_root,
+            extra_args=extra_args,
+        ),
     )
 
 
@@ -1319,6 +1407,8 @@ def parser() -> argparse.ArgumentParser:
     search_semantics = commands.add_parser("search-semantic-nodes", help="Search the multi-parent scientific-semantic graph")
     search_semantics.add_argument("--query")
     search_semantics.add_argument("--node-type", choices=["discipline", "subdiscipline", "research_field", "research_object", "system", "phenomenon", "process", "state", "population", "observation_unit", "analysis_unit", "application_area", "method", "other"])
+    search_semantics.add_argument("--limit", type=int, default=20)
+    search_semantics.add_argument("--elements-root")
     search_semantics.set_defaults(handler=search_semantic_nodes)
 
     get = commands.add_parser("get-source", help="Get a source and related records")
@@ -1336,6 +1426,7 @@ def parser() -> argparse.ArgumentParser:
 
     get_semantic_command = commands.add_parser("get-semantic-node", help="Get one scientific-semantic node with parents, children, and relationships")
     get_semantic_command.add_argument("semantic_node_id")
+    get_semantic_command.add_argument("--elements-root")
     get_semantic_command.set_defaults(handler=get_semantic_node)
 
     get_element_command = commands.add_parser("get-data-element", help="Get a source-native dimension, measure, identifier, or attribute")
@@ -1619,10 +1710,49 @@ def parser() -> argparse.ArgumentParser:
 
     match_project = commands.add_parser(
         "match-indicators",
-        help="Match every leaf indicator to exact registered constructs and variables",
+        help="Match every leaf indicator through persisted R-to-B-to-A semantic paths, with legacy exact fallback",
     )
     match_project.add_argument("project_dir")
+    match_project.add_argument("--elements-root")
     match_project.set_defaults(handler=match_indicators_command)
+
+    recall_semantics = commands.add_parser(
+        "prepare-semantic-candidates",
+        help="Recall full-text Construct and SemanticNode candidates for every leaf indicator",
+    )
+    recall_semantics.add_argument("project_dir")
+    recall_semantics.add_argument("--queries", help="Optional Agent-expanded JSONL query terms by indicator")
+    recall_semantics.add_argument("--limit", type=int, default=25)
+    recall_semantics.add_argument("--elements-root")
+    recall_semantics.add_argument("--replace", action="store_true")
+    recall_semantics.set_defaults(handler=prepare_semantic_candidates_command)
+
+    align_semantics = commands.add_parser(
+        "align-research-indicators",
+        help="Validate Agent decisions and persist the project-scoped R-to-B semantic bridge",
+    )
+    align_semantics.add_argument("project_dir")
+    align_semantics.add_argument("decision_file")
+    align_semantics.add_argument("--replace", action="store_true")
+    align_semantics.set_defaults(handler=align_research_indicators_command)
+
+    traverse_semantics = commands.add_parser(
+        "traverse-semantic-paths",
+        help="Traverse persisted B semantics through the stored graph to A variables and data structures",
+    )
+    traverse_semantics.add_argument("project_dir")
+    traverse_semantics.add_argument("--limit", type=int, default=100)
+    traverse_semantics.add_argument("--elements-root")
+    traverse_semantics.add_argument("--replace", action="store_true")
+    traverse_semantics.set_defaults(handler=traverse_semantic_paths_command)
+
+    explain_semantics = commands.add_parser(
+        "explain-indicator-match",
+        help="Return candidate recall, R-to-B decisions, B-to-A paths, and final mapping for one indicator",
+    )
+    explain_semantics.add_argument("project_dir")
+    explain_semantics.add_argument("indicator_id")
+    explain_semantics.set_defaults(handler=explain_indicator_match_command)
 
     expand_gaps = commands.add_parser(
         "expand-from-data-gaps",
@@ -1636,7 +1766,24 @@ def parser() -> argparse.ArgumentParser:
         help="Replace project mappings after registry expansion and retain attempt history",
     )
     rerun_project.add_argument("project_dir")
+    rerun_project.add_argument("--elements-root")
     rerun_project.set_defaults(handler=rerun_matching_command)
+
+    fetch_indicator = commands.add_parser(
+        "fetch-indicator-data",
+        help="Invoke a mapped indicator variable through its verified source runtime with full semantic lineage",
+    )
+    fetch_indicator.add_argument("project_dir")
+    fetch_indicator.add_argument("indicator_id")
+    fetch_indicator.add_argument("--variable-id")
+    fetch_indicator.add_argument("--elements-root")
+    fetch_indicator.add_argument("--dry-run", action="store_true")
+    fetch_indicator.add_argument("--output-dir")
+    fetch_indicator.add_argument("--country")
+    fetch_indicator.add_argument("--start-period")
+    fetch_indicator.add_argument("--end-period")
+    fetch_indicator.add_argument("--timeout", type=int)
+    fetch_indicator.set_defaults(handler=fetch_indicator_data_command)
 
     adapters = commands.add_parser("list-adapters", help="List optional data-access adapters")
     adapters.add_argument("--source-id")

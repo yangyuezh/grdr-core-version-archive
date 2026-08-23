@@ -39,8 +39,11 @@ Question-specific research projects form a separate linked graph:
 ResearchProject
   ├── LiteratureDocument
   │     └── EvidenceUnit
-  └── ResearchIndicator (hierarchical)
-          └── IndicatorMapping ──> canonical GRDR Variable
+  └── ResearchIndicator (hierarchical R)
+          ├── SemanticCandidate (full-text recall only)
+          └── SemanticAlignment ──> persisted SemanticNode / Construct (B)
+                    └── SemanticPath ──> canonical GRDR Variable / DataElement / DataStructure / Dataset (A)
+                              └── IndicatorMapping ──> selected canonical GRDR Variable
 ```
 
 The first graph describes durable upstream data infrastructure. The second describes how one research question derives indicators from literature and connects them to the registry. Project-specific evidence, indicators, and mappings must not be copied into canonical global records as if they were source-native facts.
@@ -98,6 +101,10 @@ A question-specific node in a domain, construct, subconstruct, indicator, or ope
 ### IndicatorMapping
 
 A question-specific link from a leaf research indicator to zero or more canonical GRDR variables. It records construct, population, unit, temporal, and spatial fit plus direct, transformed, composite, proxy, conflict, or current-snapshot-not-found status.
+
+### SemanticCandidate, SemanticAlignment, and SemanticPath
+
+A SemanticCandidate is a project-scoped full-text recall result and never proves equivalence. A SemanticAlignment is the persisted, evidence-constrained ResearchIndicator-to-B decision with exact, close, broader, narrower, related, or no-match semantics. A SemanticPath is the fingerprinted traversal from that B target through stored relationships to A-side Variable, DataElement, DataStructure, Dataset, and source snapshot. These records remain in the research project and never mutate canonical B.
 
 ## Required distinctions
 
