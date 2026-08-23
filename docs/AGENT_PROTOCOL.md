@@ -113,13 +113,16 @@ start-database-deep-map
   → audit-database-deep-map-archive
   → archive-database-deep-map
   → verify canonical archive receipt
-  → build source repository + Release + Elements snapshot
+  → build source repository + callable Release + Elements snapshot
+  → verify source runtime resolves every indexed variable
   → verify Storage receipt
 ```
 
 The six required unit stages are Dataset, DataStructure, DataElement, Variable, Construct, and Access. Their semantic requirements remain fixed. Each unit must additionally close a source-native structural spine, multi-parent disciplinary/scientific-semantic spine, and Variable-to-Construct bridge. Route modules adapt extraction to statistical cubes, surveys, administrative systems, tables, APIs, geospatial stores, scientific arrays, biomedical repositories, knowledge graphs, corpora, and restricted environments.
 
 `resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. Step 2 may write only project-local staging. Step 3 Storage alone may promote canonical collections and write the central source-archive card. The internal archive receipt proves canonical promotion; only a valid Storage receipt plus verified Release-to-Elements parity declares factory completion. A 100% result is always limited to the project's explicit dated boundary.
+
+The database lifecycle is the production plane. The separate Agent Runtime use plane searches variables across local distributed indexes, materializes a verified online snapshot when necessary, resolves one variable through the source runtime, and invokes the authoritative route. Storage packages and self-tests that runtime; it does not implement research search or retrieval policy.
 
 ## Executable research-project lifecycle
 

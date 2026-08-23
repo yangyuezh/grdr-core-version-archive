@@ -72,3 +72,9 @@ Never collapse source authority and task-specific fitness into one opaque score.
 ## Long-term evolution
 
 As the registry expands, GRDR adds more independently versioned source snapshots without copying the shared Core into those repositories. The central registry remains the unified Agent entry point; source repositories and snapshot artifacts provide the durable database-specific storage layer.
+
+## Production and use planes
+
+Plan → Execute → Storage is the three-step database production factory. It ends with a verified, callable source snapshot; it does not itself answer research queries.
+
+The independent GRDR Agent Runtime is the use plane. It searches central and distributed indexes, materializes the same Release snapshot into Elements when needed, resolves a selected Variable through the source-specific runtime, invokes the authoritative upstream route, and returns data with provenance. Storage is responsible only for packaging and validating those runtime ingredients as part of the snapshot.

@@ -6,11 +6,15 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "scripts" / "grdr.py"
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from research_project import perform_matching  # noqa: E402
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
@@ -156,14 +160,76 @@ def make_project(parent: Path, with_evidence: bool = True) -> Path:
     (project_dir / "project.json").write_text(
         json.dumps(project, ensure_ascii=False), encoding="utf-8"
     )
+    workflow = {
+        "schema_version": "0.1.0",
+        "project_id": project_id,
+        "workflow_status": "ready_to_match",
+        "current_step": "matching",
+        "matching_attempt": 0,
+        "gap_expansion_round": 0,
+        "last_operation": "test-fixture",
+        "next_actions": ["match-indicators"],
+        "history": [
+            {
+                "timestamp": "2026-08-16T12:10:00Z",
+                "operation": "test-fixture",
+                "summary": "Prepared an approved mapping fixture.",
+            }
+        ],
+        "created_at": "2026-08-16T11:00:00Z",
+        "updated_at": "2026-08-16T12:10:00Z",
+    }
     write_jsonl(project_dir / "literature.jsonl", literature)
     write_jsonl(project_dir / "evidence_units.jsonl", evidence)
     write_jsonl(project_dir / "indicators.jsonl", indicators)
     write_jsonl(project_dir / "mappings.jsonl", mappings)
+    (project_dir / "workflow.json").write_text(
+        json.dumps(workflow, ensure_ascii=False), encoding="utf-8"
+    )
+    write_jsonl(project_dir / "data_gaps.jsonl", [])
     return project_dir
 
 
 class IndicatorBuilderTests(unittest.TestCase):
+    def test_matching_uses_distributed_runtime_records(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project_dir = make_project(Path(temporary))
+            indicators = [json.loads(line) for line in (project_dir / "indicators.jsonl").read_text().splitlines()]
+            indicators[0]["name"] = "Synthetic resident count"
+            indicators[0]["synonyms"] = []
+            write_jsonl(project_dir / "indicators.jsonl", indicators)
+            write_jsonl(project_dir / "mappings.jsonl", [])
+            construct = {
+                "id": "grdr:construct:synthetic-resident-count",
+                "name": "Synthetic resident count",
+                "aliases": [],
+                "verification": {"status": "verified"},
+            }
+            variable = {
+                "id": "grdr:variable:synthetic-resident-count",
+                "name": "SYN_POP",
+                "label": "Synthetic resident count",
+                "construct_ids": [construct["id"]],
+                "verification": {"status": "verified"},
+                "population": "residents",
+                "unit": "people",
+                "temporal_resolution": "annual",
+                "spatial_resolution": "global",
+                "_grdr_snapshot": {
+                    "source_id": "grdr:source:synthetic-distributed",
+                    "snapshot_id": "r1",
+                },
+            }
+
+            def distributed_records(_cards, entity_type):
+                return {"constructs": [construct], "variables": [variable]}.get(entity_type, [])
+
+            with patch("research_project.distributed.distributed_entity_records", side_effect=distributed_records):
+                result = perform_matching(project_dir)
+            self.assertEqual(result["outcomes"], {"direct_match": 1})
+            self.assertEqual(result["mappings"][0]["variable_ids"], [variable["id"]])
+            self.assertIn("distributed snapshot", result["mappings"][0]["notes"])
+
     def test_topic_only_project_stays_exploratory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project_dir = Path(temporary) / "topic-scaffold"

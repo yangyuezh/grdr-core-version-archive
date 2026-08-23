@@ -12,7 +12,7 @@ Step 2 Execute
 逐单元深读 → 恢复两根主干和一座桥 → 暂存规范记录 → 密封执行包
         ↓ sealed_deep_map_execution
 Step 3 Storage
-中央入库 → 独立源仓库 → 完整知识包 → Agent索引 → 观测数据
+中央入库 → 独立源仓库 → 完整知识包 → Agent运行时/索引 → 观测数据
 → GitHub Release → Elements展开镜像 → 一致性核验 → 中央卡片 → Storage回执
         ↓ versioned_database_snapshot
 ```
@@ -24,6 +24,8 @@ Step 3 Storage
 - `$grdr-store-database-deep-map`
 
 原来的Archive只是Storage内部的“中央注册表事务归档”，不再是第三个公开Skill，也不能单独代表数据库已经完成存储。
+
+三步工厂是数据库生产面。统一检索、变量匹配、快照挂载、访问计划解析和官方数据调用属于独立的GRDR Agent Runtime使用面，不是第四个生产步骤，也不并入Storage。Storage只负责把源运行时作为快照制品保存，并验证它能解析全部已登记变量。
 
 ## Step 1：Plan
 
@@ -62,8 +64,8 @@ Execute只写工程内部`staging/`及账本。`execution_ready_for_storage: tru
 | 位置 | 保存内容 | 完整数据 |
 |---|---|---|
 | GRDR核心仓库 | Source卡片、独立仓库、最新快照、Release、清单、指纹和状态 | 否 |
-| 数据库独立私有Git仓库 | Core版本引用、配置、适配器、Plan、快照清单、README、测试、中央入库回执 | 只保存小型可审查内容 |
-| 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent SQLite索引、全部观测数据和Storage回执 | 是 |
+| 数据库独立私有Git仓库 | Core版本引用、配置、适配器、源运行时代码、Plan、快照清单、README、测试、中央入库回执 | 只保存小型可审查内容 |
+| 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent运行时与SQLite索引、全部观测数据和Storage回执 | 是 |
 | Elements磁盘 | 与Release相同逻辑快照的完整展开目录 | 是 |
 
 一个Source对应一个独立仓库；一个快照对应一个Release和一个Elements快照目录。独立仓库引用GRDR Core版本，不复制Core Skill。
@@ -75,6 +77,9 @@ Release是压缩分发形式，Elements是展开工作形式。两者物理形�
 ```text
 knowledge/
 agent/grdr-agent-index.sqlite
+agent/runtime.json
+agent/<source-runtime>.py
+agent/runtime_audit.json
 observations/
 ```
 
@@ -82,7 +87,7 @@ observations/
 
 ### 执行命令
 
-先写Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、观测数据输入和适配器：
+先写Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、观测数据输入、适配器和源运行时：
 
 ```bash
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
@@ -97,7 +102,22 @@ observations/
 .venv/bin/python scripts/grdr.py store-database-deep-map <project> <storage-spec.json>
 ```
 
-Storage拒绝零观测文件、观测数据总字节数为零、复用已有但内容不同的快照路径、非GRDR文件覆盖、Release与Elements不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+Storage拒绝零观测文件、观测数据总字节数为零、运行时不能解析全部索引变量、运行时文件未进入Release与Elements共同逻辑清单、复用已有但内容不同的快照路径、非GRDR文件覆盖、Release与Elements不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+
+## 独立Agent Runtime使用面
+
+Storage完成后，Core按以下链路使用快照：
+
+```text
+research question
+→ search-variables（中央记录 + 本地分布式索引）
+→ source-snapshot-status / materialize-source-snapshot
+→ resolve-variable-access
+→ fetch-variable
+→ 官方响应、原始字节、筛选结果与provenance
+```
+
+GitHub Release是在线压缩分发版，Elements是同一逻辑快照的本地展开版。`materialize-source-snapshot`从Release下载全部资产、核验SHA-256、展开后再次核验逻辑指纹，因此两者不是两套数据库。
 
 ## 完成定义
 

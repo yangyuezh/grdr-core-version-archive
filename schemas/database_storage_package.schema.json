@@ -4,9 +4,9 @@
   "title": "GRDR materialized database snapshot package",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "elements_snapshot_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
+  "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "elements_snapshot_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "runtime", "runtime_audit", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "2.0.0"},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -26,11 +26,50 @@
     "logical_size_bytes": {"type": "integer", "minimum": 1},
     "logical_files": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/file"}},
     "release_assets": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/asset"}},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "runtime_audit": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["source_id", "status", "variable_count", "resolvable_variable_count", "unresolved_variable_count"],
+      "properties": {
+        "source_id": {"type": "string"},
+        "status": {"const": "ready"},
+        "variable_count": {"type": "integer", "minimum": 0},
+        "resolvable_variable_count": {"type": "integer", "minimum": 0},
+        "unresolved_variable_count": {"const": 0}
+      }
+    },
     "logical_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "prepared_at": {"type": "string", "format": "date-time"},
     "package_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },
   "$defs": {
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "protocol_version", "source_id", "entrypoint", "agent_index", "operations", "official_domains"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "protocol_version": {"const": "grdr-source-runtime/1.0"},
+        "source_id": {"type": "string"},
+        "entrypoint": {"type": "string"},
+        "agent_index": {"const": "grdr-agent-index.sqlite"},
+        "operations": {
+          "type": "array",
+          "minItems": 4,
+          "items": {"enum": ["self-test", "search", "resolve-variable", "fetch-variable"]},
+          "uniqueItems": true,
+          "allOf": [
+            {"contains": {"const": "self-test"}},
+            {"contains": {"const": "search"}},
+            {"contains": {"const": "resolve-variable"}},
+            {"contains": {"const": "fetch-variable"}}
+          ]
+        },
+        "official_domains": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
     "file": {
       "type": "object",
       "additionalProperties": false,

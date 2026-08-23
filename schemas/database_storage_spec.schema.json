@@ -4,9 +4,9 @@
   "title": "GRDR database snapshot storage specification",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "source_id", "source_slug", "snapshot_id", "core", "source_repository", "release", "elements_root", "observation_inputs", "adapter_inputs"],
+  "required": ["schema_version", "source_id", "source_slug", "snapshot_id", "core", "source_repository", "release", "elements_root", "observation_inputs", "adapter_inputs", "runtime"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "2.0.0"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
     "snapshot_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
@@ -56,6 +56,20 @@
       "type": "array",
       "items": {"type": "string", "minLength": 1},
       "uniqueItems": true
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["descriptor", "files"],
+      "properties": {
+        "descriptor": {"type": "string", "minLength": 1},
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
     }
   }
 }

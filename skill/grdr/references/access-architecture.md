@@ -8,6 +8,8 @@ The registry records what a source is, who maintains it, what it contains, how a
 
 An adapter performs actual retrieval. Knowing a source exists and being authorized to retrieve its records are different capabilities.
 
+The three-step factory is the production plane. The independent GRDR Agent Runtime is the use plane. Storage packages the source adapter/runtime and proves its interface is callable; Core Runtime performs unified search, snapshot materialization, variable resolution, and retrieval.
+
 ## Optional access modes
 
 - `federated_access`: query the authoritative upstream API or bulk service.

@@ -7,6 +7,7 @@ grdr-source-<slug>/
 ├── README.md
 ├── grdr-source.json
 ├── adapters/
+├── runtime/
 ├── plan/<snapshot-id>/
 │   ├── diagnostic_plan.json
 │   ├── scope.json
@@ -23,7 +24,7 @@ grdr-source-<slug>/
 
 ```text
 <slug>-<snapshot>-knowledge.tar.gz
-<slug>-<snapshot>-agent-index.sqlite
+<slug>-<snapshot>-agent-runtime.tar.gz
 <slug>-<snapshot>-observations-<partition>.tar.gz
 manifest.json
 storage_receipt.json
@@ -36,7 +37,11 @@ Observation assets may be partitioned, but their union must equal the complete o
 ```text
 <elements-root>/sources/<slug>/snapshots/<snapshot-id>/
 ├── knowledge/
-├── agent/grdr-agent-index.sqlite
+├── agent/
+│   ├── grdr-agent-index.sqlite
+│   ├── runtime.json
+│   ├── <source-runtime>.py
+│   └── runtime_audit.json
 ├── observations/<partition>/...
 └── receipts/storage_receipt.json
 ```

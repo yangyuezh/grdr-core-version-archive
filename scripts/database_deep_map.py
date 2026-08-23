@@ -376,6 +376,14 @@ def canonical_collections() -> dict[str, list[dict[str, Any]]]:
     }
 
 
+def completed_distributed_archive_exists(source_id: str) -> bool:
+    path = ROOT / "registry" / "source_archives.jsonl"
+    return path.is_file() and any(
+        item.get("source_id") == source_id and item.get("status") == "complete"
+        for item in read_jsonl(path)
+    )
+
+
 def empty_staging_manifest(project: dict[str, Any], timestamp: str) -> dict[str, Any]:
     return {
         "schema_version": "1.0.0",
@@ -944,6 +952,7 @@ def staging_errors(target: Path, project: dict[str, Any], manifest: dict[str, An
         for record in records
     }
     canonical = registry_index()
+    distributed_archive_present = completed_distributed_archive_exists(project["source_id"])
     manifest_ids = [item["id"] for item in manifest.get("records", [])]
     if len(manifest_ids) != len(set(manifest_ids)):
         errors.append("staging manifest contains duplicate record IDs")
@@ -965,7 +974,7 @@ def staging_errors(target: Path, project: dict[str, Any], manifest: dict[str, An
             errors.append(f"{item['id']}: staged fingerprint is stale")
         canonical_record = canonical.get(item["id"])
         if manifest.get("state") == "archived":
-            if canonical_record != record:
+            if canonical_record != record and not (canonical_record is None and distributed_archive_present):
                 errors.append(f"{item['id']}: archived staged record no longer matches canonical state")
         else:
             expected_base = fingerprint(canonical_record) if canonical_record is not None else None

@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import distributed_runtime as distributed
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_FILES = {
@@ -213,6 +215,16 @@ def audit_project(project_dir: Path | str, grdr_root: Path | str = ROOT) -> dict
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         variable_ids = set()
         errors.append(f"cannot load GRDR variables: {exc}")
+    try:
+        archive_path = root / "registry" / "source_archives.jsonl"
+        cards = load_jsonl(archive_path) if archive_path.is_file() else []
+        variable_ids.update(
+            item["id"]
+            for item in distributed.distributed_entity_records(cards, "variables")
+            if item.get("id")
+        )
+    except (OSError, ValueError, json.JSONDecodeError, distributed.DistributedRuntimeError) as exc:
+        errors.append(f"cannot load distributed GRDR variables: {exc}")
 
     for item in evidence:
         document_id = item.get("document_id")

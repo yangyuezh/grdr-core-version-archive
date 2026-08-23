@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+import distributed_runtime as distributed
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "registry"
@@ -393,6 +395,22 @@ def search_variables(args: argparse.Namespace) -> None:
             continue
         matches.append(variable)
 
+    cards = load_jsonl("source_archives.jsonl")
+    matches.extend(
+        distributed.distributed_variable_matches(
+            cards,
+            args.elements_root,
+            query=args.query,
+            construct=args.construct,
+            dataset_id=args.dataset_id,
+            role=args.role,
+            measurement_type=args.measurement_type,
+            verification=args.verification,
+        )
+    )
+
+    matches = list({item["id"]: item for item in matches}.values())
+
     matches.sort(key=verification_sort)
     limited = matches[: args.limit]
     emit(
@@ -416,11 +434,12 @@ def search_variables(args: argparse.Namespace) -> None:
                     "comparability": item["comparability"],
                     "join_keys": item["join_keys"],
                     "verification": item["verification"],
+                    "snapshot": item.get("_grdr_snapshot"),
                 }
                 for item in limited
             ],
             "warnings": [
-                "Variable coverage is illustrative in the foundation release; topic tags on a source are not treated as proof of variable availability."
+                "Results include callable local distributed source snapshots. Topic tags on a source are never treated as proof of variable availability."
             ],
         }
     )
@@ -510,8 +529,14 @@ def get_variable(args: argparse.Namespace) -> None:
     variables = {item["id"]: item for item in load_jsonl("variables.jsonl")}
     variable = variables.get(args.variable_id)
     if variable is None:
-        emit({"operation": "get_variable", "registry_version": REGISTRY_VERSION, "error": "variable_not_found", "variable_id": args.variable_id})
-        raise SystemExit(2)
+        resolved = distributed.resolve_distributed_variable(
+            load_jsonl("source_archives.jsonl"), args.variable_id, args.elements_root
+        )
+        if resolved is None:
+            emit({"operation": "get_variable", "registry_version": REGISTRY_VERSION, "error": "variable_not_found", "variable_id": args.variable_id})
+            raise SystemExit(2)
+        emit({"operation": "get_variable", "registry_version": REGISTRY_VERSION, **resolved})
+        return
 
     datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
     constructs = {item["id"]: item for item in load_jsonl("constructs.jsonl")}
@@ -736,6 +761,67 @@ def list_source_archives(args: argparse.Namespace) -> None:
         if args.source_id is None or item["source_id"] == args.source_id
     ]
     emit({"operation": "list_source_archives", "registry_version": REGISTRY_VERSION, "result_count": len(records), "results": records})
+
+
+def source_snapshot_status(args: argparse.Namespace) -> None:
+    cards = [
+        item for item in load_jsonl("source_archives.jsonl")
+        if args.source_id is None or item["source_id"] == args.source_id
+    ]
+    results = [distributed.local_snapshot_status(item, args.elements_root, args.verify) for item in cards]
+    emit({
+        "operation": "source_snapshot_status",
+        "registry_version": REGISTRY_VERSION,
+        "result_count": len(results),
+        "results": results,
+    })
+
+
+def materialize_source_snapshot(args: argparse.Namespace) -> None:
+    card = next(
+        (item for item in load_jsonl("source_archives.jsonl") if item["source_id"] == args.source_id),
+        None,
+    )
+    if card is None:
+        emit({"operation": "materialize_source_snapshot", "error": "source_archive_not_found", "source_id": args.source_id})
+        raise SystemExit(2)
+    try:
+        result = distributed.materialize_source_snapshot(card, args.elements_root)
+    except distributed.DistributedRuntimeError as exc:
+        emit({"operation": "materialize_source_snapshot", "error": "materialization_failed", "message": str(exc)})
+        raise SystemExit(1) from exc
+    emit({"operation": "materialize_source_snapshot", **result})
+
+
+def resolve_variable_access(args: argparse.Namespace) -> None:
+    try:
+        result = distributed.invoke_source_runtime(
+            load_jsonl("source_archives.jsonl"), args.variable_id, "resolve-variable", args.elements_root
+        )
+    except distributed.DistributedRuntimeError as exc:
+        emit({"operation": "resolve_variable_access", "error": "runtime_resolution_failed", "message": str(exc)})
+        raise SystemExit(1) from exc
+    emit({"operation": "resolve_variable_access", "registry_version": REGISTRY_VERSION, **result})
+
+
+def fetch_variable(args: argparse.Namespace) -> None:
+    extra_args = []
+    if args.dry_run:
+        extra_args.append("--dry-run")
+    if args.output_dir:
+        extra_args.extend(["--output-dir", args.output_dir])
+    for option in ("country", "start_period", "end_period", "timeout"):
+        value = getattr(args, option)
+        if value is not None:
+            extra_args.extend(["--" + option.replace("_", "-"), str(value)])
+    try:
+        result = distributed.invoke_source_runtime(
+            load_jsonl("source_archives.jsonl"), args.variable_id, "fetch-variable", args.elements_root, extra_args
+        )
+    except distributed.DistributedRuntimeError as exc:
+        emit({"operation": "fetch_variable", "error": "runtime_fetch_failed", "message": str(exc)})
+        raise SystemExit(1) from exc
+    emit({"operation": "fetch_variable", "registry_version": REGISTRY_VERSION, **result})
 
 
 def list_monitors(args: argparse.Namespace) -> None:
@@ -1227,6 +1313,7 @@ def parser() -> argparse.ArgumentParser:
         choices=["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"],
     )
     search_variable.add_argument("--limit", type=int, default=20)
+    search_variable.add_argument("--elements-root", help="Expanded GRDR storage root; defaults to GRDR_ELEMENTS_ROOT or /Volumes/Elements/GRDR")
     search_variable.set_defaults(handler=search_variables)
 
     search_semantics = commands.add_parser("search-semantic-nodes", help="Search the multi-parent scientific-semantic graph")
@@ -1244,6 +1331,7 @@ def parser() -> argparse.ArgumentParser:
 
     get_variable_command = commands.add_parser("get-variable", help="Get a variable with datasets and constructs")
     get_variable_command.add_argument("variable_id")
+    get_variable_command.add_argument("--elements-root")
     get_variable_command.set_defaults(handler=get_variable)
 
     get_semantic_command = commands.add_parser("get-semantic-node", help="Get one scientific-semantic node with parents, children, and relationships")
@@ -1564,6 +1652,33 @@ def parser() -> argparse.ArgumentParser:
     source_archives = commands.add_parser("list-source-archives", help="List completed distributed source snapshots and their repository and Release entry points")
     source_archives.add_argument("--source-id")
     source_archives.set_defaults(handler=list_source_archives)
+
+    snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally verify full logical parity")
+    snapshot_status.add_argument("--source-id")
+    snapshot_status.add_argument("--elements-root")
+    snapshot_status.add_argument("--verify", action="store_true")
+    snapshot_status.set_defaults(handler=source_snapshot_status)
+
+    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download, verify, and expand one complete GitHub Release into Elements")
+    materialize_snapshot.add_argument("source_id")
+    materialize_snapshot.add_argument("--elements-root")
+    materialize_snapshot.set_defaults(handler=materialize_source_snapshot)
+
+    resolve_access = commands.add_parser("resolve-variable-access", help="Resolve one distributed variable into its official source access plan")
+    resolve_access.add_argument("variable_id")
+    resolve_access.add_argument("--elements-root")
+    resolve_access.set_defaults(handler=resolve_variable_access)
+
+    fetch = commands.add_parser("fetch-variable", help="Fetch one distributed variable through its source-scoped official runtime")
+    fetch.add_argument("variable_id")
+    fetch.add_argument("--elements-root")
+    fetch.add_argument("--dry-run", action="store_true")
+    fetch.add_argument("--output-dir")
+    fetch.add_argument("--country")
+    fetch.add_argument("--start-period")
+    fetch.add_argument("--end-period")
+    fetch.add_argument("--timeout", type=int)
+    fetch.set_defaults(handler=fetch_variable)
 
     monitors = commands.add_parser("list-monitors", help="List upstream monitors")
     monitors.add_argument("--status", choices=["passing", "changed", "degraded", "failing", "never_run", "disabled"])

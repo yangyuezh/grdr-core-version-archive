@@ -10,6 +10,8 @@ import re
 import unicodedata
 from typing import Any
 
+import distributed_runtime as distributed
+
 from indicator_builder import audit_project
 
 
@@ -349,7 +351,12 @@ def fit_value(required: str | None, actual: str | None) -> str:
 
 
 def registry_records(name: str) -> list[dict[str, Any]]:
-    return read_jsonl(ROOT / "registry" / name)
+    records = read_jsonl(ROOT / "registry" / name)
+    entity_type = name.removesuffix(".jsonl")
+    if entity_type in {"sources", "datasets", "constructs", "variables"}:
+        cards = read_jsonl(ROOT / "registry" / "source_archives.jsonl")
+        records.extend(distributed.distributed_entity_records(cards, entity_type))
+    return list({item["id"]: item for item in records}.values())
 
 
 def indicator_names(indicator: dict[str, Any]) -> set[str]:
@@ -410,7 +417,10 @@ def perform_matching(project_dir: str | Path, rerun: bool = False) -> dict[str, 
                 "time": fit_value(spec.get("temporal_scope"), variable.get("temporal_resolution")),
                 "space": fit_value(spec.get("spatial_scope"), variable.get("spatial_resolution")),
             }
+            snapshot = variable.get("_grdr_snapshot")
             note = "Exact normalized construct identity; other fit dimensions are reported independently."
+            if snapshot:
+                note += f" Variable is supplied by distributed snapshot {snapshot['source_id']}@{snapshot['snapshot_id']}."
         else:
             status = "not_found_registry_snapshot"
             variable_ids = []

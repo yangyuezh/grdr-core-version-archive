@@ -7,7 +7,7 @@ Step 3 is complete only when all of the following hold:
 3. the internal canonical archive receipt is valid;
 4. at least one actual observation file with nonzero total bytes is present;
 5. the complete knowledge artifact exists;
-6. the Agent SQLite index exists and is included in both representations;
+6. the Agent SQLite index and source runtime exist in both representations, and the sealed runtime audit proves that every indexed Variable resolves with zero unresolved Variables;
 7. every logical file has an exact SHA-256 and size;
 8. Release archive membership expands to exactly the Elements logical inventory;
 9. the private source Git repository contains its config, adapters, Plan, manifest, README, tests, and canonical archive receipt;
@@ -24,3 +24,4 @@ The following are explicitly incomplete:
 - a source repository that copies GRDR Core;
 - a metadata manifest that claims files not present in the artifacts;
 - a canonical archive receipt without a final Storage receipt.
+- an Agent index without a callable source runtime, or a runtime audit with unresolved Variables.

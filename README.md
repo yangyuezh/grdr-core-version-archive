@@ -10,7 +10,9 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 
 1. `grdr-plan-database-deep-map` diagnoses an unknown database, defines its bounded work-unit universe, composes route obligations, and fingerprint-locks the Plan.
 2. `grdr-execute-database-deep-map` follows the deterministic queue, reconstructs native structure and disciplinary semantics, builds the DataElement → Variable → Construct bridge, and seals the execution without canonical writes.
-3. `grdr-store-database-deep-map` transactionally promotes sealed records, creates the source-specific private repository, publishes one complete Release per snapshot, materializes the matching Elements copy, verifies SHA-256 parity, writes the central source card, and issues the final Storage receipt.
+3. `grdr-store-database-deep-map` transactionally promotes sealed records, creates the source-specific private repository, publishes one complete callable Release per snapshot, materializes the matching Elements copy, verifies SHA-256 parity and the source runtime, writes the central source card, and issues the final Storage receipt.
+
+These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, mounts a verified snapshot, resolves a variable to its source-native access plan, and invokes the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
 
 ## Core architecture: two spines and one bridge
 
@@ -61,9 +63,17 @@ flowchart TB
 
     STORE --> CARD["GRDR Core<br/>central source card only"]
     STORE --> REPO["Private source Git repository<br/>config, adapters, Plan and receipts"]
-    STORE --> RELEASE["GitHub Release<br/>complete knowledge + Agent index + observations"]
-    STORE --> ELEMENTS["Elements<br/>expanded working snapshot"]
+    STORE --> RELEASE["GitHub Release<br/>knowledge + Agent runtime/index + observations"]
+    STORE --> ELEMENTS["Elements<br/>same logical snapshot, expanded"]
     RELEASE <-->|"same logical snapshot + SHA-256 parity"| ELEMENTS
+
+    subgraph RUNTIME["Independent Agent Runtime — 使用面"]
+        direction LR
+        QUESTION["Research question"] --> SEARCH["Unified variable/construct search"] --> MOUNT["Locate or materialize verified snapshot"] --> RESOLVE["Resolve source-native access plan"] --> FETCH["Call official upstream and return data + provenance"]
+    end
+    CARD --> SEARCH
+    RELEASE --> MOUNT
+    ELEMENTS --> MOUNT
 ```
 
 Resources such as APIs, downloads, authentication, and licenses are access sidecars rather than content levels.
@@ -107,6 +117,10 @@ python3 -m venv .venv
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
 .venv/bin/python scripts/grdr.py publish-database-storage <project>
 .venv/bin/python scripts/grdr.py database-storage-status <project>
+.venv/bin/python scripts/grdr.py source-snapshot-status --source-id <source-id> --verify
+.venv/bin/python scripts/grdr.py search-variables --construct <construct>
+.venv/bin/python scripts/grdr.py resolve-variable-access <variable-id>
+.venv/bin/python scripts/grdr.py fetch-variable <variable-id> --dry-run
 ```
 
 See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the North Star](docs/NORTH_STAR.md).
@@ -120,4 +134,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.2.2` is the isolated GRDR Core milestone with distributed source-archive indexing. The Plan → Execute → Storage contract remains unchanged.
+Version `3.3.0` adds the independent distributed Agent Runtime and callable snapshot artifact format. Plan → Execute → Storage remains the three-step production factory; Runtime is the separate AI-use plane.

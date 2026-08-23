@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.3.0] - 2026-08-23
+
+### Added
+
+- Add an independent distributed Agent Runtime for snapshot discovery, unified variable search, online Release materialization, variable resolution, and source-runtime invocation.
+- Make research-project indicator matching and mapping audits consume the same distributed construct and variable records as direct Runtime search.
+- Define the `grdr-source-runtime/1.0` protocol and package a source-specific executable runtime beside every Agent SQLite index.
+- Require Storage artifact format 2.0 to prove that every indexed variable resolves through the source runtime before publication.
+- Package the complete `agent/` directory as a deterministic Release archive so GitHub Release and Elements remain the same logical callable snapshot.
+- Add runtime identity and asset information to the central source-archive card and final Storage receipt.
+
+### Architecture
+
+- Keep Plan → Execute → Storage as the database production plane.
+- Keep search, matching, mounting, access-plan resolution, and official-source retrieval in the separate GRDR Agent Runtime use plane.
+
 ## [3.2.2] - 2026-08-22
 
 ### Fixed
