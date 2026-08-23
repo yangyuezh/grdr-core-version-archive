@@ -1,0 +1,505 @@
+{
+  "canonical_archive_fingerprint": "0c669af0cd885fedb4ca7f3422e44bd79e69189e7a5342e50cd5ba32109f125f",
+  "core_repository": "https://github.com/yangyuezh/grdr-core",
+  "core_version": "3.3.0",
+  "elements_snapshot_path": "/Volumes/Elements/GRDR/sources/undata/snapshots/2026-08-23-r2",
+  "knowledge_file_count": 23,
+  "logical_content_fingerprint": "576f058f228947be521e6f6805cbcfc15b1748349dad635412d9dd9356576b56",
+  "logical_file_count": 60,
+  "logical_files": [
+    {
+      "component": "agent",
+      "path": "agent/grdr-agent-index.sqlite",
+      "sha256": "ae2a7c239aa1aca5e809048c1118c7f4343b79f6598ac3e06fdd9fcb147d79c6",
+      "size_bytes": 124121088
+    },
+    {
+      "component": "agent",
+      "path": "agent/runtime.json",
+      "sha256": "cf40c19734ca604c502e6ea0a4b7462b36db717e3d71054a9018cd03814ef53d",
+      "size_bytes": 570
+    },
+    {
+      "component": "agent",
+      "path": "agent/runtime_audit.json",
+      "sha256": "88c4c34b9e4351ecb972de546eb882150b61c42a6fadb89dd7c07516bf3e031b",
+      "size_bytes": 415
+    },
+    {
+      "component": "agent",
+      "path": "agent/undata_runtime.py",
+      "sha256": "8f0add8f3fc178719841ef9b86917f69f99a57f43691c8c8e95a831e2db2cd74",
+      "size_bytes": 18329
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/adapters/capture_undata_observations.py",
+      "sha256": "afb383f8d272461cc2f345c8a8c9de8aa0227146782b5c6591557e6a89c5efc9",
+      "size_bytes": 12725
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/adapters/undata_sdmx.py",
+      "sha256": "1111f0076f534ff20ba5009411b16f8aedf93afb31a790b8ea152b97dd4750fa",
+      "size_bytes": 11318
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/README.md",
+      "sha256": "20258bcdc046d3b31354ea675c5972c919e0c82a2ffe0619dc681cd2f29db672",
+      "size_bytes": 3515
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/UNdata-DEEP-MAP-RESULT.md",
+      "sha256": "d6a0be688c102bbc8716671982a03c5a115187ab6408124d169fac48a047c669",
+      "size_bytes": 3408
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/archive_package.json",
+      "sha256": "a1a814497a694d4192b7725e6b1590ad17b53535fe1744a6a6f82204a62cad4c",
+      "size_bytes": 1111
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/archive_receipt.json",
+      "sha256": "768a407187e3fa7ed7cbfc6471c3841b47f9f808d2a41a3677d0beab556d91b3",
+      "size_bytes": 1157
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/checks.jsonl",
+      "sha256": "1986f12526c1a00612650a0b0463932e26b2ec8f19c6d0b75dafcaffa4332d3a",
+      "size_bytes": 797228
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/evidence/undata-metadata-snapshot.json.gz",
+      "sha256": "6d43d25f4dee775a079595b05d70d38390ab3078e3f14a56c88e28a6928596c1",
+      "size_bytes": 185178
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/project.json",
+      "sha256": "932715de234f2d8bdcc4c0b3a04a2494038784918e3e8e5252463df24b4a6383",
+      "size_bytes": 30100
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/constructs.jsonl",
+      "sha256": "15b27b25337afe8bb64d884c75d4f49a9cf3e2024597948bdf95e02e7f40ee60",
+      "size_bytes": 10960461
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/data_elements.jsonl",
+      "sha256": "7ea64585748c3b8e2fe10dc5143859a4345ede6ec6296d01fd99c4ef19d4ef91",
+      "size_bytes": 271942
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/data_structures.jsonl",
+      "sha256": "98cbbaed9f2368a456001d93f39f55172f661a49ce42140f96468a19dba97d25",
+      "size_bytes": 80123
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/datasets.jsonl",
+      "sha256": "21aea86d3b3b3e10c895e156f10ded425277814b1254fec4378d1590ff5e17db",
+      "size_bytes": 128315
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/relationships.jsonl",
+      "sha256": "54d96541244d26f4fabaa9f72dd74ad87abc0b94e05913029780290a516e5344",
+      "size_bytes": 33942032
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/resources.jsonl",
+      "sha256": "f39c927dbe6dd374c0fa014224bcd4887e70415e7f19131af9e74d736e906a05",
+      "size_bytes": 41510
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/semantic_nodes.jsonl",
+      "sha256": "e1749fe0a7b58a9031b9e96928d50d2569dd056bd4ded9660ede7065ae36c13a",
+      "size_bytes": 45471
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/source_profiles.jsonl",
+      "sha256": "d5d7c02d2f783df3f69c97f1ca9a61ba028b49d0eaf44e7627f84a5bf1958d99",
+      "size_bytes": 2117
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/sources.jsonl",
+      "sha256": "bbb18ca4e970f99e08090450080d167b77dd4d01b15e9591dc7c690c68015591",
+      "size_bytes": 2557
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging/variables.jsonl",
+      "sha256": "b3a2995e09ee3cc41ab84ee05b46159b1309d1db83036cd8ec2b26e94236b20d",
+      "size_bytes": 22679563
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/staging_manifest.json",
+      "sha256": "efd6944cc84abdeb7f3fcec68745275bff0694affe1fdee0cfac9cbd34139468",
+      "size_bytes": 20970873
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/storage-spec-2026-08-23-r1.json",
+      "sha256": "0f5933451305577e9a552ba0a5d43b4d62c0f3456d5019303cce8e3802a7fa72",
+      "size_bytes": 926
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/storage-spec-2026-08-23-r2.json",
+      "sha256": "b5635b58d11a6c88f9289dc1e2f2ab5623aee6f320bd599f5a1d0a6a5f80bcfc",
+      "size_bytes": 1073
+    },
+    {
+      "component": "knowledge",
+      "path": "knowledge/project/units.jsonl",
+      "sha256": "599d1e997082e1169926e103552ff6d2f95ea1b2ddbd2ec3d997004f34a4107f",
+      "size_bytes": 8336193
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/16-legal-age-for-marriage-document.bin",
+      "sha256": "7ff6e1da2d10e83f98be913e9ad91bc8df1d5a127793636b7e4800d09f17f95e",
+      "size_bytes": 95744
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/18-oda-received-per-capita-usd-document.bin",
+      "sha256": "5d737238ca6d99240d98d8e55c655b72a6b6c0f19ee075480e0f092ec5a08db5",
+      "size_bytes": 177152
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/19-outbound-tourism-document.bin",
+      "sha256": "b2bdb5f870f8cc305b0b2549057dc8f8d432763804dde839d671ac635c8a6aae",
+      "size_bytes": 312429
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/22-annual-number-of-live-births-and-crude-birth-rate-document.bin",
+      "sha256": "c49a5cb9812d50aa57b024784a6dfd3197c60c4a1b552b490e210f64ec0659b5",
+      "size_bytes": 377344
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/25-currently-married-men-and-women-document.bin",
+      "sha256": "c5a0af3a64fa7aa40bf762930a8901d8e73f836bfa0119e5c42b25bffd727ddd",
+      "size_bytes": 585216
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/29-contraceptive-prevalence-method-document.bin",
+      "sha256": "4875e688a2ee881f9fd6f2eb157be4b1cf174083e8cdcfe2a18df1c928aef87b",
+      "size_bytes": 473600
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/30-youth-unemployment-both-sexes-document.bin",
+      "sha256": "9d80386ec77cc18107043153bfa7484563f53918a54f3828089e890c1190a4b3",
+      "size_bytes": 735232
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/31-core-indicators-on-access-to-and-use-of-ict-by-households-and-individuals-latest-available-data-2010-2014-document.bin",
+      "sha256": "72a7de31bc9f8742dc0da1cfedc824ce81cd7e5392922c234368a98b6b1e01b7",
+      "size_bytes": 115712
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/32-gender-development-index-document.bin",
+      "sha256": "21cd0c61e8102cfdc45b38c50e8f1a365a9412c7cd07e91a0b09b0da83fb9bcb",
+      "size_bytes": 64848
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/clino-dry-bulb-temperature.zip",
+      "sha256": "179abf57f079aaf70ff3617c2386e53ee3d46579e1b5850ce3387fa1c68bef16",
+      "size_bytes": 213609
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/comtrade-trade-of-goods-us-hs-all-commodities.zip",
+      "sha256": "3a0122d52b3572770e614618cd3f7461709c92cec22ad02de8870f70467fa646",
+      "size_bytes": 130544
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/edata-biogasoline-production.zip",
+      "sha256": "22536811e33d7fae3a2731df3f7ddedaf46a8bd804d7dd3fb43759a1001ebd75",
+      "size_bytes": 6082
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/env-wastewater-treated-in-independent-treatment-facilities.zip",
+      "sha256": "505532227976e081cdec602286be18bae7f5e360e3e8e17a43a19ca6bbe62d2f",
+      "size_bytes": 1336
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/fao-canary-seed.zip",
+      "sha256": "26c4a1b6c7c03a79183943e88986d0d6d8a9e0a3910f090744b3e7c3e4ac5f9f",
+      "size_bytes": 48725
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/genderstat-rural-population.zip",
+      "sha256": "be88633fcfebfe549141fcb917d3cb7cf96f0c31863cd71b623c81b911e81af9",
+      "size_bytes": 21379
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/ghg-methane-ch-4-emissions-without-land-use-land-use-change-and-forestry-lulucf-in-kilotonne-co-2-equivalent.zip",
+      "sha256": "0458483b85b66b51ab199bedf4d416257e3432aa2c1e5d3d9491b3e5478de1e1",
+      "size_bytes": 17840
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/ics-hard-coal.zip",
+      "sha256": "43c4cc5096658a46c3c1742ace42aecfb311fce3ba0756ccebd5506870e42dab",
+      "size_bytes": 8637
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/ifs-exchange-rates.zip",
+      "sha256": "5bf46c9b60c9b96ac1fff05497edc48a9257775908110ef128362cbe50975f40",
+      "size_bytes": 639110
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/itu-fixed-telephone-subscriptions.zip",
+      "sha256": "e652ed3cce53866fdd619e3c913ae5fa385f4a79a769c92aadd92d8b9db7d055",
+      "size_bytes": 79149
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/laborsta-total-employment-by-economic-activity-thousands.zip",
+      "sha256": "12a5866929ed7efaac63d9e95db30bd42fba96cc572455b0aefdab9020235911",
+      "size_bytes": 687914
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/observation-capture-manifest.json",
+      "sha256": "eac63237277badb5e5b2707f554077424d440a2c4f5d0153d7e5d5021e6209e8",
+      "size_bytes": 28383
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/pop-population-by-sex-and-urban-rural-residence.zip",
+      "sha256": "2c2d66992a1fb024e2e282658ea07e1f8642d6f7b6abe282958ca019f0c639a7",
+      "size_bytes": 689394
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/popdiv-male-population-thousands.zip",
+      "sha256": "fddfbee4cb8ae33d5f0f0679cc72974d2df8c858d747c1d3e9cd4ad81d5bda40",
+      "size_bytes": 804340
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/sna-general-government-final-consumption-expenditure.zip",
+      "sha256": "ae8125e20a5403ee8b057aeb07e92482f4fde1e40e9c10da1912a0a89df3b6d2",
+      "size_bytes": 168860
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/snaama-final-consumption-expenditure.zip",
+      "sha256": "a914ea41d9e3fc8c3afc1b3a04f3bb5d48d8ab38181a7c860b3cd939ed15ea00",
+      "size_bytes": 107993
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/sowc-proportion-of-population-below-1-25-ppp-per-day.zip",
+      "sha256": "8c4fa7b1d25b2268f2331550190a7d74f8850b5c1292deecdf58a880a8492976",
+      "size_bytes": 1891
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/unaids-knowledge-about-hiv-prevention-in-young-people.zip",
+      "sha256": "bbf99b2f1d495babf1e0cc1221b34b6daaef26f0d60cbe800d7bdf823612aad1",
+      "size_bytes": 3946
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/unesco-gross-completion-ratio-in-isced-5a-by-gender.zip",
+      "sha256": "e1313da96359ad7df7de13db015d954b53f3954a24ebe1867dfc8c9e4e11d2df",
+      "size_bytes": 256
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/unhcr-table-with-data-on-refugees.zip",
+      "sha256": "47d9274eda81ed8539ecbfdaf4198cde433c2a1563bd0fa7d96be93365449435",
+      "size_bytes": 737266
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/unido-151-processed-meat-fish-fruit-vegetables-fats.zip",
+      "sha256": "b76eb2d409cab1a9b98f9b343943921bd7723acdd54eaf05bb63170c5ee674ac",
+      "size_bytes": 2060
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/wdi-external-debt-stocks-total-dod-current-us.zip",
+      "sha256": "5fc3299ad0d8e3e8a1d5f619fea16c5de6ed2bde740f20b9f95a76633ad847a6",
+      "size_bytes": 69246
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/who-raised-blood-pressure-sbp-140-or-dbp-90-age-standardized-estimate.zip",
+      "sha256": "625936656e843f669ff328fd2e481bf7f91473b4bd85179c9c3584a95d6f1909",
+      "size_bytes": 8023
+    },
+    {
+      "component": "observations",
+      "path": "observations/bounded-official-exports/worldstat-united-states-profile.html",
+      "sha256": "f91b596e925d5c5c45ae95cc1843e69028278e896063163a37af123ad91b701a",
+      "size_bytes": 25768
+    }
+  ],
+  "logical_size_bytes": 230088326,
+  "observation_file_count": 33,
+  "package_fingerprint": "010e32b10512bb25491fb4160787cfdbdd869807cb2a031133d373ed8145ec04",
+  "prepared_at": "2026-08-23T04:34:49.527400+00:00",
+  "project_id": "grdr:deep-map-project:undata-2026-08-21",
+  "release_assets": [
+    {
+      "component": "knowledge",
+      "logical_paths": [
+        "knowledge/adapters/capture_undata_observations.py",
+        "knowledge/adapters/undata_sdmx.py",
+        "knowledge/project/README.md",
+        "knowledge/project/UNdata-DEEP-MAP-RESULT.md",
+        "knowledge/project/archive_package.json",
+        "knowledge/project/archive_receipt.json",
+        "knowledge/project/checks.jsonl",
+        "knowledge/project/evidence/undata-metadata-snapshot.json.gz",
+        "knowledge/project/project.json",
+        "knowledge/project/staging/constructs.jsonl",
+        "knowledge/project/staging/data_elements.jsonl",
+        "knowledge/project/staging/data_structures.jsonl",
+        "knowledge/project/staging/datasets.jsonl",
+        "knowledge/project/staging/relationships.jsonl",
+        "knowledge/project/staging/resources.jsonl",
+        "knowledge/project/staging/semantic_nodes.jsonl",
+        "knowledge/project/staging/source_profiles.jsonl",
+        "knowledge/project/staging/sources.jsonl",
+        "knowledge/project/staging/variables.jsonl",
+        "knowledge/project/staging_manifest.json",
+        "knowledge/project/storage-spec-2026-08-23-r1.json",
+        "knowledge/project/storage-spec-2026-08-23-r2.json",
+        "knowledge/project/units.jsonl"
+      ],
+      "name": "undata-2026-08-23-r2-knowledge.tar.gz",
+      "sha256": "9b3bf218af6596dea66d9dd8d4b26dfdf0ad2ea1c6a14ae6dc220ca507ad31cc",
+      "size_bytes": 7320016
+    },
+    {
+      "component": "agent",
+      "logical_paths": [
+        "agent/grdr-agent-index.sqlite",
+        "agent/runtime.json",
+        "agent/runtime_audit.json",
+        "agent/undata_runtime.py"
+      ],
+      "name": "undata-2026-08-23-r2-agent-runtime.tar.gz",
+      "sha256": "3ee9661e247507628955235e7ed68dbb9817e474e3daaf3fc90b70e8c884cfc4",
+      "size_bytes": 7857918
+    },
+    {
+      "component": "observations",
+      "logical_paths": [
+        "observations/bounded-official-exports/16-legal-age-for-marriage-document.bin",
+        "observations/bounded-official-exports/18-oda-received-per-capita-usd-document.bin",
+        "observations/bounded-official-exports/19-outbound-tourism-document.bin",
+        "observations/bounded-official-exports/22-annual-number-of-live-births-and-crude-birth-rate-document.bin",
+        "observations/bounded-official-exports/25-currently-married-men-and-women-document.bin",
+        "observations/bounded-official-exports/29-contraceptive-prevalence-method-document.bin",
+        "observations/bounded-official-exports/30-youth-unemployment-both-sexes-document.bin",
+        "observations/bounded-official-exports/31-core-indicators-on-access-to-and-use-of-ict-by-households-and-individuals-latest-available-data-2010-2014-document.bin",
+        "observations/bounded-official-exports/32-gender-development-index-document.bin",
+        "observations/bounded-official-exports/clino-dry-bulb-temperature.zip",
+        "observations/bounded-official-exports/comtrade-trade-of-goods-us-hs-all-commodities.zip",
+        "observations/bounded-official-exports/edata-biogasoline-production.zip",
+        "observations/bounded-official-exports/env-wastewater-treated-in-independent-treatment-facilities.zip",
+        "observations/bounded-official-exports/fao-canary-seed.zip",
+        "observations/bounded-official-exports/genderstat-rural-population.zip",
+        "observations/bounded-official-exports/ghg-methane-ch-4-emissions-without-land-use-land-use-change-and-forestry-lulucf-in-kilotonne-co-2-equivalent.zip",
+        "observations/bounded-official-exports/ics-hard-coal.zip",
+        "observations/bounded-official-exports/ifs-exchange-rates.zip",
+        "observations/bounded-official-exports/itu-fixed-telephone-subscriptions.zip",
+        "observations/bounded-official-exports/laborsta-total-employment-by-economic-activity-thousands.zip",
+        "observations/bounded-official-exports/observation-capture-manifest.json",
+        "observations/bounded-official-exports/pop-population-by-sex-and-urban-rural-residence.zip",
+        "observations/bounded-official-exports/popdiv-male-population-thousands.zip",
+        "observations/bounded-official-exports/sna-general-government-final-consumption-expenditure.zip",
+        "observations/bounded-official-exports/snaama-final-consumption-expenditure.zip",
+        "observations/bounded-official-exports/sowc-proportion-of-population-below-1-25-ppp-per-day.zip",
+        "observations/bounded-official-exports/unaids-knowledge-about-hiv-prevention-in-young-people.zip",
+        "observations/bounded-official-exports/unesco-gross-completion-ratio-in-isced-5a-by-gender.zip",
+        "observations/bounded-official-exports/unhcr-table-with-data-on-refugees.zip",
+        "observations/bounded-official-exports/unido-151-processed-meat-fish-fruit-vegetables-fats.zip",
+        "observations/bounded-official-exports/wdi-external-debt-stocks-total-dod-current-us.zip",
+        "observations/bounded-official-exports/who-raised-blood-pressure-sbp-140-or-dbp-90-age-standardized-estimate.zip",
+        "observations/bounded-official-exports/worldstat-united-states-profile.html"
+      ],
+      "name": "undata-2026-08-23-r2-observations-bounded-official-exports.tar.gz",
+      "sha256": "c0e815a957445c70f67dbea3e8aa525e54d72f7d82acb76e05a973c75a3a22b3",
+      "size_bytes": 5576772
+    }
+  ],
+  "release_assets_path": "/Users/jasper/Documents/codex/grdr/.grdr-release-assets/2026-08-23-r2",
+  "release_tag": "undata-2026-08-23-r2",
+  "release_title": "UNdata GRDR callable semantic snapshot 2026-08-23 r2",
+  "runtime": {
+    "agent_index": "grdr-agent-index.sqlite",
+    "entrypoint": "undata_runtime.py",
+    "notes": "Resolves every registered UNdata variable to an official Explorer export, SDMX query, document download, or official publication locator. Fetch preserves raw upstream bytes and provenance.",
+    "official_domains": [
+      "data.un.org",
+      "unstats.un.org"
+    ],
+    "operations": [
+      "self-test",
+      "search",
+      "resolve-variable",
+      "fetch-variable"
+    ],
+    "protocol_version": "grdr-source-runtime/1.0",
+    "schema_version": "1.0.0",
+    "source_id": "grdr:source:undata"
+  },
+  "runtime_audit": {
+    "network_used": false,
+    "operation": "self_test",
+    "resolvable_variable_count": 9334,
+    "route_counts": {
+      "official_document_download": 36,
+      "official_explorer_csv_export": 8223,
+      "official_publication_locator": 89,
+      "official_sdmx_rest": 986
+    },
+    "source_id": "grdr:source:undata",
+    "status": "ready",
+    "unresolved_examples": [],
+    "unresolved_variable_count": 0,
+    "variable_count": 9334
+  },
+  "schema_version": "2.0.0",
+  "snapshot_id": "2026-08-23-r2",
+  "source_id": "grdr:source:undata",
+  "source_repository": "yangyuezh/grdr-source-undata",
+  "source_repository_path": "/Users/jasper/Documents/codex/grdr",
+  "source_slug": "undata"
+}

@@ -1,0 +1,26 @@
+{
+  "archived_at": "2026-08-21T04:54:04.289282+00:00",
+  "catalog_validation": "GRDR human catalog is current (19 source pages)",
+  "collection_counts": {
+    "constructs.jsonl": 9334,
+    "data_elements.jsonl": 194,
+    "data_structures.jsonl": 36,
+    "datasets.jsonl": 36,
+    "relationships.jsonl": 43000,
+    "resources.jsonl": 36,
+    "semantic_nodes.jsonl": 41,
+    "source_profiles.jsonl": 1,
+    "sources.jsonl": 1,
+    "variables.jsonl": 9334
+  },
+  "created_count": 61975,
+  "package_fingerprint": "e3de2fd56c8eb3b83b893550534f14ad56732e97896c0e81410d2e3c11e273fd",
+  "project_id": "grdr:deep-map-project:undata-2026-08-21",
+  "receipt_fingerprint": "0c669af0cd885fedb4ca7f3422e44bd79e69189e7a5342e50cd5ba32109f125f",
+  "registry_validation": "GRDR registry validation passed (institutions=29, sources=19, datasets=37, data_structures=39, semantic_nodes=41, resources=47, data_elements=210, constructs=9348, variables=9348, adapters=2, storage=1, monitors=2, relationships=43241, source_profiles=2)",
+  "registry_version": "3.0.0",
+  "schema_version": "1.0.0",
+  "source_id": "grdr:source:undata",
+  "unchanged_count": 0,
+  "updated_count": 38
+}

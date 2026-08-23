@@ -1,0 +1,16 @@
+{
+  "network_used": false,
+  "operation": "self_test",
+  "resolvable_variable_count": 9334,
+  "route_counts": {
+    "official_document_download": 36,
+    "official_explorer_csv_export": 8223,
+    "official_publication_locator": 89,
+    "official_sdmx_rest": 986
+  },
+  "source_id": "grdr:source:undata",
+  "status": "ready",
+  "unresolved_examples": [],
+  "unresolved_variable_count": 0,
+  "variable_count": 9334
+}

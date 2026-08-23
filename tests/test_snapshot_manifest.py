@@ -6,9 +6,11 @@ from pathlib import Path
 
 def test_snapshot_manifest_is_self_consistent():
     root = Path(__file__).resolve().parents[1]
-    manifest = json.loads((root / "snapshots" / "2026-08-23-r1" / "manifest.json").read_text())
+    manifest = json.loads((root / "snapshots" / "2026-08-23-r2" / "manifest.json").read_text())
     payload = dict(manifest)
     recorded = payload.pop("package_fingerprint")
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     assert hashlib.sha256(encoded).hexdigest() == recorded
     assert manifest["source_id"] == "grdr:source:undata"
+    assert manifest["runtime_audit"]["unresolved_variable_count"] == 0
+    assert manifest["runtime_audit"]["variable_count"] == manifest["runtime_audit"]["resolvable_variable_count"]

@@ -1,0 +1,8 @@
+{
+  "boundary_statement": "All 36 ordered UNdata datamarts retrieved from the official Sources catalog on 2026-08-21, with six glossaries retained as sidecars.",
+  "boundary_type": "catalog_snapshot",
+  "enumeration_method": "Parse every official DataMart block, preserve its DataMart id and order, reconcile exactly 36 datasets and six glossaries, then route each work unit through its live Explorer, SDMX, static-table, or file-manifest surface.",
+  "expected_work_unit_count": 36,
+  "mode": "exhaustive_snapshot",
+  "snapshot_at": "2026-08-21T03:32:45Z"
+}

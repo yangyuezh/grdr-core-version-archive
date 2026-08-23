@@ -1,0 +1,18 @@
+{
+  "agent_index": "grdr-agent-index.sqlite",
+  "entrypoint": "undata_runtime.py",
+  "notes": "Resolves every registered UNdata variable to an official Explorer export, SDMX query, document download, or official publication locator. Fetch preserves raw upstream bytes and provenance.",
+  "official_domains": [
+    "data.un.org",
+    "unstats.un.org"
+  ],
+  "operations": [
+    "self-test",
+    "search",
+    "resolve-variable",
+    "fetch-variable"
+  ],
+  "protocol_version": "grdr-source-runtime/1.0",
+  "schema_version": "1.0.0",
+  "source_id": "grdr:source:undata"
+}
