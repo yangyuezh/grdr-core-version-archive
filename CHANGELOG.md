@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.1] - 2026-08-22
+
+### Added
+
+- Added the canonical README architecture diagram showing Plan → Execute → Storage, the source-native structural spine, the multi-parent scientific-semantic spine, the Variable-to-Construct bridge, Resource access sidecars, and the source repository/Release/Elements outputs.
+
 ## [3.2.0] - 2026-08-22
 
 ### Added

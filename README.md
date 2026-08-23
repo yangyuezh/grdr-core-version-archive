@@ -12,16 +12,39 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 2. `grdr-execute-database-deep-map` follows the deterministic queue, reconstructs native structure and disciplinary semantics, builds the DataElement → Variable → Construct bridge, and seals the execution without canonical writes.
 3. `grdr-store-database-deep-map` transactionally promotes sealed records, creates the source-specific private repository, publishes one complete Release per snapshot, materializes the matching Elements copy, verifies SHA-256 parity, writes the central source card, and issues the final Storage receipt.
 
-The content chain is:
+## Core architecture: two spines and one bridge
 
-```text
-Institution → Source → Dataset → recursive DataStructure
-                                  ↓
-                          5A DataElement
-                                  ↓
-                           5B Variable
-                                  ↓
-                            Construct
+```mermaid
+flowchart LR
+    PLAN["1. Plan<br/>diagnose, bound, route and fingerprint-lock"] --> EXEC["2. Execute<br/>run the deterministic queue and seal evidence"]
+
+    subgraph STRUCT["主干一：数据库原生结构 / Source-native structural spine"]
+        direction LR
+        INST["Institution"] --> SRC["Source"] --> DATASET["Dataset"] --> DSTRUCT["Recursive DataStructure"] --> ELEMENT["5A DataElement"] --> VARIABLE["5B Variable"]
+    end
+
+    subgraph SEMANTIC["主干二：多父学科与科学语义 / Multi-parent semantic spine"]
+        direction TB
+        SEM_A["SemanticNode<br/>discipline / topic A"] --> CONSTRUCT["Construct"]
+        SEM_B["SemanticNode<br/>discipline / topic B"] --> CONSTRUCT
+    end
+
+    RESOURCE["Resource<br/>API, files, access, license"] -. "access sidecar" .-> SRC
+    RESOURCE -. "access sidecar" .-> DSTRUCT
+
+    EXEC --> INST
+    EXEC --> SEM_A
+    EXEC --> SEM_B
+    VARIABLE -->|"变量—构念桥梁 / measurement, proxy, index or estimate"| CONSTRUCT
+
+    VARIABLE --> STORE["3. Storage<br/>promote, package, publish and verify"]
+    CONSTRUCT --> STORE
+
+    STORE --> CARD["GRDR Core<br/>central source card only"]
+    STORE --> REPO["Private source Git repository<br/>config, adapters, Plan and receipts"]
+    STORE --> RELEASE["GitHub Release<br/>complete knowledge + Agent index + observations"]
+    STORE --> ELEMENTS["Elements<br/>expanded working snapshot"]
+    RELEASE <-->|"same logical snapshot + SHA-256 parity"| ELEMENTS
 ```
 
 Resources such as APIs, downloads, authentication, and licenses are access sidecars rather than content levels.
@@ -78,4 +101,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.2.0` is the first isolated GRDR Core milestone containing the fixed Plan → Execute → Storage factory.
+Version `3.2.1` adds the canonical human-readable architecture diagram to the isolated GRDR Core milestone.
