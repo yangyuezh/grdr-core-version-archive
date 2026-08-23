@@ -51,6 +51,16 @@ class CoreCliTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
+    def test_distributed_source_archive_validates_without_local_source_content(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "validate_registry.py")],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        self.assertIn("source_archives=1", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

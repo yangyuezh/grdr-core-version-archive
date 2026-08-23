@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2] - 2026-08-22
+
+### Fixed
+
+- Validate a completed distributed `source_archives.jsonl` card without requiring the database's canonical Source record to be copied into GRDR Core.
+- Add an integration regression test for a non-empty central archive index with an otherwise isolated Core registry.
+
 ## [3.2.1] - 2026-08-22
 
 ### Fixed

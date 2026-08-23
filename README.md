@@ -120,4 +120,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.2.1` is the isolated GRDR Core milestone with external-disk filesystem-sidecar handling. The Plan → Execute → Storage contract remains unchanged.
+Version `3.2.2` is the isolated GRDR Core milestone with distributed source-archive indexing. The Plan → Execute → Storage contract remains unchanged.

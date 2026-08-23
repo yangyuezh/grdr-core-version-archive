@@ -210,8 +210,6 @@ def validate_integrity(collections: dict[str, list[dict[str, Any]]]) -> list[str
 
     archived_source_ids: set[str] = set()
     for archive in collections.get("source_archives", []):
-        if archive.get("source_id") not in source_ids:
-            errors.append(f"{archive.get('id')}: unknown source_id {archive.get('source_id')}")
         if archive.get("source_id") in archived_source_ids:
             errors.append(f"{archive.get('id')}: duplicate current archive card for {archive.get('source_id')}")
         archived_source_ids.add(archive.get("source_id"))
