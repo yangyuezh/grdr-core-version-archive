@@ -15,30 +15,49 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 ## Core architecture: two spines and one bridge
 
 ```mermaid
-flowchart LR
-    PLAN["1. Plan<br/>diagnose, bound, route and fingerprint-lock"] --> EXEC["2. Execute<br/>run the deterministic queue and seal evidence"]
-
-    subgraph STRUCT["主干一：数据库原生结构 / Source-native structural spine"]
-        direction LR
-        INST["Institution"] --> SRC["Source"] --> DATASET["Dataset"] --> DSTRUCT["Recursive DataStructure"] --> ELEMENT["5A DataElement"] --> VARIABLE["5B Variable"]
-    end
-
-    subgraph SEMANTIC["主干二：多父学科与科学语义 / Multi-parent semantic spine"]
+flowchart TB
+    subgraph PLAN["1. Plan — 诊断、定界与锁定"]
         direction TB
-        SEM_A["SemanticNode<br/>discipline / topic A"] --> CONSTRUCT["Construct"]
-        SEM_B["SemanticNode<br/>discipline / topic B"] --> CONSTRUCT
+        INTAKE["Database intake<br/>name, URL, catalog or Source ID"] --> DIAG["Multidimensional diagnosis"]
+        DIAG --> DISC["Discipline membership<br/>multi-parent, non-exclusive"]
+        DIAG --> SHAPE["Generation process + native structure<br/>origin, modality, hierarchy, tables, cubes, graphs..."]
+        DIAG --> GOVERN["Lifecycle + governance<br/>versioning, access, sensitivity, scale, metadata maturity"]
+        DISC --> BOUND["Bounded work-unit universe<br/>identity rule + denominator + ordering"]
+        SHAPE --> BOUND
+        GOVERN --> BOUND
+        BOUND --> ROUTES["Composable route contracts<br/>structure + semantics + access + lifecycle + provenance"]
+        ROUTES --> GATES["Resolve required human gates"]
+        GATES --> LOCKS["Three fingerprint locks<br/>Plan + Scope + Unit manifest"]
     end
 
-    RESOURCE["Resource<br/>API, files, access, license"] -. "access sidecar" .-> SRC
-    RESOURCE -. "access sidecar" .-> DSTRUCT
+    subgraph EXECUTE["2. Execute — 确定性深读与证据闭合"]
+        direction TB
+        QUEUE["Dependency-valid deterministic queue<br/>checkpoint + resume + deviation rejection"]
 
-    EXEC --> INST
-    EXEC --> SEM_A
-    EXEC --> SEM_B
-    VARIABLE -->|"变量—构念桥梁 / measurement, proxy, index or estimate"| CONSTRUCT
+        subgraph STRUCT["主干一：数据库原生结构 / Source-native structural spine"]
+            direction LR
+            INST["Institution"] --> SRC["Source"] --> DATASET["Dataset"] --> DSTRUCT["Recursive DataStructure"] --> ELEMENT["5A DataElement"] --> VARIABLE["5B Variable"]
+        end
 
-    VARIABLE --> STORE["3. Storage<br/>promote, package, publish and verify"]
-    CONSTRUCT --> STORE
+        subgraph SEMANTIC["主干二：多父学科与科学语义 / Multi-parent semantic spine"]
+            direction TB
+            SEM_A["SemanticNode<br/>discipline / topic A"] --> CONSTRUCT["Construct"]
+            SEM_B["SemanticNode<br/>discipline / topic B"] --> CONSTRUCT
+        end
+
+        RESOURCE["Resource<br/>API, files, access, license"] -. "access sidecar" .-> SRC
+        RESOURCE -. "access sidecar" .-> DSTRUCT
+
+        QUEUE --> INST
+        QUEUE --> SEM_A
+        QUEUE --> SEM_B
+        VARIABLE -->|"变量—构念桥梁 / measurement, proxy, index or estimate"| CONSTRUCT
+        VARIABLE --> SEALED["Fingerprint-sealed execution handoff<br/>staging only; no canonical writes"]
+        CONSTRUCT --> SEALED
+    end
+
+    LOCKS --> QUEUE
+    SEALED --> STORE["3. Storage<br/>promote, package, publish and verify"]
 
     STORE --> CARD["GRDR Core<br/>central source card only"]
     STORE --> REPO["Private source Git repository<br/>config, adapters, Plan and receipts"]
@@ -101,4 +120,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.2.1` adds the canonical human-readable architecture diagram to the isolated GRDR Core milestone.
+Version `3.2.0` remains the isolated GRDR Core milestone. README improvements do not change the Core contract version.
