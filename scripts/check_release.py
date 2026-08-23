@@ -125,9 +125,11 @@ def main() -> int:
     if not registry_files:
         errors.append("Core registry templates are missing")
     for registry_file in registry_files:
+        if registry_file.name == "source_archives.jsonl":
+            continue
         if registry_file.read_text(encoding="utf-8").strip():
             errors.append(
-                f"GRDR Core must not contain source records: {registry_file.relative_to(ROOT)}"
+                f"GRDR Core must not contain canonical source content: {registry_file.relative_to(ROOT)}"
             )
 
     if list((ROOT / "deep_map_projects").glob("*/project.json")):

@@ -22,6 +22,8 @@ class CoreIsolationTests(unittest.TestCase):
             if not path.is_file() or ignored_parts.intersection(path.parts):
                 continue
             relative = path.relative_to(ROOT)
+            if relative == Path("registry/source_archives.jsonl"):
+                continue
             name = relative.as_posix().casefold()
             if any(token in name for token in forbidden):
                 offenders.append(str(relative))
@@ -37,7 +39,8 @@ class CoreIsolationTests(unittest.TestCase):
     def test_registry_templates_are_empty(self) -> None:
         registry_files = sorted((ROOT / "registry").glob("*.jsonl"))
         self.assertGreater(len(registry_files), 0)
-        self.assertTrue(all(not path.read_text(encoding="utf-8").strip() for path in registry_files))
+        canonical_content = [path for path in registry_files if path.name != "source_archives.jsonl"]
+        self.assertTrue(all(not path.read_text(encoding="utf-8").strip() for path in canonical_content))
 
     def test_no_database_project_or_adapter_is_committed(self) -> None:
         self.assertEqual(list((ROOT / "deep_map_projects").glob("*/project.json")), [])

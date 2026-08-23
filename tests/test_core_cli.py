@@ -34,8 +34,13 @@ class CoreCliTests(unittest.TestCase):
         routes = run_cli("list-database-route-modules")
         self.assertEqual(len(routes["route_modules"]), 29)
         archives = run_cli("list-source-archives")
-        self.assertEqual(archives["result_count"], 0)
-        self.assertEqual(archives["results"], [])
+        expected = [
+            json.loads(line)
+            for line in (ROOT / "registry" / "source_archives.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(archives["result_count"], len(expected))
+        self.assertEqual(archives["results"], expected)
 
     def test_release_metadata(self) -> None:
         result = subprocess.run(

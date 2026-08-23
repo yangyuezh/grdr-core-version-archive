@@ -21,6 +21,7 @@ from database_deep_map import (  # noqa: E402
 )
 from database_storage import (  # noqa: E402
     audit_database_storage,
+    checked_files,
     prepare_database_storage,
     publication_asset_records,
     record_database_storage_publication,
@@ -244,6 +245,16 @@ class DatabaseStorageTests(unittest.TestCase):
     def test_storage_spec_requires_actual_observation_input(self) -> None:
         schema = json.loads((ROOT / "schemas" / "database_storage_spec.schema.json").read_text(encoding="utf-8"))
         self.assertEqual(schema["properties"]["observation_inputs"]["minItems"], 1)
+
+    def test_macos_filesystem_sidecars_are_not_storage_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "actual.csv").write_text("unit,value\nexample,1\n", encoding="utf-8")
+            (root / "._actual.csv").write_bytes(b"appledouble")
+            (root / ".DS_Store").write_bytes(b"finder")
+            (root / "._observations").write_bytes(b"directory-sidecar")
+
+            self.assertEqual([path.name for path in checked_files(root)], ["actual.csv"])
 
 
 if __name__ == "__main__":

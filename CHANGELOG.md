@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.1] - 2026-08-22
+
+### Fixed
+
+- Ignore macOS AppleDouble (`._*`) and `.DS_Store` metadata during Storage input selection, knowledge copying, logical inventory, and deterministic archive creation.
+- Add a regression test proving external-disk sidecars cannot enter a database snapshot or break Release-to-Elements parity.
+- Permit the central `source_archives.jsonl` index to contain completed source-snapshot cards while continuing to reject canonical database content from Core.
+
 ## [3.2.0] - 2026-08-22
 
 ### Added

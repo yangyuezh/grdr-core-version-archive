@@ -120,4 +120,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `3.2.0` remains the isolated GRDR Core milestone. README improvements do not change the Core contract version.
+Version `3.2.1` is the isolated GRDR Core milestone with external-disk filesystem-sidecar handling. The Plan → Execute → Storage contract remains unchanged.
