@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/resource.schema.json",
+  "title": "GRDR resource record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "name", "source_id", "dataset_ids", "resource_type", "url", "formats", "access", "verification", "evidence"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:resource:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "dataset_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:dataset:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
+    "resource_type": {"enum": ["landing_page", "catalog", "browser_query", "api", "bulk_download", "file", "cloud_collection", "secure_enclave", "application_form", "documentation", "physical_archive", "other"]},
+    "url": {"type": "string", "format": "uri"},
+    "formats": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["availability", "authentication", "machine_access", "rate_limit_known", "license_status"],
+      "properties": {
+        "availability": {"enum": ["open", "partially_open", "restricted", "commercial", "mixed", "unknown"]},
+        "authentication": {"enum": ["none", "account", "api_key", "oauth", "application_approval", "institutional_access", "payment", "mixed", "unknown"]},
+        "machine_access": {"enum": ["documented", "partial", "none", "unknown"]},
+        "rate_limit_known": {"type": ["boolean", "null"]},
+        "license_status": {"enum": ["documented_open", "documented_restricted", "custom_or_mixed", "unknown"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "verification": {"$ref": "#/$defs/verification"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]},
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "title": {"type": "string"},
+        "publisher": {"type": ["string", "null"]},
+        "evidence_type": {"enum": ["official_catalog", "official_documentation", "api_documentation", "download_documentation", "access_policy", "license", "other"]},
+        "supports": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "archived_url": {"type": ["string", "null"], "format": "uri"}
+      }
+    }
+  }
+}

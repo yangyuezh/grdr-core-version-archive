@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/semantic_node.schema.json",
+  "title": "GRDR scientific-semantic graph node",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "id", "node_type", "preferred_label", "aliases", "definition",
+    "parent_ids", "classification_mappings", "source_native_terms", "verification", "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "id": {"type": "string", "pattern": "^grdr:semantic-node:[a-z0-9][a-z0-9-]*$"},
+    "node_type": {
+      "enum": [
+        "discipline", "subdiscipline", "research_field", "research_object", "system",
+        "phenomenon", "process", "state", "population", "observation_unit",
+        "analysis_unit", "application_area", "method", "other"
+      ]
+    },
+    "preferred_label": {"type": "string", "minLength": 1},
+    "aliases": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "definition": {"type": "string", "minLength": 1},
+    "parent_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:semantic-node:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "classification_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scheme", "code", "label", "uri", "version", "mapping_type"],
+        "properties": {
+          "scheme": {"type": "string", "minLength": 1},
+          "code": {"type": ["string", "null"]},
+          "label": {"type": "string", "minLength": 1},
+          "uri": {"type": ["string", "null"], "format": "uri"},
+          "version": {"type": ["string", "null"]},
+          "mapping_type": {"enum": ["exact", "broader", "narrower", "related", "source_native", "unresolved"]}
+        }
+      }
+    },
+    "source_native_terms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "native_id", "label", "language"],
+        "properties": {
+          "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+          "native_id": {"type": ["string", "null"]},
+          "label": {"type": "string", "minLength": 1},
+          "language": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "last_verified_at"],
+      "properties": {
+        "status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"]},
+        "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "title", "evidence_type", "supports", "retrieved_at"],
+        "properties": {
+          "url": {"type": "string", "format": "uri"},
+          "title": {"type": "string", "minLength": 1},
+          "publisher": {"type": ["string", "null"]},
+          "evidence_type": {"type": "string", "minLength": 1},
+          "supports": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+          "retrieved_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/semantic_candidate.schema.json",
+  "title": "GRDR research-indicator semantic candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "id", "project_id", "indicator_id", "target_type",
+    "target_id", "target_label", "target_definition", "retrieval_via",
+    "query_terms", "matched_terms", "lexical_score", "rank",
+    "variable_hint_ids", "snapshot", "verification_status", "created_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "id": {"type": "string", "pattern": "^grdr:semantic-candidate:[a-z0-9][a-z0-9-]*$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "indicator_id": {"type": "string", "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "target_type": {"enum": ["semantic_node", "construct"]},
+    "target_id": {"type": "string", "pattern": "^grdr:(semantic-node|construct):[a-z0-9][a-z0-9-]*$"},
+    "target_label": {"type": "string", "minLength": 1},
+    "target_definition": {"type": "string"},
+    "retrieval_via": {
+      "type": "array",
+      "items": {"enum": ["semantic_node_text", "construct_text", "variable_text"]},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "query_terms": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "matched_terms": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "lexical_score": {"type": "number", "minimum": 0},
+    "rank": {"type": "integer", "minimum": 1},
+    "variable_hint_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:variable:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "snapshot": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_id", "snapshot_id", "release"],
+          "properties": {
+            "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+            "snapshot_id": {"type": "string", "minLength": 1},
+            "release": {"type": "string", "format": "uri"}
+          }
+        }
+      ]
+    },
+    "verification_status": {"enum": ["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable", "unknown"]},
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

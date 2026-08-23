@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR"
+  short_description: "Discover and assess authoritative research data"
+  default_prompt: "Use $grdr to find, evaluate, and connect authoritative data sources for this research question."
