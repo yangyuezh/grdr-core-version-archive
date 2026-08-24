@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.2] - 2026-08-24
+
+### Fixed
+
+- Keep the Plan-time work-unit manifest immutable when Execute stages a newly created Dataset whose `dataset_id` was necessarily unknown before canonical promotion.
+- Record the Dataset ID in the verified Dataset stage and graph topology without silently mutating the fingerprint-locked work unit.
+
+### Validation
+
+- Add a regression test covering a new source whose Dataset is created in Execute and confirm that stage closure preserves all Plan, scope, and unit-manifest fingerprints.
+- Forward-test the fix against the exhaustive UNESCO UIS 12-package deep-map, including 51,228 staged knowledge-graph records, 72 stages, 36 spines, and 295 route checks.
+
 ## [4.0.1] - 2026-08-23
 
 ### Fixed

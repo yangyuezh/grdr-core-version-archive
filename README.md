@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.0.1<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.0.2<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -325,4 +325,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.0.1` preserves the immutable-Core boundary and makes current research retrieval deterministic: ordinary semantic recall suppresses historical canonical records for Sources with a verified latest callable snapshot, while explicit history mode retains longitudinal discovery. Plan, Execute, Storage, research projects, source cards, and every canonical database record remain outside Core; all six Skills remain location-independent.
+Version `4.0.2` preserves the immutable-Core boundary when a new Dataset is first created during Execute: the Dataset stage records its canonical ID without rewriting the fingerprint-locked Plan work unit. It retains v4.0.1's current-snapshot-first semantic retrieval, explicit history mode, location-independent Skills, and database-independent Core.

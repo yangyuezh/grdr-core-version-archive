@@ -18,6 +18,7 @@ from database_deep_map import (  # noqa: E402
     audit_database_deep_map,
     fingerprint,
     prepare_database_deep_map_storage,
+    record_database_deep_map_stage,
     stage_database_deep_map_records,
     start_database_deep_map,
 )
@@ -244,6 +245,32 @@ class DatabaseStorageTests(unittest.TestCase):
             candidate_file = root / "candidate-records.jsonl"
             candidate_file.write_text(json.dumps(dataset) + "\n", encoding="utf-8")
             stage_database_deep_map_records(project_dir, candidate_file)
+            locks_before = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))["locks"]
+            dataset_stage_update = root / "dataset-stage-update.json"
+            dataset_stage_update.write_text(json.dumps({
+                "unit_id": "grdr:deep-map-unit:synthetic-example-synthetic-table-1",
+                "stage": "dataset",
+                "state": "verified_complete",
+                "expected_count": 1,
+                "registered_ids": [dataset_id],
+                "verified_count": 1,
+                "completion_basis": "The staged Dataset resolves the bounded work unit without mutating the Plan lock.",
+                "evidence": [{
+                    "url": "https://example.org/synthetic-database-contract",
+                    "title": "Synthetic Core test contract",
+                    "evidence_type": "synthetic_test_fixture",
+                    "supports": ["dataset_identity", "plan_lock"],
+                    "retrieved_at": "2026-08-22T00:00:00Z",
+                }],
+                "blockers": [],
+                "notes": "Regression test for a newly staged Dataset whose Plan-time dataset_id was null.",
+            }) + "\n", encoding="utf-8")
+            record_database_deep_map_stage(project_dir, dataset_stage_update)
+            locks_after = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))["locks"]
+            unit_after = json.loads((project_dir / "units.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(locks_before, locks_after)
+            self.assertIsNone(unit_after["dataset_id"])
+            self.assertEqual(unit_after["stages"]["dataset"]["registered_ids"], [dataset_id])
             self._close_execution(project_dir, dataset_id)
             execution_audit = audit_database_deep_map(project_dir)
             self.assertTrue(execution_audit["execution_ready_for_storage"], execution_audit)

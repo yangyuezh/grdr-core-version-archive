@@ -1585,8 +1585,6 @@ def record_database_deep_map_stage(project_dir: str | Path, update_file: str | P
         raise ValueError(f"unknown unit_id {update['unit_id']}")
     timestamp = now()
     unit["stages"][update["stage"]] = {**{key: update[key] for key in ("state", "expected_count", "registered_ids", "verified_count", "completion_basis", "evidence", "blockers", "notes")}, "updated_at": timestamp}
-    if update["stage"] == "dataset" and unit["dataset_id"] is None and len(update["registered_ids"]) == 1:
-        unit["dataset_id"] = update["registered_ids"][0]
     unit["updated_at"] = timestamp
     synchronize_blocked_stage_checks(units, checks, timestamp)
     write_jsonl(target / UNIT_FILE, units); write_jsonl(target / CHECK_FILE, checks)
@@ -1909,8 +1907,6 @@ def record_database_deep_map_execution_batch(
                 )},
                 "updated_at": timestamp,
             }
-            if update["stage"] == "dataset" and unit["dataset_id"] is None and len(update["registered_ids"]) == 1:
-                unit["dataset_id"] = update["registered_ids"][0]
             unit["updated_at"] = timestamp
 
         for update in payload["spines"]:
