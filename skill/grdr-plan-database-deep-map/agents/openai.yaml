@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR Step 1 — Plan Database Deep Map"
+  short_description: "Diagnose a database and lock an auditable deep-map plan"
+  default_prompt: "Use $grdr-plan-database-deep-map to diagnose this database, define a bounded work-unit universe, select route contracts, resolve required human gates, and create an audited locked GRDR deep-map project."

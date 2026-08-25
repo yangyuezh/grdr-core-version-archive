@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/evidence_unit.schema.json",
+  "title": "GRDR literature evidence unit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "project_id", "document_id", "evidence_role", "section", "locator", "excerpt", "paraphrase", "review_status"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:evidence-unit:[a-z0-9][a-z0-9-]*$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "document_id": {"type": "string", "pattern": "^grdr:literature-document:[a-z0-9][a-z0-9-]*$"},
+    "evidence_role": {"enum": ["construct_definition", "theory_relation", "indicator_name", "operationalization", "measurement_method", "empirical_finding", "limitation", "context", "contradiction", "other"]},
+    "section": {"enum": ["title", "abstract", "introduction", "literature_review", "theory", "methods", "results", "discussion", "conclusion", "table", "figure", "appendix", "supplement", "other"]},
+    "locator": {"type": "string", "minLength": 1},
+    "excerpt": {"type": ["string", "null"], "maxLength": 2000},
+    "paraphrase": {"type": "string", "minLength": 1},
+    "review_status": {"enum": ["agent_extracted", "human_reviewed", "rejected"]}
+  }
+}

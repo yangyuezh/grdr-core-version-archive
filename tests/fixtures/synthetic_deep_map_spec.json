@@ -1,0 +1,92 @@
+{
+  "source_id": "grdr:source:synthetic-example",
+  "title": "Synthetic bounded deep-map fixture",
+  "project_slug": "synthetic-example",
+  "diagnostic_intake": {
+    "schema_version": "1.0.0",
+    "source": {
+      "source_id": "grdr:source:synthetic-example",
+      "name": "Synthetic Example Database",
+      "url": "https://example.org/synthetic-database"
+    },
+    "goal": {
+      "scope_mode": "priority_catalog",
+      "completion_claim": "bounded_partition",
+      "research_question": null
+    },
+    "observations": {
+      "disciplines": ["multidisciplinary"],
+      "origin_types": ["primary"],
+      "provenance_roles": ["test_fixture"],
+      "production_modes": ["other"],
+      "structural_archetypes": ["flat_table_collection"],
+      "content_modalities": ["tabular"],
+      "lifecycle_modes": ["versioned_release"],
+      "versioning_models": ["immutable_snapshot"],
+      "access_regimes": ["open"],
+      "sensitivity_classes": ["public"],
+      "scale_classes": ["small"],
+      "metadata_maturity": "machine_readable",
+      "languages": ["en"]
+    },
+    "scope": {
+      "boundary_type": "collection",
+      "boundary_statement": "One synthetic table used only to test the Core factory.",
+      "snapshot_at": "2026-08-22T00:00:00Z"
+    },
+    "work_unit_strategy": {
+      "unit_types": ["dataset"],
+      "identity_rule": "Use the declared synthetic fixture identity.",
+      "partition_rule": "One synthetic work unit.",
+      "ordering_rule": "Declared fixture order.",
+      "denominator_strategy": "explicit_count",
+      "expected_count": 1
+    },
+    "constraints": {
+      "authorized_access": ["synthetic_test_data"],
+      "prohibited_actions": [],
+      "compute_limit": null,
+      "notes": "No real database is represented by this fixture."
+    },
+    "explicit_route_modules": ["catalog", "table_schema"],
+    "evidence": [{
+      "url": "https://example.org/synthetic-database-contract",
+      "title": "Synthetic Core test contract",
+      "evidence_type": "synthetic_test_fixture",
+      "supports": ["identity", "scope", "structure"],
+      "retrieved_at": "2026-08-22T00:00:00Z"
+    }]
+  },
+  "database_profile": {
+    "disciplines": ["multidisciplinary"],
+    "origin_type": "primary",
+    "provenance_role": "unknown",
+    "production_modes": ["other"],
+    "structural_archetypes": ["flat_table_collection"],
+    "access_regime": "open",
+    "route_modules": ["catalog", "table_schema"],
+    "classification_notes": "Synthetic fixture for GRDR Core validation only."
+  },
+  "scope": {
+    "mode": "priority_catalog",
+    "boundary_type": "collection",
+    "boundary_statement": "One synthetic work unit used only for Core validation.",
+    "snapshot_at": "2026-08-22T00:00:00Z",
+    "enumeration_method": "Use the single work unit declared in this fixture.",
+    "expected_work_unit_count": 1
+  },
+  "boundary_evidence": [{
+    "url": "https://example.org/synthetic-database-contract",
+    "title": "Synthetic Core test contract",
+    "evidence_type": "synthetic_test_fixture",
+    "supports": ["boundary", "work_unit_identity"],
+    "retrieved_at": "2026-08-22T00:00:00Z"
+  }],
+  "units": [{
+    "upstream_id": "synthetic-table-1",
+    "label": "Synthetic table",
+    "origin_type": "primary",
+    "structural_archetypes": ["flat_table_collection"],
+    "route_modules": ["table_schema"]
+  }]
+}
