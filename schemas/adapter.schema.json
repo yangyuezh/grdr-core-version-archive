@@ -11,7 +11,7 @@
     "name": {"type": "string", "minLength": 1},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "resource_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:resource:[a-z0-9][a-z0-9-]*$"}, "minItems": 1, "uniqueItems": true},
-    "adapter_type": {"enum": ["api", "bulk_download", "catalog_harvester", "cloud", "application", "secure_enclave", "physical_archive", "other"]},
+    "adapter_type": {"enum": ["api", "bulk_download", "browser_automation", "catalog_harvester", "cloud", "application", "secure_enclave", "physical_archive", "other"]},
     "implementation": {"type": "string", "minLength": 1},
     "operations": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
     "supported_storage_modes": {"type": "array", "items": {"enum": ["local_snapshot", "federated_access", "controlled_access_pointer"]}, "minItems": 1, "uniqueItems": true},

@@ -1013,6 +1013,7 @@ def fetch_indicator_data(
     elements_root: str | Path | None = None,
     extra_args: Iterable[str] = (),
     seal_data_snapshot: bool = False,
+    route_policy: str = "latest",
 ) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     require_project(target)
@@ -1044,11 +1045,11 @@ def fetch_indicator_data(
         raise ValueError(f"variable is not part of the indicator mapping: {selected}")
     if seal_data_snapshot:
         result = distributed.research_project_data_snapshot(
-            source_cards(), selected, target, elements_root, extra_args
+            source_cards(), selected, target, elements_root, extra_args, route_policy
         )
     else:
         result = distributed.invoke_source_runtime(
-            source_cards(), selected, "fetch-variable", elements_root, extra_args
+            source_cards(), selected, "fetch-variable", elements_root, extra_args, route_policy
         )
     return {
         "operation": "fetch_indicator_data",

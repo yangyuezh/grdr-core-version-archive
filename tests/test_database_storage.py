@@ -34,6 +34,7 @@ from database_storage import (  # noqa: E402
     prepare_database_storage,
     publication_asset_records,
     record_database_storage_publication,
+    run_source_runtime_online_test,
     sha256_file,
     write_source_readme,
 )
@@ -288,32 +289,57 @@ class DatabaseStorageTests(unittest.TestCase):
             runtime_script = root / "synthetic_runtime.py"
             runtime_script.write_text(
                 """#!/usr/bin/env python3
-import json
-print(json.dumps({
-    \"source_id\": \"grdr:source:synthetic-example\",
-    \"status\": \"ready\",
-    \"variable_count\": 0,
-    \"resolvable_variable_count\": 0,
-    \"unresolved_variable_count\": 0,
-}))
+import json, sys
+if sys.argv[1] == \"self-test-online\":
+    access = json.load(open(sys.argv[sys.argv.index(\"--access-manifest\") + 1]))
+    print(json.dumps({
+        \"schema_version\": \"1.0.0\",
+        \"source_id\": \"grdr:source:synthetic-example\",
+        \"snapshot_id\": access[\"snapshot_id\"],
+        \"status\": \"ready\",
+        \"variable_count\": 0,
+        \"online_callable_variable_count\": 0,
+        \"unresolved_online_variable_count\": 0,
+        \"route_results\": [{
+            \"route_id\": route[\"route_id\"],
+            \"status\": \"ready\",
+            \"access_method\": route[\"access_method\"],
+            \"authority\": route[\"authority\"],
+            \"tested_at\": \"2026-08-22T00:00:00Z\",
+            \"evidence_basis\": \"Synthetic online route fixture.\",
+        } for route in access[\"routes\"]],
+        \"variable_routes\": [],
+        \"tested_at\": \"2026-08-22T00:00:00Z\",
+    }))
+else:
+    print(json.dumps({
+        \"source_id\": \"grdr:source:synthetic-example\",
+        \"status\": \"ready\",
+        \"variable_count\": 0,
+        \"resolvable_variable_count\": 0,
+        \"unresolved_variable_count\": 0,
+    }))
 """,
                 encoding="utf-8",
             )
             runtime_descriptor = root / "runtime.json"
             runtime_descriptor.write_text(json.dumps({
-                "schema_version": "1.0.0",
-                "protocol_version": "grdr-source-runtime/1.0",
+                "schema_version": "2.0.0",
+                "protocol_version": "grdr-source-runtime/2.0",
+                "route_environment_protocol": "grdr-route-context/1.0",
                 "source_id": "grdr:source:synthetic-example",
                 "entrypoint": runtime_script.name,
                 "agent_index": "grdr-agent-index.sqlite",
-                "operations": ["self-test", "search", "resolve-variable", "fetch-variable"],
+                "online_access_manifest": "online_access.json",
+                "operations": ["self-test", "self-test-online", "search", "resolve-variable", "fetch-variable"],
+                "supported_access_methods": ["official_api", "grdr_release_snapshot"],
                 "official_domains": ["example.org"],
                 "notes": "Synthetic test runtime.",
             }), encoding="utf-8")
             sealed_template = root / "sealed-template"
             shutil.copytree(project_dir, sealed_template)
             spec = {
-                "schema_version": "3.0.0",
+                "schema_version": "4.0.0",
                 "source_id": "grdr:source:synthetic-example",
                 "source_slug": "synthetic-example-test",
                 "snapshot_id": "2026-08-22-r1",
@@ -332,16 +358,42 @@ print(json.dumps({
                 },
                 "elements_root": str(root / "Elements"),
                 "observation_policy": {
-                    "replication_mode": "full_mirror",
-                    "placements": ["github_release", "elements"],
-                    "completeness": {
-                        "claim": "complete_within_knowledge_scope",
-                        "basis": "The one declared synthetic observation file exhausts the locked fixture scope.",
-                        "expected_file_count": 1,
-                        "expected_partition_count": None,
+                    "replication": {
+                        "mode": "full_mirror",
+                        "placements": ["github_release", "elements"],
+                        "completeness": {
+                            "claim": "complete_within_knowledge_scope",
+                            "basis": "The one declared synthetic observation file exhausts the locked fixture scope.",
+                            "expected_file_count": 1,
+                            "expected_partition_count": None,
+                        },
+                        "partition_manifest": None,
+                        "external_locations": [],
                     },
-                    "partition_manifest": None,
-                    "external_locations": [],
+                    "online_access": {
+                        "completion_requirement": "all_registered_variables_online_callable",
+                        "official_access": {
+                            "status": "callable",
+                            "basis": "The synthetic official API is represented by a live-test fixture.",
+                        },
+                        "routes": [{
+                            "route_id": "official-api",
+                            "access_method": "official_api",
+                            "authority": "official",
+                            "uri": "https://example.org/synthetic-database/api",
+                            "freshness": "current_upstream",
+                            "coverage_claim": "all_registered_variables",
+                            "verification": "live_runtime_test",
+                        }, {
+                            "route_id": "grdr-release",
+                            "access_method": "grdr_release_snapshot",
+                            "authority": "grdr",
+                            "uri": "https://github.com/example/grdr-source-synthetic-example-test/releases/tag/synthetic-example-test-2026-08-22-r1",
+                            "freshness": "frozen_snapshot",
+                            "coverage_claim": "all_registered_variables",
+                            "verification": "staged_release_snapshot_test",
+                        }],
+                    },
                     "cache": {
                         "mode": "disabled",
                         "research_project_snapshots": False,
@@ -368,8 +420,17 @@ print(json.dumps({
             self.assertGreaterEqual(audit["release_asset_count"], 4)
 
             package = json.loads((project_dir / "storage_package.json").read_text(encoding="utf-8"))
-            self.assertEqual(package["schema_version"], "3.0.0")
+            self.assertEqual(package["schema_version"], "4.0.0")
             self.assertEqual(package["snapshot_profile"]["observation_replication"]["mode"], "full_mirror")
+            self.assertEqual(package["snapshot_profile"]["online_access"]["status"], "callable_complete")
+            self.assertEqual(
+                package["snapshot_profile"]["online_access"]["route_policies"],
+                {
+                    "latest": ["official_online", "github_release_snapshot", "elements_mirror"],
+                    "reproducible": ["github_release_snapshot", "elements_mirror"],
+                    "offline": ["elements_mirror"],
+                },
+            )
             self.assertEqual(package["snapshot_profile"]["knowledge_scope"]["scope_fingerprint"], locks_after["scope_fingerprint"])
             self.assertEqual(package["duplicate_content_hash_count"], 0)
             self.assertFalse(any(
@@ -484,16 +545,26 @@ print(json.dumps({
                 "title": "Synthetic partitioned snapshot",
             })
             partition_spec["observation_policy"] = {
-                "replication_mode": "partitioned_mirror",
-                "placements": ["elements", "research_project_cache"],
-                "completeness": {
-                    "claim": "complete_declared_partition_set",
-                    "basis": "The partition manifest declares the one locally mirrored test partition.",
-                    "expected_file_count": 1,
-                    "expected_partition_count": 1,
+                "replication": {
+                    "mode": "partitioned_mirror",
+                    "placements": ["elements"],
+                    "completeness": {
+                        "claim": "complete_declared_partition_set",
+                        "basis": "The partition manifest declares the one locally mirrored test partition.",
+                        "expected_file_count": 1,
+                        "expected_partition_count": 1,
+                    },
+                    "partition_manifest": str(partition_manifest),
+                    "external_locations": [],
                 },
-                "partition_manifest": str(partition_manifest),
-                "external_locations": [],
+                "online_access": {
+                    "completion_requirement": "all_registered_variables_online_callable",
+                    "official_access": {
+                        "status": "callable",
+                        "basis": "The synthetic official API is represented by a live-test fixture.",
+                    },
+                    "routes": [spec["observation_policy"]["online_access"]["routes"][0]],
+                },
                 "cache": {
                     "mode": "on_demand",
                     "research_project_snapshots": True,
@@ -517,58 +588,82 @@ print(json.dumps({
             self.assertTrue(
                 Path(partition_package["elements_snapshot_path"], "observations").is_dir()
             )
-
-            federated_project = root / "project-federated"
-            shutil.copytree(sealed_template, federated_project)
-            shutil.rmtree(federated_project / "raw_observations")
-            federated_spec = json.loads(json.dumps(spec))
-            federated_spec.update({
-                "snapshot_id": "2026-08-22-r3",
-                "source_slug": "synthetic-example-federated",
-            })
-            federated_spec["source_repository"].update({
-                "github": "example/grdr-source-synthetic-example-federated",
-                "local_path": str(root / "source-repo-federated"),
-            })
-            federated_spec["release"].update({
-                "tag": "synthetic-example-test-2026-08-22-r3",
-                "title": "Synthetic federated snapshot",
-            })
-            federated_spec["observation_policy"] = {
-                "replication_mode": "federated_on_demand",
-                "placements": ["official_upstream", "research_project_cache"],
-                "completeness": {
-                    "claim": "knowledge_complete_observations_federated",
-                    "basis": "The locked knowledge graph is complete while observations remain at the official API.",
-                    "expected_file_count": None,
-                    "expected_partition_count": None,
+            self.assertEqual(
+                partition_package["snapshot_profile"]["online_access"]["route_policies"],
+                {
+                    "latest": ["official_online", "elements_mirror"],
+                    "reproducible": ["elements_mirror"],
+                    "offline": ["elements_mirror"],
                 },
-                "partition_manifest": None,
-                "external_locations": [{
-                    "type": "official_upstream",
-                    "uri": "https://example.org/synthetic-database/api",
-                    "local_path": None,
-                    "verification": "official_runtime_verified",
-                }],
+            )
+
+            no_mirror_project = root / "project-no-mirror"
+            shutil.copytree(sealed_template, no_mirror_project)
+            shutil.rmtree(no_mirror_project / "raw_observations")
+            no_mirror_spec = json.loads(json.dumps(spec))
+            no_mirror_spec.update({
+                "snapshot_id": "2026-08-22-r3",
+                "source_slug": "synthetic-example-no-mirror",
+            })
+            no_mirror_spec["source_repository"].update({
+                "github": "example/grdr-source-synthetic-example-no-mirror",
+                "local_path": str(root / "source-repo-no-mirror"),
+            })
+            no_mirror_spec["release"].update({
+                "tag": "synthetic-example-test-2026-08-22-r3",
+                "title": "Synthetic no-mirror snapshot",
+            })
+            no_mirror_spec["observation_policy"] = {
+                "replication": {
+                    "mode": "no_mirror",
+                    "placements": [],
+                    "completeness": {
+                        "claim": "observations_not_replicated",
+                        "basis": "Observations remain online while the complete knowledge and call paths are stored.",
+                        "expected_file_count": None,
+                        "expected_partition_count": None,
+                    },
+                    "partition_manifest": None,
+                    "external_locations": [],
+                },
+                "online_access": {
+                    "completion_requirement": "all_registered_variables_online_callable",
+                    "official_access": {
+                        "status": "callable",
+                        "basis": "The synthetic official API is represented by a live-test fixture.",
+                    },
+                    "routes": [{
+                        **spec["observation_policy"]["online_access"]["routes"][0],
+                        "freshness": "version_pinned",
+                    }],
+                },
                 "cache": {
                     "mode": "on_demand",
                     "research_project_snapshots": True,
                     "root": "research_project",
                 },
             }
-            federated_spec["observation_inputs"] = []
-            federated_spec_path = root / "federated-storage-spec.json"
-            federated_spec_path.write_text(json.dumps(federated_spec), encoding="utf-8")
-            federated = prepare_database_storage(federated_project, federated_spec_path)
-            self.assertEqual(federated["audit"]["errors"], [])
-            federated_package = federated["package"]
-            self.assertEqual(federated_package["observation_file_count"], 0)
+            no_mirror_spec["observation_inputs"] = []
+            no_mirror_spec_path = root / "no-mirror-storage-spec.json"
+            no_mirror_spec_path.write_text(json.dumps(no_mirror_spec), encoding="utf-8")
+            no_mirror = prepare_database_storage(no_mirror_project, no_mirror_spec_path)
+            self.assertEqual(no_mirror["audit"]["errors"], [])
+            no_mirror_package = no_mirror["package"]
+            self.assertEqual(no_mirror_package["observation_file_count"], 0)
             self.assertEqual(
-                federated_package["snapshot_profile"]["observation_replication"]["mode"],
-                "federated_on_demand",
+                no_mirror_package["snapshot_profile"]["observation_replication"]["mode"],
+                "no_mirror",
             )
             self.assertFalse(
-                Path(federated_package["elements_snapshot_path"], "observations").exists()
+                Path(no_mirror_package["elements_snapshot_path"], "observations").exists()
+            )
+            self.assertEqual(
+                no_mirror_package["snapshot_profile"]["online_access"]["route_policies"],
+                {
+                    "latest": ["official_online"],
+                    "reproducible": ["official_online"],
+                    "offline": [],
+                },
             )
 
             elements = Path(audit["elements_snapshot_path"])
@@ -579,14 +674,86 @@ print(json.dumps({
 
     def test_storage_spec_exposes_three_observation_modes(self) -> None:
         schema = json.loads((ROOT / "schemas" / "database_storage_spec.schema.json").read_text(encoding="utf-8"))
-        modes = schema["properties"]["observation_policy"]["properties"]["replication_mode"]["enum"]
-        self.assertEqual(modes, ["full_mirror", "partitioned_mirror", "federated_on_demand"])
+        modes = schema["properties"]["observation_policy"]["properties"]["replication"]["properties"]["mode"]["enum"]
+        self.assertEqual(modes, ["full_mirror", "partitioned_mirror", "no_mirror"])
         self.assertNotIn("minItems", schema["properties"]["observation_inputs"])
+
+    def test_online_completion_rejects_an_uncovered_registered_variable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            agent = root / "agent"
+            agent.mkdir()
+            index = agent / "grdr-agent-index.sqlite"
+            connection = sqlite3.connect(index)
+            connection.execute(
+                "CREATE TABLE records (id TEXT PRIMARY KEY, entity_type TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO records VALUES (?, ?)",
+                ("grdr:variable:synthetic-uncovered", "variables"),
+            )
+            connection.commit()
+            connection.close()
+            access = {
+                "schema_version": "1.0.0",
+                "source_id": "grdr:source:synthetic-example",
+                "snapshot_id": "r1",
+                "status": "callable_complete",
+                "completion_requirement": "all_registered_variables_online_callable",
+                "official_access": {"status": "callable", "basis": "Synthetic route."},
+                "routes": [{
+                    "route_id": "official-api",
+                    "access_method": "official_api",
+                    "authority": "official",
+                    "uri": "https://example.org/api",
+                    "freshness": "current_upstream",
+                    "coverage_claim": "all_registered_variables",
+                    "verification": "live_runtime_test",
+                }],
+                "coverage": {"claim": "all_registered_variables", "expected_variable_count": 1},
+                "route_policies": {
+                    "latest": ["official_online"],
+                    "reproducible": ["official_online"],
+                    "offline": [],
+                },
+            }
+            (agent / "online_access.json").write_text(json.dumps(access), encoding="utf-8")
+            runtime_script = agent / "runtime.py"
+            runtime_script.write_text(
+                """import json
+print(json.dumps({
+  "schema_version": "1.0.0",
+  "source_id": "grdr:source:synthetic-example",
+  "snapshot_id": "r1",
+  "status": "ready",
+  "variable_count": 1,
+  "online_callable_variable_count": 0,
+  "unresolved_online_variable_count": 0,
+  "route_results": [{
+    "route_id": "official-api", "status": "ready", "access_method": "official_api",
+    "authority": "official", "tested_at": "2026-08-22T00:00:00Z", "evidence_basis": "Synthetic."
+  }],
+  "variable_routes": [],
+  "tested_at": "2026-08-22T00:00:00Z"
+}))
+""",
+                encoding="utf-8",
+            )
+            descriptor = {
+                "source_id": "grdr:source:synthetic-example",
+                "entrypoint": "runtime.py",
+                "agent_index": "grdr-agent-index.sqlite",
+                "online_access_manifest": "online_access.json",
+            }
+            with self.assertRaisesRegex(ValueError, "did not cover every registered variable"):
+                run_source_runtime_online_test(agent, descriptor, root)
 
     def test_capacity_thresholds_are_external_and_mode_independent(self) -> None:
         base_policy = {
-            "replication_mode": "full_mirror",
-            "placements": ["elements"],
+            "replication": {
+                "mode": "full_mirror",
+                "placements": ["elements"],
+            },
         }
         with patch.dict(os.environ, {
             "GRDR_GITHUB_OBSERVATION_MAX_BYTES": "5",
@@ -598,7 +765,7 @@ print(json.dumps({
             )
             self.assertEqual(medium["size_class"], "medium")
             github_policy = json.loads(json.dumps(base_policy))
-            github_policy["placements"] = ["github_release", "elements"]
+            github_policy["replication"]["placements"] = ["github_release", "elements"]
             with self.assertRaisesRegex(ValueError, "GitHub Release observation limit"):
                 assess_storage_capacity(
                     {"observation_policy": github_policy},
@@ -606,11 +773,13 @@ print(json.dumps({
                 )
             large = assess_storage_capacity(
                 {"observation_policy": {
-                    "replication_mode": "federated_on_demand",
-                    "placements": ["official_upstream"],
-                    "capacity_estimate": {
-                        "estimated_total_bytes": 11,
-                        "basis": "Synthetic upstream estimate.",
+                    "replication": {
+                        "mode": "no_mirror",
+                        "placements": [],
+                        "capacity_estimate": {
+                            "estimated_total_bytes": 11,
+                            "basis": "Synthetic upstream estimate.",
+                        },
                     },
                 }},
                 [],
@@ -623,8 +792,10 @@ print(json.dumps({
         }):
             github_only = assess_storage_capacity(
                 {"observation_policy": {
-                    "replication_mode": "full_mirror",
-                    "placements": ["github_release"],
+                    "replication": {
+                        "mode": "full_mirror",
+                        "placements": ["github_release"],
+                    },
                 }},
                 [{"size_bytes": 6}],
             )

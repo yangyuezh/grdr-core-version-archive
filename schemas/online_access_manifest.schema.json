@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/online_access_manifest.schema.json",
+  "title": "GRDR complete online observation-access manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_id",
+    "snapshot_id",
+    "status",
+    "completion_requirement",
+    "official_access",
+    "routes",
+    "coverage",
+    "route_policies"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "status": {"const": "callable_complete"},
+    "completion_requirement": {"const": "all_registered_variables_online_callable"},
+    "official_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "basis"],
+      "properties": {
+        "status": {"enum": ["callable", "unavailable"]},
+        "basis": {"type": "string", "minLength": 1}
+      }
+    },
+    "routes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/route"}},
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "expected_variable_count"],
+      "properties": {
+        "claim": {"const": "all_registered_variables"},
+        "expected_variable_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "route_policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latest", "reproducible", "offline"],
+      "properties": {
+        "latest": {"$ref": "#/$defs/route_order"},
+        "reproducible": {"$ref": "#/$defs/route_order"},
+        "offline": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/route_class"}}
+      }
+    }
+  },
+  "$defs": {
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route_id", "access_method", "authority", "uri", "freshness", "coverage_claim", "verification"],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "access_method": {"enum": ["official_api", "official_bulk_download", "official_browser_automation", "grdr_release_snapshot"]},
+        "authority": {"enum": ["official", "grdr"]},
+        "uri": {"type": "string", "format": "uri"},
+        "freshness": {"enum": ["current_upstream", "version_pinned", "frozen_snapshot"]},
+        "coverage_claim": {"enum": ["all_registered_variables", "declared_subset"]},
+        "verification": {"enum": ["live_runtime_test", "staged_release_snapshot_test"]}
+      }
+    },
+    "route_class": {
+      "type": "string",
+      "enum": ["official_online", "github_release_snapshot", "elements_mirror", "mounted_object_store"]
+    },
+    "route_order": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/route_class"}
+    }
+  }
+}

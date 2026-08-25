@@ -830,7 +830,11 @@ def materialize_source_snapshot(args: argparse.Namespace) -> None:
 def resolve_variable_access(args: argparse.Namespace) -> None:
     try:
         result = distributed.invoke_source_runtime(
-            load_jsonl("source_archives.jsonl"), args.variable_id, "resolve-variable", args.elements_root
+            load_jsonl("source_archives.jsonl"),
+            args.variable_id,
+            "resolve-variable",
+            args.elements_root,
+            route_policy=args.route_policy,
         )
     except distributed.DistributedRuntimeError as exc:
         emit({"operation": "resolve_variable_access", "error": "runtime_resolution_failed", "message": str(exc)})
@@ -861,10 +865,16 @@ def fetch_variable(args: argparse.Namespace) -> None:
                 args.research_project_dir,
                 args.elements_root,
                 extra_args,
+                args.route_policy,
             )
         else:
             result = distributed.invoke_source_runtime(
-                cards, args.variable_id, "fetch-variable", args.elements_root, extra_args
+                cards,
+                args.variable_id,
+                "fetch-variable",
+                args.elements_root,
+                extra_args,
+                args.route_policy,
             )
     except distributed.DistributedRuntimeError as exc:
         emit({"operation": "fetch_variable", "error": "runtime_fetch_failed", "message": str(exc)})
@@ -1096,6 +1106,7 @@ def fetch_indicator_data_command(args: argparse.Namespace) -> None:
             elements_root=args.elements_root,
             extra_args=extra_args,
             seal_data_snapshot=args.seal_data_snapshot,
+            route_policy=args.route_policy,
         ),
     )
 
@@ -1835,6 +1846,7 @@ def parser() -> argparse.ArgumentParser:
     fetch_indicator.add_argument("--dry-run", action="store_true")
     fetch_indicator.add_argument("--output-dir")
     fetch_indicator.add_argument("--seal-data-snapshot", action="store_true")
+    fetch_indicator.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
     fetch_indicator.add_argument("--country")
     fetch_indicator.add_argument("--start-period")
     fetch_indicator.add_argument("--end-period")
@@ -1867,17 +1879,19 @@ def parser() -> argparse.ArgumentParser:
     materialize_snapshot.add_argument("--elements-root")
     materialize_snapshot.set_defaults(handler=materialize_source_snapshot)
 
-    resolve_access = commands.add_parser("resolve-variable-access", help="Resolve one distributed variable into its official source access plan")
+    resolve_access = commands.add_parser("resolve-variable-access", help="Resolve one distributed Variable through an explicit latest, reproducible, or offline observation route policy")
     resolve_access.add_argument("variable_id")
     resolve_access.add_argument("--elements-root")
+    resolve_access.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
     resolve_access.set_defaults(handler=resolve_variable_access)
 
-    fetch = commands.add_parser("fetch-variable", help="Fetch one distributed variable through its source-scoped official runtime, optionally sealing an on-demand research-project data snapshot")
+    fetch = commands.add_parser("fetch-variable", help="Fetch one distributed Variable through its policy-selected source Runtime route, optionally sealing an on-demand research-project data snapshot")
     fetch.add_argument("variable_id")
     fetch.add_argument("--elements-root")
     fetch.add_argument("--dry-run", action="store_true")
     fetch.add_argument("--output-dir")
     fetch.add_argument("--research-project-dir")
+    fetch.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
     fetch.add_argument("--country")
     fetch.add_argument("--start-period")
     fetch.add_argument("--end-period")

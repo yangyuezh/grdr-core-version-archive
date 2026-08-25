@@ -4,24 +4,44 @@
   "title": "GRDR source-scoped Agent runtime descriptor",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "protocol_version", "source_id", "entrypoint", "agent_index", "operations", "official_domains"],
+  "required": [
+    "schema_version",
+    "protocol_version",
+    "route_environment_protocol",
+    "source_id",
+    "entrypoint",
+    "agent_index",
+    "online_access_manifest",
+    "operations",
+    "supported_access_methods",
+    "official_domains"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
-    "protocol_version": {"const": "grdr-source-runtime/1.0"},
+    "schema_version": {"const": "2.0.0"},
+    "protocol_version": {"const": "grdr-source-runtime/2.0"},
+    "route_environment_protocol": {"const": "grdr-route-context/1.0"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "entrypoint": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.py$"},
     "agent_index": {"const": "grdr-agent-index.sqlite"},
+    "online_access_manifest": {"const": "online_access.json"},
     "operations": {
       "type": "array",
-      "items": {"enum": ["self-test", "search", "resolve-variable", "fetch-variable"]},
-      "minItems": 4,
+      "items": {"enum": ["self-test", "self-test-online", "search", "resolve-variable", "fetch-variable"]},
+      "minItems": 5,
       "uniqueItems": true,
       "allOf": [
         {"contains": {"const": "self-test"}},
+        {"contains": {"const": "self-test-online"}},
         {"contains": {"const": "search"}},
         {"contains": {"const": "resolve-variable"}},
         {"contains": {"const": "fetch-variable"}}
       ]
+    },
+    "supported_access_methods": {
+      "type": "array",
+      "items": {"enum": ["official_api", "official_bulk_download", "official_browser_automation", "grdr_release_snapshot"]},
+      "minItems": 1,
+      "uniqueItems": true
     },
     "official_domains": {
       "type": "array",

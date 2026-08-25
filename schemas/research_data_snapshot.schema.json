@@ -6,14 +6,16 @@
   "additionalProperties": false,
   "required": ["schema_version", "capture_id", "research_project_path", "source_id", "source_snapshot_id", "variable_id", "runtime_protocol", "query_arguments", "fetched_at", "files", "data_content_fingerprint", "manifest_fingerprint"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"enum": ["1.0.0", "2.0.0"]},
     "capture_id": {"type": "string", "pattern": "^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{12}$"},
     "research_project_path": {"type": "string", "minLength": 1},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_snapshot_id": {"type": "string", "minLength": 1},
     "variable_id": {"type": "string", "pattern": "^grdr:variable:[a-z0-9][a-z0-9-]*$"},
-    "runtime_protocol": {"const": "grdr-source-runtime/1.0"},
+    "runtime_protocol": {"enum": ["grdr-source-runtime/1.0", "grdr-source-runtime/2.0"]},
     "query_arguments": {"type": "array", "items": {"type": "string"}},
+    "route_policy": {"enum": ["latest", "reproducible", "offline"]},
+    "observation_route": {"type": "object"},
     "fetched_at": {"type": "string", "format": "date-time"},
     "files": {
       "type": "array",
@@ -31,5 +33,9 @@
     },
     "data_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "manifest_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-  }
+  },
+  "allOf": [{
+    "if": {"properties": {"schema_version": {"const": "2.0.0"}}},
+    "then": {"required": ["route_policy", "observation_route"]}
+  }]
 }

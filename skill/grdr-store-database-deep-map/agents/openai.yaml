@@ -1,4 +1,4 @@
 interface:
   display_name: "GRDR Step 3 — Store Database Deep Map"
-  short_description: "Store a verified, location-aware database snapshot"
-  default_prompt: "Use $grdr-store-database-deep-map to preserve this sealed knowledge scope, apply the configured capacity policy, choose and verify observation replication and placement, enforce exact partition manifests, eliminate raw-data duplication, and publish a remotely verified callable snapshot."
+  short_description: "Store a verified online-callable database snapshot"
+  default_prompt: "Use $grdr-store-database-deep-map to preserve this sealed knowledge scope, prove tested online access for every registered Variable, independently choose and verify observation replication and placement, eliminate raw-data duplication, and publish a remotely verified callable snapshot."

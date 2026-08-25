@@ -110,12 +110,15 @@ class DistributedRuntimeTests(unittest.TestCase):
         connection.commit()
         connection.close()
         descriptor = {
-            "schema_version": "1.0.0",
-            "protocol_version": "grdr-source-runtime/1.0",
+            "schema_version": "2.0.0",
+            "protocol_version": "grdr-source-runtime/2.0",
+            "route_environment_protocol": "grdr-route-context/1.0",
             "source_id": "grdr:source:synthetic",
             "entrypoint": "synthetic_runtime.py",
             "agent_index": "grdr-agent-index.sqlite",
-            "operations": ["self-test", "search", "resolve-variable", "fetch-variable"],
+            "online_access_manifest": "online_access.json",
+            "operations": ["self-test", "self-test-online", "search", "resolve-variable", "fetch-variable"],
+            "supported_access_methods": ["official_api"],
             "official_domains": ["example.org"],
         }
         (agent / "runtime.json").write_text(json.dumps(descriptor), encoding="utf-8")
@@ -125,6 +128,58 @@ class DistributedRuntimeTests(unittest.TestCase):
             "variable_count": 1,
             "resolvable_variable_count": 1,
             "unresolved_variable_count": 0,
+        }), encoding="utf-8")
+        access = {
+            "schema_version": "1.0.0",
+            "source_id": "grdr:source:synthetic",
+            "snapshot_id": "r1",
+            "status": "callable_complete",
+            "completion_requirement": "all_registered_variables_online_callable",
+            "official_access": {
+                "status": "callable",
+                "basis": "Synthetic official API route.",
+            },
+            "routes": [{
+                "route_id": "official-api",
+                "access_method": "official_api",
+                "authority": "official",
+                "uri": "https://example.org/api",
+                "freshness": "version_pinned",
+                "coverage_claim": "all_registered_variables",
+                "verification": "live_runtime_test",
+            }],
+            "coverage": {
+                "claim": "all_registered_variables",
+                "expected_variable_count": 1,
+            },
+            "route_policies": {
+                "latest": ["official_online"],
+                "reproducible": ["official_online"],
+                "offline": [],
+            },
+        }
+        (agent / "online_access.json").write_text(json.dumps(access), encoding="utf-8")
+        (agent / "online_runtime_audit.json").write_text(json.dumps({
+            "schema_version": "1.0.0",
+            "source_id": "grdr:source:synthetic",
+            "snapshot_id": "r1",
+            "status": "ready",
+            "variable_count": 1,
+            "online_callable_variable_count": 1,
+            "unresolved_online_variable_count": 0,
+            "route_results": [{
+                "route_id": "official-api",
+                "status": "ready",
+                "access_method": "official_api",
+                "authority": "official",
+                "tested_at": "2026-08-23T00:00:00Z",
+                "evidence_basis": "Synthetic official API route test.",
+            }],
+            "variable_routes": [{
+                "variable_id": "grdr:variable:synthetic-population",
+                "route_ids": ["official-api"],
+            }],
+            "tested_at": "2026-08-23T00:00:00Z",
         }), encoding="utf-8")
         (agent / "synthetic_runtime.py").write_text(
             """import json, sys
@@ -137,15 +192,26 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
             logical_files.append({**item, "locations": ["elements"]})
         logical_fingerprint = runtime.fingerprint(logical_files)
         manifest = {
-            "schema_version": "3.0.0",
+            "schema_version": "4.0.0",
             "source_id": "grdr:source:synthetic",
             "snapshot_id": "r1",
             "logical_files": logical_files,
             "logical_content_fingerprint": logical_fingerprint,
             "snapshot_profile": {
-                "observation_replication": {"mode": "federated_on_demand"},
+                "observation_replication": {"mode": "no_mirror"},
+                "online_access": {
+                    "status": "callable_complete",
+                    "official_access_status": "callable",
+                    "official_access_basis": "Synthetic official API route.",
+                    "route_count": 1,
+                    "expected_variable_count": 1,
+                    "online_callable_variable_count": 1,
+                    "unresolved_online_variable_count": 0,
+                    "routes": access["routes"],
+                    "route_policies": access["route_policies"],
+                },
                 "observation_placement": {
-                    "locations": ["official_upstream"],
+                    "locations": [],
                     "cache": {
                         "mode": "on_demand",
                         "research_project_snapshots": True,
@@ -153,21 +219,15 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
                     },
                 },
             },
-            "external_observation_locations": [{
-                "type": "official_upstream",
-                "uri": "https://example.org/api",
-                "local_path": None,
-                "verification": "official_runtime_verified",
-                "logical_paths": [],
-                "content_fingerprint": "b" * 64,
-            }],
+            "online_access_manifest": access,
+            "external_observation_locations": [],
         }
         (receipts / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         receipt = {"logical_content_fingerprint": logical_fingerprint}
         receipt["receipt_fingerprint"] = runtime.fingerprint(receipt)
         (receipts / "storage_receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         self.card = {
-            "schema_version": "2.0.0",
+            "schema_version": "4.0.0",
             "id": "grdr:source-archive:synthetic",
             "source_id": "grdr:source:synthetic",
             "repository": "https://github.com/example/synthetic",
@@ -175,14 +235,19 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
             "release": "https://github.com/example/synthetic/releases/tag/r1",
             "manifest": "https://github.com/example/synthetic/releases/download/r1/manifest.json",
             "archive_fingerprint": logical_fingerprint,
-            "core_version": "3.3.0",
+            "knowledge_fingerprint": "a" * 64,
+            "observation_fingerprint": "b" * 64,
+            "snapshot_profile": manifest["snapshot_profile"],
+            "core_version": "4.3.0",
             "status": "complete",
             "updated_at": "2026-08-23T00:00:00Z",
             "runtime": {
-                "protocol_version": "grdr-source-runtime/1.0",
+                "protocol_version": "grdr-source-runtime/2.0",
+                "route_environment_protocol": "grdr-route-context/1.0",
                 "asset": "synthetic-r1-agent-runtime.tar.gz",
                 "entrypoint": "agent/synthetic_runtime.py",
                 "agent_index": "agent/grdr-agent-index.sqlite",
+                "online_access_manifest": "agent/online_access.json",
                 "operations": descriptor["operations"],
             },
         }
@@ -264,6 +329,87 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         invoked = runtime.invoke_source_runtime([self.card], matches[0]["id"], "resolve-variable", self.root)
         self.assertEqual(invoked["result"]["status"], "ok")
         self.assertEqual(invoked["observation_route"]["selected_route"], "official_upstream")
+
+    def test_latest_reproducible_and_offline_route_order_is_explicit(self) -> None:
+        access_path = self.snapshot / "agent" / "online_access.json"
+        access = json.loads(access_path.read_text(encoding="utf-8"))
+        access["routes"].append({
+            "route_id": "grdr-release",
+            "access_method": "grdr_release_snapshot",
+            "authority": "grdr",
+            "uri": "https://github.com/example/synthetic/releases/tag/r1",
+            "freshness": "frozen_snapshot",
+            "coverage_claim": "all_registered_variables",
+            "verification": "staged_release_snapshot_test",
+        })
+        access["route_policies"] = {
+            "latest": ["official_online", "github_release_snapshot", "elements_mirror"],
+            "reproducible": ["github_release_snapshot", "elements_mirror", "official_online"],
+            "offline": ["elements_mirror"],
+        }
+        access_path.write_text(json.dumps(access), encoding="utf-8")
+        observations = self.snapshot / "observations"
+        observations.mkdir()
+        (observations / "observations.csv").write_text("value\n1\n", encoding="utf-8")
+        manifest_path = self.snapshot / "receipts" / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["snapshot_profile"]["observation_replication"]["mode"] = "full_mirror"
+        manifest["snapshot_profile"]["observation_placement"]["locations"] = ["elements"]
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        latest = runtime.observation_route_context(self.snapshot, "latest")
+        reproducible = runtime.observation_route_context(self.snapshot, "reproducible")
+        offline = runtime.observation_route_context(self.snapshot, "offline")
+        self.assertEqual(latest["selected_route"], "official_upstream")
+        self.assertEqual(reproducible["selected_route"], "github_release_snapshot")
+        self.assertEqual(reproducible["observation_root"], "")
+        self.assertEqual(offline["selected_route"], "elements_mirror")
+
+    def test_runtime_falls_back_from_official_to_grdr_release(self) -> None:
+        access_path = self.snapshot / "agent" / "online_access.json"
+        access = json.loads(access_path.read_text(encoding="utf-8"))
+        access["routes"].append({
+            "route_id": "grdr-release",
+            "access_method": "grdr_release_snapshot",
+            "authority": "grdr",
+            "uri": "https://github.com/example/synthetic/releases/tag/r1",
+            "freshness": "frozen_snapshot",
+            "coverage_claim": "all_registered_variables",
+            "verification": "staged_release_snapshot_test",
+        })
+        access["route_policies"] = {
+            "latest": ["official_online", "github_release_snapshot"],
+            "reproducible": ["github_release_snapshot", "official_online"],
+            "offline": [],
+        }
+        access_path.write_text(json.dumps(access), encoding="utf-8")
+        entrypoint = self.snapshot / "agent" / "synthetic_runtime.py"
+        entrypoint.write_text(
+            """import json, os, sys
+if os.environ.get("GRDR_OBSERVATION_ROUTE") == "official_upstream":
+    print("official route unavailable", file=sys.stderr)
+    raise SystemExit(1)
+print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}))
+""",
+            encoding="utf-8",
+        )
+        with patch.object(
+            runtime,
+            "available_runtimes",
+            return_value=[(self.card, self.snapshot)],
+        ):
+            result = runtime.invoke_source_runtime(
+                [self.card],
+                "grdr:variable:synthetic-population",
+                "fetch-variable",
+                self.root,
+                route_policy="latest",
+            )
+        self.assertEqual(result["observation_route"]["selected_route"], "github_release_snapshot")
+        self.assertEqual(
+            [item["status"] for item in result["observation_route"]["attempted_routes"]],
+            ["failed", "succeeded"],
+        )
 
     def test_verified_runtime_cache_invalidates_after_file_mutation(self) -> None:
         first = runtime.local_snapshot_status(self.card, self.root, verify=True)
@@ -379,6 +525,8 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         self.assertEqual(manifest["source_id"], "grdr:source:synthetic")
         self.assertEqual(manifest["source_snapshot_id"], "r1")
         self.assertEqual(manifest["variable_id"], "grdr:variable:synthetic-population")
+        self.assertEqual(manifest["route_policy"], "latest")
+        self.assertEqual(manifest["runtime_protocol"], "grdr-source-runtime/2.0")
 
     def test_semantic_candidate_recall_and_graph_traversal(self) -> None:
         candidates = runtime.distributed_semantic_candidates(

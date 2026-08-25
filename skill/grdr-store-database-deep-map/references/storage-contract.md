@@ -6,33 +6,44 @@ One deeply read Source owns one private source repository. One dated or versione
 
 The source repository declares its Core version. It must not fork or copy Core Skills.
 
-## Three snapshot properties
+## Three independent snapshot axes
 
 Storage must persist three independent properties:
 
 1. `knowledge_scope`: inherit the Plan scope mode, completion claim, boundary, snapshot time, and scope fingerprint without modification;
-2. `observation_replication`: select `full_mirror`, `partitioned_mirror`, or `federated_on_demand` and state the exact completeness basis;
-3. `observation_placement`: declare every actual or on-demand location: `github_release`, `elements`, `object_store`, `official_upstream`, or `research_project_cache`.
-4. `capacity_assessment`: record the deployment-local thresholds, actual captured bytes, optional upstream-size estimate, policy-relative size class, selected mode and placements, and compliance result.
+2. `online_access`: require `all_registered_variables_online_callable`, declare official availability and executable routes, and persist exact route policies and test coverage;
+3. `observation_replication`: select `full_mirror`, `partitioned_mirror`, or `no_mirror`, state the exact completeness basis, and declare any `github_release`, `elements`, or `object_store` placements;
+4. `cache`: separately declare whether research-project query snapshots may be created on demand;
+5. `capacity_assessment`: record the deployment-local thresholds, actual captured bytes, optional upstream-size estimate, policy-relative size class, selected replication and placements, and compliance result.
 
-Knowledge completeness never implies observation replication completeness, and reduced observation custody never permits reduced knowledge depth.
+Knowledge completeness, online callability, and observation replication are not interchangeable. Reduced observation custody never permits reduced knowledge depth or reduced online Variable coverage.
 
 ## Required representations
 
 The GitHub Release and Elements always contain:
 
 - `knowledge/`: Plan, Execute ledgers, staged canonical records, evidence, canonical archive package and receipt, and human report;
-- `agent/`: the source-scoped SQLite index, runtime descriptor, source-specific executable entrypoint, and sealed runtime audit.
+- `agent/`: the source-scoped SQLite index, Runtime 2.0 descriptor, source-specific executable entrypoint, sealed offline runtime audit, `online_access.json`, and `online_runtime_audit.json`.
 
 `observations/` exists only at locations declared by the observation policy. The Release manifest binds the ordered logical file inventory, per-file locations, SHA-256 values, sizes, Release assets, external locations, canonical archive receipt, Core version, repository identity, and snapshot identity.
 
 Raw observation files must never enter `knowledge/`. Exclude every observation input and every additional `raw_observation_exclusions` root during knowledge packaging, then reject any SHA-256 shared across the final knowledge and observation inventories. Release assets must have disjoint logical memberships.
 
-## Mode obligations
+## Online-access obligations
+
+- The official state must be explicitly `callable` or `unavailable`, with an evidence basis.
+- Routes may use `official_api`, `official_bulk_download`, `official_browser_automation`, or `grdr_release_snapshot`.
+- Every declared route must pass the Runtime's `self-test-online` operation.
+- The online audit must enumerate exactly the indexed Variables and give every Variable one or more tested route IDs.
+- `unresolved_online_variable_count` must be zero. If neither an official route nor a GRDR Release route provides complete coverage, Storage cannot complete.
+- Route policies must define `latest`, `reproducible`, and `offline`; Runtime records each attempted route and selected fallback.
+- A no-mirror source with only an unversioned current official route has no reproducible route and cannot complete until it adds a frozen online snapshot or a version-pinned/frozen official route.
+
+## Replication obligations
 
 - `full_mirror`: require nonzero observation inputs and exact agreement with the declared file denominator.
 - `partitioned_mirror`: require nonzero inputs, a Schema-valid partition manifest, and exact agreement among partition boundaries, names, file paths, sizes, SHA-256 values, and declared file and partition denominators.
-- `federated_on_demand`: require zero local observation inputs, an `official_upstream` location, and a runtime that resolves every indexed Variable.
+- `no_mirror`: require zero observation inputs and zero replication placements. It does not relax online-access obligations.
 
 GitHub observation archives are optional. Elements observation bytes are optional. A mounted object-store copy must be copied and hashed before completion. Research-project caches are derived use-plane artifacts and never mutate the canonical source snapshot.
 
@@ -41,12 +52,13 @@ GitHub observation archives are optional. Elements observation bytes are optiona
 1. Audit the sealed Execute handoff.
 2. Promote canonical records transactionally if necessary.
 3. Inherit and verify the Plan knowledge scope.
-4. Build the knowledge and Agent artifacts, exclude observation roots, and run the source runtime's offline full-variable self-test.
-5. Apply the observation replication and placement policy, build each declared inventory, and prove no cross-component duplicate.
-6. Generate Release assets and source-repository files.
-7. Verify every claimed location and the non-receipt GitHub publication assets by read-back.
-8. Build and upload the Storage receipt, then read back and verify its exact size and SHA-256 plus the Release tag and source-repository commit.
-9. Transactionally seal publication evidence and receipts, then write the central source-archive card to external GRDR state and prove Core remained byte-identical.
+4. Build the knowledge and Agent artifacts, exclude observation roots, and run the source Runtime's offline full-variable self-test.
+5. Build the online-access manifest, run every online route test, and prove exact all-Variable route coverage.
+6. Apply the independent observation replication and placement policy, build each declared inventory, and prove no cross-component duplicate.
+7. Generate Release assets and source-repository files.
+8. Verify every claimed location and the non-receipt GitHub publication assets by read-back.
+9. Build and upload the Storage receipt, then read back and verify its exact size and SHA-256 plus the Release tag and source-repository commit.
+10. Transactionally seal publication evidence and receipts, then write the central source-archive card to external GRDR state and prove Core remained byte-identical.
 
 Never write the central card before verified publication. Never reuse a snapshot ID for different bytes. Use a new snapshot for every changed upstream boundary, observation payload, completeness claim, or placement policy.
 

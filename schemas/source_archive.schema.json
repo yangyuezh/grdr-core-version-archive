@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "id", "source_id", "repository", "latest_snapshot", "release", "manifest", "archive_fingerprint", "core_version", "status", "updated_at"],
   "properties": {
-    "schema_version": {"enum": ["1.0.0", "2.0.0", "3.0.0"]},
+    "schema_version": {"enum": ["1.0.0", "2.0.0", "3.0.0", "4.0.0"]},
     "id": {"type": "string", "pattern": "^grdr:source-archive:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "repository": {"type": "string", "format": "uri"},
@@ -25,14 +25,16 @@
       "additionalProperties": false,
       "required": ["protocol_version", "asset", "entrypoint", "agent_index", "operations"],
       "properties": {
-        "protocol_version": {"const": "grdr-source-runtime/1.0"},
+        "protocol_version": {"enum": ["grdr-source-runtime/1.0", "grdr-source-runtime/2.0"]},
+        "route_environment_protocol": {"const": "grdr-route-context/1.0"},
         "asset": {"type": "string", "minLength": 1},
         "entrypoint": {"type": "string", "minLength": 1},
         "agent_index": {"type": "string", "minLength": 1},
+        "online_access_manifest": {"type": "string", "minLength": 1},
         "operations": {
           "type": "array",
           "minItems": 4,
-          "items": {"enum": ["self-test", "search", "resolve-variable", "fetch-variable"]},
+          "items": {"enum": ["self-test", "self-test-online", "search", "resolve-variable", "fetch-variable"]},
           "uniqueItems": true,
           "allOf": [
             {"contains": {"const": "self-test"}},
@@ -52,6 +54,22 @@
     {
       "if": {"properties": {"schema_version": {"const": "3.0.0"}}},
       "then": {"required": ["runtime", "knowledge_fingerprint", "observation_fingerprint", "snapshot_profile"]}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "4.0.0"}}},
+      "then": {
+        "required": ["runtime", "knowledge_fingerprint", "observation_fingerprint", "snapshot_profile"],
+        "properties": {
+          "runtime": {
+            "required": ["route_environment_protocol", "online_access_manifest"],
+            "properties": {
+              "protocol_version": {"const": "grdr-source-runtime/2.0"},
+              "operations": {"contains": {"const": "self-test-online"}}
+            }
+          },
+          "snapshot_profile": {"required": ["online_access"]}
+        }
+      }
     }
   ]
 }

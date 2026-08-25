@@ -95,10 +95,13 @@ The registry must also support direct source discovery and curation without requ
 - `audit_database_deep_map`
 - `complete_database_deep_map`
 
-### Optional access extensions
+### Access and observation execution
 
 - `run_adapter`
 - `query_federated_source`
+- `resolve_variable_access`
+- `fetch_variable`
+- `self_test_online`
 - `create_lawful_snapshot`
 - `monitor_upstream_change`
 
@@ -121,9 +124,11 @@ start-database-deep-map
   → audit-database-deep-map-archive
   → archive-database-deep-map
   → verify canonical archive receipt
-  → inherit knowledge scope and choose full, partitioned, or federated observation handling
+  → inherit knowledge scope
+  → build and test online routes for every registered Variable
+  → independently choose full, partitioned, or no observation replication
   → build source repository + callable Release + Elements knowledge/Runtime snapshot
-  → verify source runtime resolves every indexed variable
+  → verify source Runtime 2.0 resolves every indexed Variable offline and online
   → upload and read back the Storage receipt
   → only then seal completion and the central source card
 ```
@@ -132,7 +137,7 @@ The six required unit stages are Dataset, DataStructure, DataElement, Variable, 
 
 `resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. Step 2 may write only project-local staging. Step 3 Storage alone may promote canonical collections and write the central source-archive card under external `GRDR_STATE_ROOT`; it must leave immutable Core byte-identical. The internal archive receipt proves external-state promotion; only a valid Storage receipt plus verified knowledge/Agent parity and verified declared observation locations declares factory completion. A 100% knowledge result is always limited to the project's explicit dated boundary; observation completeness is stated independently.
 
-The database lifecycle is the production plane. The separate Agent Runtime use plane searches variables across local distributed indexes, fully verifies the manifest-bound local snapshot before every normal operation, resolves one variable through the source runtime, and passes a sealed route context for an Elements mirror, mounted object store, or authoritative upstream. It may seal an on-demand query result under the research project. Storage packages and self-tests the canonical source runtime and records the cache policy; it does not turn query caches into canonical observations.
+The database lifecycle is the production plane. The separate Agent Runtime use plane searches variables across distributed indexes, resolves one Variable through source Runtime 2.0, and applies the requested `latest`, `reproducible`, or `offline` route policy. It tries only routes declared and tested in the snapshot, records every attempt and fallback, fully verifies any local or mounted inventory before use, and may seal an on-demand query result under the research project. Storage packages and self-tests the canonical source runtime and records the cache policy; it does not turn query caches into canonical observations.
 
 ## Executable research-project lifecycle
 

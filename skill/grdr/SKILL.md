@@ -14,10 +14,10 @@ Treat GRDR as an immutable Core plus external mutable registry state:
 - Agent Research Data Infrastructure;
 - a source-matching and data-gap reasoning system;
 - a continuously expanding cross-disciplinary knowledge base.
-- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, callable Elements copy, location-aware observation policy, and source-specific runtime.
-- an independent Agent Runtime that searches, mounts, resolves, and calls those stored snapshots.
+- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, callable Elements copy, complete online-access audit, independent observation-replication policy, and source-specific Runtime.
+- an independent Agent Runtime that searches, resolves, and invokes those snapshots using explicit latest, reproducible, or offline route policies.
 
-Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped knowledge and Agent snapshots. Store observation bytes as a full mirror, partitioned mirror, or federated-on-demand source according to the snapshot's explicit policy.
+Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped knowledge and Agent snapshots. Require tested online callability for every registered Variable. Independently store observation bytes as a full mirror, partitioned mirror, or no mirror according to the snapshot's explicit capacity-aware replication policy.
 
 ## Follow the current phase
 
@@ -65,7 +65,7 @@ python3 "$GRDR_LAUNCHER" search-variables --construct population
 python3 "$GRDR_LAUNCHER" search-variables --construct population --snapshot-policy history
 python3 "$GRDR_LAUNCHER" source-snapshot-status --source-id grdr:source:example --verify
 python3 "$GRDR_LAUNCHER" resolve-variable-access grdr:variable:example-measure
-python3 "$GRDR_LAUNCHER" fetch-variable grdr:variable:example-measure --dry-run
+python3 "$GRDR_LAUNCHER" fetch-variable grdr:variable:example-measure --route-policy latest --dry-run
 python3 "$GRDR_LAUNCHER" trace-provenance grdr:variable:example-measure
 ```
 
@@ -92,11 +92,11 @@ When one database must be understood beyond Source registration, dispatch three 
 
 1. `$grdr-plan-database-deep-map` diagnoses the database, fixes the boundary and work-unit universe, composes route obligations, and creates the locked project;
 2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
-3. `$grdr-store-database-deep-map` alone promotes the sealed records, inherits the locked knowledge scope, selects observation replication and placement, excludes raw observations from knowledge, builds the callable snapshot artifacts, verifies every declared location and the source runtime, writes the central card, and issues the Storage receipt.
+3. `$grdr-store-database-deep-map` alone promotes the sealed records, inherits the locked knowledge scope, proves online callability for every registered Variable, independently selects observation replication and placement, excludes raw observations from knowledge, builds the callable snapshot artifacts, verifies every declared route and location, writes the central card, and issues the Storage receipt.
 
 Storage reads adjustable deployment-local capacity thresholds from external GRDR configuration. These thresholds affect only observation replication and placement. The snapshot records the measured bytes, optional upstream-size estimate, policy-relative size class, selected mode, and exact thresholds; it never uses size to weaken Plan-locked knowledge depth.
 
-Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies the source runtime; unified search, online snapshot materialization, variable access resolution, and official retrieval are Core runtime operations.
+Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies source Runtime 2.0 plus its online route graph; unified search, snapshot materialization, route-policy selection, variable access resolution, fallback, and retrieval are Core Runtime operations.
 
 The map preserves Institution and Source as provenance context; Dataset; recursive DataStructure; 5A DataElement and 5B Variable; and Construct. Resource is an access sidecar. It must also close a source-native structural spine, a multi-parent scientific-semantic spine, and the Variable-to-Construct bridge. Audit current depth first:
 
@@ -170,8 +170,8 @@ python3 "$GRDR_LAUNCHER" align-research-indicators <project-id> <decisions.jsonl
 python3 "$GRDR_LAUNCHER" traverse-semantic-paths <project-id>
 python3 "$GRDR_LAUNCHER" match-indicators <project-id>
 python3 "$GRDR_LAUNCHER" explain-indicator-match <project-id> <indicator-id>
-python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --dry-run
-python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --seal-data-snapshot
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --route-policy latest --dry-run
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --route-policy reproducible --seal-data-snapshot
 python3 "$GRDR_LAUNCHER" expand-from-data-gaps <project-id>
 # After candidate sources have been deepened or new sources registered:
 python3 "$GRDR_LAUNCHER" resume-research-project <project-id>
@@ -184,7 +184,7 @@ Treat `mapping_snapshot_health.status: stale` or `workflow_status: needs_rerun` 
 
 ## Use access extensions carefully
 
-Read [references/access-architecture.md](references/access-architecture.md) only when adding an API adapter, federated query, or lawful snapshot. Keep source discovery and metadata separate from data retrieval.
+Read [references/access-architecture.md](references/access-architecture.md) when adding an API, bulk-download, browser-automation, Release-fallback adapter, or lawful snapshot. Keep source discovery and metadata separate from data retrieval.
 
 Never bypass authentication, payment, consent, ethics review, data-use agreements, rate limits, or access controls.
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -50,6 +51,8 @@ HUMAN_READABLE_MARKER = "<!-- Human-readable sections are maintained in this sou
 IGNORED_FILESYSTEM_METADATA = {".DS_Store"}
 RUNTIME_DESCRIPTOR_FILE = "runtime.json"
 RUNTIME_AUDIT_FILE = "runtime_audit.json"
+ONLINE_ACCESS_FILE = "online_access.json"
+ONLINE_RUNTIME_AUDIT_FILE = "online_runtime_audit.json"
 OBSERVATION_MANIFEST_FILE = "observation_manifest.json"
 SNAPSHOT_MANIFEST_FILE = "manifest.json"
 PUBLICATION_VERIFICATION_FILE = "storage_publication_verification.json"
@@ -307,6 +310,199 @@ def run_source_runtime_self_test(agent_dir: Path, descriptor: dict[str, Any]) ->
     return report
 
 
+def indexed_variable_ids(index: Path) -> list[str]:
+    connection = sqlite3.connect(index)
+    try:
+        return [
+            row[0]
+            for row in connection.execute(
+                "SELECT id FROM records WHERE entity_type = 'variables' ORDER BY id"
+            )
+        ]
+    finally:
+        connection.close()
+
+
+def route_policies(spec: dict[str, Any]) -> dict[str, list[str]]:
+    replication = spec["observation_policy"]["replication"]
+    routes = spec["observation_policy"]["online_access"]["routes"]
+    classes: set[str] = set()
+    has_official = any(item["authority"] == "official" for item in routes)
+    has_reproducible_official = any(
+        item["authority"] == "official"
+        and item["freshness"] in {"version_pinned", "frozen_snapshot"}
+        for item in routes
+    )
+    if has_official:
+        classes.add("official_online")
+    if any(item["access_method"] == "grdr_release_snapshot" for item in routes):
+        classes.add("github_release_snapshot")
+    if "elements" in replication["placements"]:
+        classes.add("elements_mirror")
+    if "object_store" in replication["placements"]:
+        classes.add("mounted_object_store")
+    return {
+        "latest": [
+            item for item in (
+                "official_online",
+                "github_release_snapshot",
+                "elements_mirror",
+                "mounted_object_store",
+            ) if item in classes
+        ],
+        "reproducible": [
+            item for item in (
+                "github_release_snapshot",
+                "elements_mirror",
+                "mounted_object_store",
+                "official_online",
+            ) if item in classes and (item != "official_online" or has_reproducible_official)
+        ],
+        "offline": [
+            item for item in (
+                "elements_mirror",
+                "mounted_object_store",
+            ) if item in classes
+        ],
+    }
+
+
+def build_online_access_manifest(
+    spec: dict[str, Any],
+    descriptor: dict[str, Any],
+    variable_count: int,
+) -> dict[str, Any]:
+    access = spec["observation_policy"]["online_access"]
+    replication = spec["observation_policy"]["replication"]
+    routes = access["routes"]
+    route_ids = [item["route_id"] for item in routes]
+    if len(route_ids) != len(set(route_ids)):
+        raise ValueError("online access routes must have unique route_id values")
+    supported_methods = set(descriptor["supported_access_methods"])
+    unknown_methods = sorted({item["access_method"] for item in routes} - supported_methods)
+    if unknown_methods:
+        raise ValueError(
+            "source runtime does not declare every online access method: "
+            + ", ".join(unknown_methods)
+        )
+    official_routes = [item for item in routes if item["authority"] == "official"]
+    official_status = access["official_access"]["status"]
+    if official_status == "callable" and not official_routes:
+        raise ValueError("callable official access requires at least one official online route")
+    if official_status == "unavailable" and official_routes:
+        raise ValueError("unavailable official access cannot declare an official online route")
+    for route in routes:
+        if route["authority"] == "official":
+            if not route["access_method"].startswith("official_"):
+                raise ValueError(f"official route {route['route_id']} uses a non-official access method")
+            if route["verification"] != "live_runtime_test":
+                raise ValueError(f"official route {route['route_id']} must use live_runtime_test")
+        else:
+            if route["access_method"] != "grdr_release_snapshot":
+                raise ValueError(f"GRDR route {route['route_id']} must be a Release snapshot")
+            if route["verification"] != "staged_release_snapshot_test":
+                raise ValueError(f"GRDR route {route['route_id']} must use staged_release_snapshot_test")
+            if route["freshness"] != "frozen_snapshot":
+                raise ValueError(f"GRDR Release route {route['route_id']} must be a frozen snapshot")
+            if "github_release" not in replication["placements"]:
+                raise ValueError("GRDR Release online access requires github_release observation placement")
+    if replication["mode"] == "no_mirror" and any(
+        item["authority"] == "grdr" for item in routes
+    ):
+        raise ValueError("no_mirror cannot claim a GRDR Release observation route")
+    policies = route_policies(spec)
+    if not policies["latest"] or not policies["reproducible"]:
+        raise ValueError("online access must provide both latest and reproducible route policies")
+    manifest = {
+        "schema_version": "1.0.0",
+        "source_id": spec["source_id"],
+        "snapshot_id": spec["snapshot_id"],
+        "status": "callable_complete",
+        "completion_requirement": access["completion_requirement"],
+        "official_access": access["official_access"],
+        "routes": routes,
+        "coverage": {
+            "claim": "all_registered_variables",
+            "expected_variable_count": variable_count,
+        },
+        "route_policies": policies,
+    }
+    errors = validate_schema(manifest, "online_access_manifest.schema.json", ONLINE_ACCESS_FILE)
+    if errors:
+        raise ValueError("generated online access manifest is invalid: " + "; ".join(errors))
+    return manifest
+
+
+def run_source_runtime_online_test(
+    agent_dir: Path,
+    descriptor: dict[str, Any],
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    entrypoint = agent_dir / descriptor["entrypoint"]
+    index = agent_dir / descriptor["agent_index"]
+    access_path = agent_dir / descriptor["online_access_manifest"]
+    access = read_json(access_path)
+    environment = {
+        **os.environ,
+        "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot_root),
+        "GRDR_OBSERVATION_REPLICATION_MODE": read_json(access_path).get("replication_mode", "independent"),
+        "GRDR_OBSERVATION_ROOT": str(snapshot_root / "observations") if (snapshot_root / "observations").is_dir() else "",
+        "GRDR_ONLINE_ACCESS_MANIFEST": str(access_path),
+        "GRDR_ONLINE_ACCESS_ROUTES": json.dumps(access["routes"], separators=(",", ":")),
+    }
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(entrypoint),
+                "self-test-online",
+                "--index",
+                str(index),
+                "--access-manifest",
+                str(access_path),
+            ],
+            cwd=agent_dir,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("source runtime online self-test exceeded 300 seconds") from exc
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout).strip()
+        raise ValueError(f"source runtime online self-test failed: {detail}")
+    try:
+        report = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError("source runtime online self-test did not emit one JSON object") from exc
+    errors = validate_schema(report, "online_runtime_audit.schema.json", ONLINE_RUNTIME_AUDIT_FILE)
+    if errors:
+        raise ValueError("invalid source runtime online self-test: " + "; ".join(errors))
+    variable_ids = indexed_variable_ids(index)
+    if report["source_id"] != descriptor["source_id"] or report["snapshot_id"] != access["snapshot_id"]:
+        raise ValueError("source runtime online self-test identity differs from the snapshot")
+    if report["variable_count"] != len(variable_ids):
+        raise ValueError("source runtime online variable count differs from the Agent index")
+    if report["online_callable_variable_count"] != len(variable_ids):
+        raise ValueError("source runtime online self-test did not cover every registered variable")
+    coverage_ids = [item["variable_id"] for item in report["variable_routes"]]
+    if len(coverage_ids) != len(set(coverage_ids)) or sorted(coverage_ids) != variable_ids:
+        raise ValueError("online variable-route coverage does not enumerate the exact Agent-index variables")
+    declared_routes = {item["route_id"]: item for item in access["routes"]}
+    reported_routes = {item["route_id"]: item for item in report["route_results"]}
+    if len(reported_routes) != len(report["route_results"]) or set(reported_routes) != set(declared_routes):
+        raise ValueError("online route audit does not exactly cover the declared routes")
+    for route_id, declared in declared_routes.items():
+        result = reported_routes[route_id]
+        if result["access_method"] != declared["access_method"] or result["authority"] != declared["authority"]:
+            raise ValueError(f"online route audit differs from declaration for {route_id}")
+    for item in report["variable_routes"]:
+        if not set(item["route_ids"]).issubset(declared_routes):
+            raise ValueError(f"online variable coverage names an undeclared route for {item['variable_id']}")
+    return report
+
+
 def create_deterministic_tar_gz(source: Path, output: Path, archive_root: str) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as raw:
@@ -367,7 +563,7 @@ def content_records(logical_files: list[dict[str, Any]], component: str) -> list
 
 
 def component_location_map(spec: dict[str, Any]) -> dict[str, list[str]]:
-    placements = spec["observation_policy"]["placements"]
+    placements = spec["observation_policy"]["replication"]["placements"]
     observation_locations = [
         item for item in ("github_release", "elements", "object_store")
         if item in placements
@@ -385,8 +581,11 @@ def snapshot_profile(
     observation_file_count: int,
     partition_manifest: dict[str, Any] | None,
     capacity: dict[str, Any],
+    online_access: dict[str, Any],
+    online_runtime_audit: dict[str, Any],
 ) -> dict[str, Any]:
-    completeness = spec["observation_policy"]["completeness"]
+    replication = spec["observation_policy"]["replication"]
+    completeness = replication["completeness"]
     scope = project["scope"]
     goal = project["diagnostic_plan"]["goal"]
     return {
@@ -400,7 +599,7 @@ def snapshot_profile(
             "inherited_from_plan": True,
         },
         "observation_replication": {
-            "mode": spec["observation_policy"]["replication_mode"],
+            "mode": replication["mode"],
             "completeness_claim": completeness["claim"],
             "completeness_basis": completeness["basis"],
             "expected_file_count": completeness["expected_file_count"],
@@ -409,8 +608,19 @@ def snapshot_profile(
             "actual_partition_count": len(spec["observation_inputs"]),
             "partition_manifest": partition_manifest,
         },
+        "online_access": {
+            "status": "callable_complete",
+            "official_access_status": online_access["official_access"]["status"],
+            "official_access_basis": online_access["official_access"]["basis"],
+            "route_count": len(online_access["routes"]),
+            "expected_variable_count": online_access["coverage"]["expected_variable_count"],
+            "online_callable_variable_count": online_runtime_audit["online_callable_variable_count"],
+            "unresolved_online_variable_count": online_runtime_audit["unresolved_online_variable_count"],
+            "routes": online_access["routes"],
+            "route_policies": online_access["route_policies"],
+        },
         "observation_placement": {
-            "locations": sorted(spec["observation_policy"]["placements"]),
+            "locations": sorted(replication["placements"]),
             "cache": spec["observation_policy"]["cache"],
         },
         "capacity_assessment": capacity,
@@ -441,8 +651,9 @@ def assess_storage_capacity(
 ) -> dict[str, Any]:
     policy = storage_capacity_policy()
     captured_bytes = sum(item["size_bytes"] for item in observation_files)
-    mode = spec["observation_policy"]["replication_mode"]
-    estimate = spec["observation_policy"].get("capacity_estimate")
+    replication = spec["observation_policy"]["replication"]
+    mode = replication["mode"]
+    estimate = replication.get("capacity_estimate")
     if estimate is not None:
         estimated_total = estimate["estimated_total_bytes"]
         estimate_basis = estimate["basis"]
@@ -453,7 +664,7 @@ def assess_storage_capacity(
         estimated_total = None
         estimate_basis = "No total upstream byte estimate was supplied; size class is unknown."
     size_class = classify_observation_size(estimated_total, policy)
-    placements = set(spec["observation_policy"]["placements"])
+    placements = set(replication["placements"])
     errors = []
     if "github_release" in placements and captured_bytes > policy["github_release_observation_max_bytes"]:
         errors.append(
@@ -467,7 +678,7 @@ def assess_storage_capacity(
     ):
         errors.append(
             "full-mirror observations exceed the configured Elements full-mirror limit; "
-            "choose partitioned_mirror/federated_on_demand or raise the external deployment policy"
+            "choose partitioned_mirror/no_mirror or raise the external deployment policy"
         )
     if errors:
         raise ValueError("; ".join(errors))
@@ -481,7 +692,7 @@ def assess_storage_capacity(
             eligible.append("elements")
         recommendation = "full_mirror may use only capacity-eligible placements: " + ", ".join(eligible)
     elif size_class == "large":
-        recommendation = "prefer partitioned_mirror or federated_on_demand"
+        recommendation = "prefer partitioned_mirror or no_mirror; online access remains mandatory"
     else:
         recommendation = "supply capacity_estimate before using a size-class recommendation"
     return {
@@ -554,8 +765,9 @@ def validate_observation_policy(
     observation_files: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
     policy = spec["observation_policy"]
-    mode = policy["replication_mode"]
-    completeness = policy["completeness"]
+    replication = policy["replication"]
+    mode = replication["mode"]
+    completeness = replication["completeness"]
     actual_files = len(observation_files)
     actual_partitions = len(spec["observation_inputs"])
     if mode in {"full_mirror", "partitioned_mirror"}:
@@ -575,7 +787,7 @@ def validate_observation_policy(
         )
     partition_record = None
     if mode == "partitioned_mirror":
-        path = resolve_input(policy["partition_manifest"], spec_path.parent)
+        path = resolve_input(replication["partition_manifest"], spec_path.parent)
         if not path.is_file() or path.is_symlink():
             raise ValueError(f"partition manifest must be a regular file: {path}")
         try:
@@ -590,35 +802,25 @@ def validate_observation_policy(
             "partition_count": manifest["partition_count"],
             "file_count": manifest["file_count"],
         }
-    external_types = [item["type"] for item in policy["external_locations"]]
+    external_types = [item["type"] for item in replication["external_locations"]]
     if len(external_types) != len(set(external_types)):
         raise ValueError("observation external locations must have unique types")
-    placements = set(policy["placements"])
-    for external in policy["external_locations"]:
+    placements = set(replication["placements"])
+    for external in replication["external_locations"]:
         if external["type"] not in placements:
             raise ValueError(f"external location {external['type']} is absent from observation placements")
         if external["type"] == "object_store":
             if external["verification"] != "copied_and_hashed" or not external["local_path"]:
                 raise ValueError("object_store requires copied_and_hashed verification and a mounted local_path")
-        elif external["local_path"] is not None or external["verification"] != "official_runtime_verified":
-            raise ValueError("official_upstream requires official_runtime_verified and local_path=null")
-    for location in ("object_store", "official_upstream"):
+    for location in ("object_store",):
         if location in placements and location not in external_types:
             raise ValueError(f"observation placement {location} requires one external_locations record")
     cache = policy["cache"]
-    if "research_project_cache" in placements:
-        if (
-            cache["mode"] != "on_demand"
-            or not cache["research_project_snapshots"]
-            or cache["root"] != "research_project"
-        ):
-            raise ValueError("research_project_cache placement requires on-demand research-project snapshots")
-    elif (
-        cache["mode"] != "disabled"
-        or cache["research_project_snapshots"]
-        or cache["root"] is not None
-    ):
-        raise ValueError("enabled cache policy requires research_project_cache placement")
+    if cache["mode"] == "on_demand":
+        if not cache["research_project_snapshots"] or cache["root"] != "research_project":
+            raise ValueError("on-demand cache requires research-project snapshots")
+    elif cache["research_project_snapshots"] or cache["root"] is not None:
+        raise ValueError("disabled cache cannot declare research-project snapshot storage")
     return partition_record
 
 
@@ -642,6 +844,8 @@ def package_payload(
     release_assets: list[dict[str, Any]],
     runtime: dict[str, Any],
     runtime_audit: dict[str, Any],
+    online_access_manifest: dict[str, Any],
+    online_runtime_audit: dict[str, Any],
     profile: dict[str, Any],
     external_locations: list[dict[str, Any]],
     prepared_at: str,
@@ -649,7 +853,7 @@ def package_payload(
     knowledge_files = content_records(logical_files, "knowledge")
     observation_files = content_records(logical_files, "observations")
     payload = {
-        "schema_version": "3.0.0",
+        "schema_version": "4.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "source_slug": spec["source_slug"],
@@ -674,6 +878,8 @@ def package_payload(
         "external_observation_locations": external_locations,
         "runtime": runtime,
         "runtime_audit": runtime_audit,
+        "online_access_manifest": online_access_manifest,
+        "online_runtime_audit": online_runtime_audit,
         "knowledge_content_fingerprint": fingerprint(knowledge_files),
         "observation_content_fingerprint": fingerprint(observation_files),
         "duplicate_content_hash_count": len(duplicate_cross_component_hashes(logical_files)),
@@ -700,6 +906,8 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 - Knowledge scope: `{package['snapshot_profile']['knowledge_scope']['completion_claim']}`
 - Observation replication: `{package['snapshot_profile']['observation_replication']['mode']}`
 - Observation placement: {', '.join(package['snapshot_profile']['observation_placement']['locations'])}
+- Online access: `{package['snapshot_profile']['online_access']['status']}`; {package['snapshot_profile']['online_access']['online_callable_variable_count']}/{package['snapshot_profile']['online_access']['expected_variable_count']} variables callable
+- Default latest route order: {', '.join(package['snapshot_profile']['online_access']['route_policies']['latest'])}
 - Agent runtime: `{package['runtime']['protocol_version']}` via `agent/{package['runtime']['entrypoint']}`
 - Runtime variable coverage: {package['runtime_audit']['resolvable_variable_count']}/{package['runtime_audit']['variable_count']}
 - Logical content fingerprint: `{package['logical_content_fingerprint']}`
@@ -744,7 +952,7 @@ def materialize_source_repository(
         atomic_write_text(ignore_path, (ignore.rstrip() + "\n" + line + "\n").lstrip("\n"))
     write_source_readme(repository / "README.md", generated_readme(project, package))
     source_config = {
-        "schema_version": "3.0.0",
+        "schema_version": "4.0.0",
         "source_id": project["source_id"],
         "core_repository": package["core_repository"],
         "core_version": package["core_version"],
@@ -785,6 +993,8 @@ def materialize_source_repository(
             raise ValueError(f"refusing to overwrite a different runtime file: {target}")
         shutil.copy2(source, target)
     write_json(runtime_dir / RUNTIME_AUDIT_FILE, package["runtime_audit"])
+    write_json(runtime_dir / ONLINE_ACCESS_FILE, package["online_access_manifest"])
+    write_json(runtime_dir / ONLINE_RUNTIME_AUDIT_FILE, package["online_runtime_audit"])
     test_content = f'''{GENERATED_PY_MARKER}
 import hashlib
 import json
@@ -801,6 +1011,8 @@ def test_snapshot_manifest_is_self_consistent():
     assert manifest["source_id"] == "{project['source_id']}"
     assert manifest["runtime_audit"]["unresolved_variable_count"] == 0
     assert manifest["runtime_audit"]["variable_count"] == manifest["runtime_audit"]["resolvable_variable_count"]
+    assert manifest["online_runtime_audit"]["unresolved_online_variable_count"] == 0
+    assert manifest["online_runtime_audit"]["variable_count"] == manifest["online_runtime_audit"]["online_callable_variable_count"]
 '''
     write_generated(repository / "tests" / "test_snapshot_manifest.py", test_content)
 
@@ -844,7 +1056,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         raise ValueError(f"Elements snapshot path already exists: {elements_path}")
     if release_assets_path.exists():
         raise ValueError(f"release asset path already exists: {release_assets_path}")
-    for external in spec["observation_policy"]["external_locations"]:
+    for external in spec["observation_policy"]["replication"]["external_locations"]:
         if external["type"] != "object_store" or external["local_path"] is None:
             continue
         external_path = (
@@ -898,7 +1110,6 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         build_agent_index(target, agent_dir / "grdr-agent-index.sqlite")
         runtime = stage_source_runtime(spec, project, agent_dir)
         runtime_audit = run_source_runtime_self_test(agent_dir, runtime)
-        write_json(agent_dir / RUNTIME_AUDIT_FILE, runtime_audit)
         for item, observation_root in zip(spec["observation_inputs"], observation_roots):
             copy_input(observation_root, logical_root / "observations" / item["name"])
         preliminary_files = inventory(logical_root)
@@ -909,6 +1120,15 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         partition_record = validate_observation_policy(
             spec, spec_path, preliminary_observations
         )
+        online_access_manifest = build_online_access_manifest(
+            spec, runtime, runtime_audit["variable_count"]
+        )
+        write_json(agent_dir / ONLINE_ACCESS_FILE, online_access_manifest)
+        online_runtime_audit = run_source_runtime_online_test(
+            agent_dir, runtime, logical_root
+        )
+        write_json(agent_dir / RUNTIME_AUDIT_FILE, runtime_audit)
+        write_json(agent_dir / ONLINE_RUNTIME_AUDIT_FILE, online_runtime_audit)
         if partition_record is not None:
             source_partition_manifest = Path(partition_record.pop("source_path"))
             suffix = "".join(source_partition_manifest.suffixes) or ".json"
@@ -921,32 +1141,28 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
                 stored_partition_manifest.relative_to(logical_root).as_posix()
             )
         profile = snapshot_profile(
-            project, spec, len(preliminary_observations), partition_record, capacity
+            project,
+            spec,
+            len(preliminary_observations),
+            partition_record,
+            capacity,
+            online_access_manifest,
+            online_runtime_audit,
         )
         observation_paths = [item["path"] for item in preliminary_observations]
         observation_content_fingerprint = fingerprint(preliminary_observations)
         external_locations = []
-        for external in spec["observation_policy"]["external_locations"]:
-            local_path = None
-            logical_paths = observation_paths if external["type"] == "object_store" else []
-            content_fingerprint = (
-                observation_content_fingerprint
-                if external["type"] == "object_store"
-                else fingerprint({
-                    "uri": external["uri"],
-                    "source_id": project["source_id"],
-                    "official_domains": runtime["official_domains"],
-                })
+        for external in spec["observation_policy"]["replication"]["external_locations"]:
+            logical_paths = observation_paths
+            content_fingerprint = observation_content_fingerprint
+            external_root = resolve_input(external["local_path"], spec_path.parent)
+            local_path = str(
+                external_root
+                / "sources"
+                / spec["source_slug"]
+                / "snapshots"
+                / spec["snapshot_id"]
             )
-            if external["local_path"] is not None:
-                external_root = resolve_input(external["local_path"], spec_path.parent)
-                local_path = str(
-                    external_root
-                    / "sources"
-                    / spec["source_slug"]
-                    / "snapshots"
-                    / spec["snapshot_id"]
-                )
             external_locations.append({
                 "type": external["type"],
                 "uri": external["uri"],
@@ -983,7 +1199,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
             asset_record(knowledge_asset, "knowledge", [item["path"] for item in logical_files if item["component"] == "knowledge"]),
             asset_record(agent_asset, "agent", [item["path"] for item in logical_files if item["component"] == "agent"]),
         ]
-        if "github_release" in spec["observation_policy"]["placements"]:
+        if "github_release" in spec["observation_policy"]["replication"]["placements"]:
             for name in sorted(observation_names):
                 source = logical_root / "observations" / name
                 output = assets / f"{spec['source_slug']}-{spec['snapshot_id']}-observations-{name}.tar.gz"
@@ -1000,8 +1216,9 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         prepared_at = now()
         package = package_payload(
             project, spec, archive_receipt, elements_path, release_assets_path,
-            logical_files, release_assets, runtime, runtime_audit, profile,
-            external_locations, prepared_at,
+            logical_files, release_assets, runtime, runtime_audit,
+            online_access_manifest, online_runtime_audit, profile, external_locations,
+            prepared_at,
         )
         validation_errors = validate_schema(package, "database_storage_package.schema.json", STORAGE_PACKAGE_FILE)
         if validation_errors:
@@ -1010,7 +1227,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         elements_build = workspace / "elements"
         for component in ("knowledge", "agent"):
             shutil.copytree(logical_root / component, elements_build / component)
-        if "elements" in spec["observation_policy"]["placements"]:
+        if "elements" in spec["observation_policy"]["replication"]["placements"]:
             shutil.copytree(logical_root / "observations", elements_build / "observations")
         write_json(elements_build / "receipts" / SNAPSHOT_MANIFEST_FILE, package)
         prepared_object_locations: list[tuple[Path, Path]] = []
@@ -1048,7 +1265,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
     project["workflow_status"] = "ready_for_storage"
     project["current_phase"] = "storage"
     project["next_actions"] = ["publish-database-storage", "database-storage-status"]
-    append_history(project, "prepare-database-storage", "Materialized the complete knowledge and Agent artifacts, applied the declared observation replication and placement policy without cross-component duplication, and sealed the location-aware snapshot manifest.")
+    append_history(project, "prepare-database-storage", "Materialized complete knowledge and Agent artifacts, proved all registered Variables have an online call route, independently applied the observation-replication policy, and sealed the location-aware snapshot manifest without cross-component duplication.")
     write_json(target / PROJECT_FILE, project)
     return {"operation": "prepare_database_storage", "status": "ready_for_publish", "package": package, "audit": audit_database_storage(target)}
 
@@ -1092,7 +1309,7 @@ def source_archive_card(
     stored_at: str,
 ) -> dict[str, Any]:
     card = {
-        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
+        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0"} else "2.0.0",
         "id": f"grdr:source-archive:{package['source_slug']}",
         "source_id": project["source_id"],
         "repository": publication["repository_url"],
@@ -1105,13 +1322,17 @@ def source_archive_card(
         "updated_at": stored_at,
         "runtime": {
             "protocol_version": package["runtime"]["protocol_version"],
+            **({
+                "route_environment_protocol": package["runtime"]["route_environment_protocol"],
+                "online_access_manifest": f"agent/{package['runtime']['online_access_manifest']}",
+            } if package["schema_version"] == "4.0.0" else {}),
             "asset": agent_asset_name(package),
             "entrypoint": f"agent/{package['runtime']['entrypoint']}",
             "agent_index": f"agent/{package['runtime']['agent_index']}",
             "operations": package["runtime"]["operations"],
         },
     }
-    if package["schema_version"] == "3.0.0":
+    if package["schema_version"] in {"3.0.0", "4.0.0"}:
         card.update({
             "knowledge_fingerprint": package["knowledge_content_fingerprint"],
             "observation_fingerprint": package["observation_content_fingerprint"],
@@ -1127,7 +1348,7 @@ def build_storage_receipt(
     stored_at: str,
 ) -> dict[str, Any]:
     receipt = {
-        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
+        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0"} else "2.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "snapshot_id": package["snapshot_id"],
@@ -1143,7 +1364,7 @@ def build_storage_receipt(
         "status": "complete",
         "stored_at": stored_at,
     }
-    if package["schema_version"] == "3.0.0":
+    if package["schema_version"] in {"3.0.0", "4.0.0"}:
         receipt.update({
             "knowledge_content_fingerprint": package["knowledge_content_fingerprint"],
             "observation_content_fingerprint": package["observation_content_fingerprint"],
@@ -1326,6 +1547,7 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
     if package.get("project_id") != project["id"] or package.get("source_id") != project["source_id"]:
         errors.append("storage package identity does not match the deep-map project")
     legacy_package = package.get("schema_version") == "2.0.0"
+    current_package = package.get("schema_version") == "4.0.0"
     if not legacy_package:
         if package.get("project_scope_fingerprint") != project["locks"]["scope_fingerprint"]:
             errors.append("Storage knowledge scope fingerprint differs from the locked Plan")
@@ -1346,6 +1568,11 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         observation_count = len(observation_records)
         if replication.get("actual_file_count") != observation_count:
             errors.append("observation completeness actual_file_count differs from the manifest")
+        if replication.get("mode") == "no_mirror" and (
+            observation_count != 0
+            or profile.get("observation_placement", {}).get("locations")
+        ):
+            errors.append("no_mirror must contain zero canonical observation files and placements")
         expected_files = replication.get("expected_file_count")
         if expected_files is not None and expected_files != observation_count:
             errors.append("observation completeness expected_file_count differs from the manifest")
@@ -1380,6 +1607,26 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             )
             if item.get("locations") != expected_locations:
                 errors.append(f"logical file locations differ from the snapshot policy: {item['path']}")
+        if current_package:
+            access = package.get("online_access_manifest", {})
+            online_audit = package.get("online_runtime_audit", {})
+            access_errors = validate_schema(access, "online_access_manifest.schema.json", ONLINE_ACCESS_FILE)
+            audit_errors = validate_schema(online_audit, "online_runtime_audit.schema.json", ONLINE_RUNTIME_AUDIT_FILE)
+            errors.extend(access_errors)
+            errors.extend(audit_errors)
+            online_profile = profile.get("online_access", {})
+            if access.get("source_id") != package["source_id"] or access.get("snapshot_id") != package["snapshot_id"]:
+                errors.append("online access manifest identity differs from the storage package")
+            if online_audit.get("source_id") != package["source_id"] or online_audit.get("snapshot_id") != package["snapshot_id"]:
+                errors.append("online runtime audit identity differs from the storage package")
+            if online_audit.get("variable_count") != package["runtime_audit"].get("variable_count"):
+                errors.append("online runtime variable count differs from the offline runtime audit")
+            if online_audit.get("online_callable_variable_count") != online_audit.get("variable_count"):
+                errors.append("online runtime audit does not cover every registered Variable")
+            if online_profile.get("routes") != access.get("routes") or online_profile.get("route_policies") != access.get("route_policies"):
+                errors.append("snapshot online-access profile differs from the sealed access manifest")
+            if online_profile.get("online_callable_variable_count") != online_audit.get("online_callable_variable_count"):
+                errors.append("snapshot online-access coverage differs from the sealed runtime audit")
     elements = Path(package["elements_snapshot_path"])
     if not elements.is_dir():
         errors.append(f"Elements snapshot is missing: {elements}")
@@ -1433,6 +1680,13 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                                 errors.append("partition-manifest counts differ from the snapshot profile")
                         except (ValueError, OSError, json.JSONDecodeError) as exc:
                             errors.append(str(exc))
+            if current_package:
+                element_access = elements / "agent" / ONLINE_ACCESS_FILE
+                element_online_audit = elements / "agent" / ONLINE_RUNTIME_AUDIT_FILE
+                if not element_access.is_file() or read_json(element_access) != package.get("online_access_manifest"):
+                    errors.append("Elements online access manifest is missing or differs from the storage package")
+                if not element_online_audit.is_file() or read_json(element_online_audit) != package.get("online_runtime_audit"):
+                    errors.append("Elements online runtime audit is missing or differs from the storage package")
     assets_path = Path(package["release_assets_path"])
     expected_release_files = (
         package["logical_files"]
@@ -1477,6 +1731,32 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                 runtime_audit = run_source_runtime_self_test(agent_dir, package["runtime"])
                 if runtime_audit != package.get("runtime_audit"):
                     errors.append("Elements source runtime audit differs from the sealed runtime audit")
+                if current_package:
+                    refreshed_online = run_source_runtime_online_test(
+                        agent_dir, package["runtime"], elements
+                    )
+                    sealed_online = package.get("online_runtime_audit", {})
+                    for key in (
+                        "source_id",
+                        "snapshot_id",
+                        "status",
+                        "variable_count",
+                        "online_callable_variable_count",
+                        "unresolved_online_variable_count",
+                        "variable_routes",
+                    ):
+                        if refreshed_online.get(key) != sealed_online.get(key):
+                            errors.append(f"refreshed online runtime audit differs for {key}")
+                    refreshed_routes = [
+                        {key: item[key] for key in ("route_id", "status", "access_method", "authority")}
+                        for item in refreshed_online.get("route_results", [])
+                    ]
+                    sealed_routes = [
+                        {key: item[key] for key in ("route_id", "status", "access_method", "authority")}
+                        for item in sealed_online.get("route_results", [])
+                    ]
+                    if refreshed_routes != sealed_routes:
+                        errors.append("refreshed online route audit differs from the sealed route set")
             except ValueError as exc:
                 errors.append(str(exc))
     if not legacy_package:
@@ -1503,6 +1783,11 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         repository / "runtime" / package["runtime"]["entrypoint"],
         repository / "runtime" / RUNTIME_AUDIT_FILE,
     ]
+    if current_package:
+        required_repo_files.extend([
+            repository / "runtime" / ONLINE_ACCESS_FILE,
+            repository / "runtime" / ONLINE_RUNTIME_AUDIT_FILE,
+        ])
     for path in required_repo_files:
         if not path.is_file():
             errors.append(f"source repository file is missing: {path}")

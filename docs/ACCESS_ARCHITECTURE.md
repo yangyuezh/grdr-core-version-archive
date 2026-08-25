@@ -37,7 +37,7 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 - One deeply stored Source owns one private source repository.
 - One snapshot owns one GitHub Release containing complete knowledge, Agent Runtime, manifest, receipt, and only those observations explicitly assigned to GitHub.
 - The same snapshot owns one expanded Elements directory containing complete knowledge and Agent Runtime plus only those observations explicitly assigned to Elements.
-- Large observation bytes may instead live on a mounted object store or remain at the official upstream under federated access.
+- Large observation bytes may instead live on a mounted object store or remain only at the official upstream; this replication decision does not remove the online-callability requirement.
 - A location-aware manifest maps every logical file to its actual locations and SHA-256. Knowledge and Agent files must match across Release and Elements; observation parity is checked only across locations that claim a copy.
 - Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
@@ -46,15 +46,39 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 
 Storage may promote sealed records into external state after validation. It must never promote them into the immutable Core checkout.
 
+## Three independent snapshot axes
+
+Every new snapshot persists three separate conclusions:
+
+1. `knowledge_scope`: inherited unchanged from the locked Plan;
+2. `online_access`: a tested route graph that covers every registered Variable;
+3. `observation_replication`: copied bytes and placements selected under the deployment capacity policy.
+
+The second axis is mandatory and size-independent. The third axis is optional in quantity but exact in its claims.
+
 ## Observation replication modes
 
 - `full_mirror`: capture every declared observation file within the locked knowledge scope and verify the declared file denominator.
 - `partitioned_mirror`: capture the complete declared partition set and require exact agreement among its Schema-valid partition manifest, boundary descriptions, input names, member paths, sizes, hashes, and denominators.
-- `federated_on_demand`: preserve complete structure, variables, semantics, evidence, official routes, and a fully resolvable source runtime while keeping observation bytes at the official upstream.
+- `no_mirror`: copy no canonical observation files while still preserving complete knowledge and complete tested online callability.
 
-Every mode records a separate knowledge-scope claim, observation-completeness claim, and placement list. These claims are not interchangeable.
+Every mode records a separate observation-completeness claim and placement list. These claims do not replace knowledge scope or online access.
 
-Before every normal search, resolution, or invocation, Agent Runtime verifies the complete manifest-bound Elements inventory. It passes the selected `elements_mirror`, `mounted_object_store`, or `official_upstream` route context to the source-specific runtime. A missing location that claims a copy is an error, not a warning.
+## Universal online access
+
+Storage must produce `online_access.json` and `online_runtime_audit.json`. The first records official availability, executable route definitions, and route orders. The second records live or staged route tests and an exact Variable-to-route map. Completion requires `unresolved_online_variable_count: 0`.
+
+Supported online methods are official API, official bulk download, official browser automation, and a verified GRDR GitHub Release observation snapshot. Bulk-only and browser-only sources require source-specific adapters that download or operate the official interface, normalize the result, and preserve parameters and evidence. If the official source is unavailable, a verified GRDR Release route may serve as the online fallback. If no online route covers all registered Variables, Storage must remain incomplete.
+
+Agent Runtime applies one of three route policies:
+
+- `latest`: official online, then GRDR GitHub Release, then Elements or mounted replicas;
+- `reproducible`: frozen GRDR or source snapshot, then Elements or mounted replicas, then a version-checked official route;
+- `offline`: Elements or mounted replicas only.
+
+A no-mirror snapshot backed only by an unversioned current API has no reproducible route. It must add a frozen online snapshot or version-pinned official route before Storage can complete.
+
+Before every local operation, Agent Runtime verifies the complete manifest-bound inventory. During invocation it passes the selected route context to the source-specific Runtime, tries candidates in policy order, records failures, and falls back only to another declared and verified route. A missing location that claims a copy is an error, not a warning.
 
 ## On-demand research data
 

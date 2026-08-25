@@ -42,7 +42,9 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 │   ├── grdr-agent-index.sqlite
 │   ├── runtime.json
 │   ├── <source-runtime>.py
-│   └── runtime_audit.json
+│   ├── runtime_audit.json
+│   ├── online_access.json
+│   └── online_runtime_audit.json
 ├── observations/<partition>/...       # only when placed on Elements
 └── receipts/
     ├── manifest.json
@@ -61,9 +63,9 @@ The receipt and manifest are provenance sidecars and are excluded from the logic
 
 Storage copies and hashes this representation before completion. The GitHub manifest records its URI, mounted path, logical paths, and observation fingerprint.
 
-## Federated and research-project data
+## Online access and research-project data
 
-Federated snapshots hold no canonical observation files. Their manifest records the official upstream URI and verified Runtime.
+Every snapshot carries tested online routes independently of its observation replication. A no-mirror snapshot holds no canonical observation files but still carries complete Variable-to-route coverage. Official routes may use an API, bulk download, or browser automation; a verified GRDR Release observation snapshot may act as the online fallback.
 
 An on-demand research fetch may create:
 
@@ -75,4 +77,4 @@ An on-demand research fetch may create:
 └── manifest.json
 ```
 
-`data_snapshot_index.jsonl` indexes those query-scoped captures. They are derived research artifacts, not additions to the source snapshot.
+`data_snapshot_index.jsonl` indexes those query-scoped captures. Each manifest records the requested route policy, attempted routes, and selected route. They are derived research artifacts, not additions to the source snapshot.

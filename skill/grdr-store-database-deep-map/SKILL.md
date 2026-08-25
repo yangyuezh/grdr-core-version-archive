@@ -1,6 +1,6 @@
 ---
 name: grdr-store-database-deep-map
-description: "Store one sealed GRDR database deep-map as a versioned, callable AI-agent snapshot: preserve its locked knowledge scope, choose full-mirror, partitioned-mirror, or federated observation handling, exclude raw observations from knowledge, package the complete knowledge graph and source runtime, verify every declared physical location, publish the source repository and GitHub Release, update the external central card, and issue the final Storage receipt. Use only for Step 3 after grdr-execute-database-deep-map reports Storage readiness."
+description: "Store one sealed GRDR database deep-map as a versioned, callable AI-agent snapshot: preserve its locked knowledge scope, require tested online routes for every registered Variable, independently choose full, partitioned, or no observation replication, exclude raw observations from knowledge, package the complete knowledge graph and source Runtime, verify every declared route and physical location, publish the source repository and GitHub Release, update the external central card, and issue the final Storage receipt. Use only for Step 3 after grdr-execute-database-deep-map reports Storage readiness."
 ---
 
 # GRDR Step 3 — Store Database Deep Map
@@ -11,12 +11,13 @@ Turn one sealed Step 2 execution into one durable `versioned_database_snapshot`.
 
 1. promote the sealed candidates into the canonical registry under external `GRDR_STATE_ROOT` and keep its internal archive receipt without modifying Core;
 2. create or update one private source repository that references, but never copies, GRDR Core;
-3. inherit the exact Plan knowledge scope and independently declare observation replication and placement;
-4. load the deployment-local capacity policy, measure actual observation bytes before copying, record any upstream-size estimate, and validate the selected replication and placement;
-5. build the complete knowledge artifact, Agent SQLite index, source-specific runtime, and only the observation artifacts required by the selected mode;
-6. publish knowledge and Agent artifacts in the GitHub Release, materialize them in Elements, and place observation bytes only where declared;
-7. verify every declared location with SHA-256, prove zero knowledge/observation duplication, and prove the runtime resolves every indexed Variable;
-8. upload the final receipt, read it back from GitHub, and only then write the external central card and complete state.
+3. inherit the exact Plan knowledge scope and independently declare online access, observation replication, and observation placement;
+4. require source Runtime 2.0 to test every declared online route and map every registered Variable to at least one executable route;
+5. load the deployment-local capacity policy, measure actual observation bytes before copying, record any upstream-size estimate, and validate the selected replication and placement;
+6. build the complete knowledge artifact, Agent SQLite index, source Runtime, online manifests/audits, and only the observation artifacts required by the selected replication mode;
+7. publish knowledge and Agent artifacts in the GitHub Release, materialize them in Elements, and place observation bytes only where declared;
+8. verify every declared route and location, prove zero knowledge/observation duplication, and prove the Runtime resolves every indexed Variable both offline and online;
+9. upload the final receipt, read it back from GitHub, and only then write the external central card and complete state.
 
 Do not discover new content, change the Plan boundary, repair Execute ledgers, manufacture missing observations, combine multiple databases into one source repository, write database records into Core, implement unified research search inside Storage, or mark a locally prepared package complete before GitHub publication is verified. Search, matching, snapshot mounting, access-plan resolution, and retrieval belong to the independent GRDR Agent Runtime; Storage only packages and validates its source-scoped runtime input.
 
@@ -41,14 +42,15 @@ Create a Schema-valid Storage specification with:
 - exact GRDR Core version and repository URL;
 - one private `owner/grdr-source-<slug>` repository and local working path;
 - the Elements root;
-- one observation mode: `full_mirror`, `partitioned_mirror`, or `federated_on_demand`;
+- one replication mode: `full_mirror`, `partitioned_mirror`, or `no_mirror`;
 - an optional upstream observation-size estimate and evidence basis when the full upstream byte size is known;
 - an explicit completeness claim and the actual observation placements;
-- named nonzero observation inputs for full/partitioned modes, or zero local inputs plus an official-upstream record for federated mode;
+- named nonzero observation inputs for full/partitioned modes, or zero inputs and zero replication placements for no-mirror mode;
+- an `online_access` contract whose completion requirement is `all_registered_variables_online_callable`, with official status, one or more executable routes, and explicit authority and verification method;
 - every additional project path containing raw observations that must be excluded from knowledge;
 - an on-demand research-project cache policy;
 - source-specific adapter files needed for reproducibility.
-- one Schema-valid `grdr-source-runtime/1.0` descriptor and its source-specific executable files.
+- one Schema-valid `grdr-source-runtime/2.0` descriptor and its source-specific executable files, including `self-test-online` and the route-context protocol.
 
 Configure deployment thresholds outside Core. Defaults are 5 GiB of observations per GitHub Release and 10 GiB for one Elements full mirror; both are adjustable without changing the Skill. GitHub Release files must always remain below the platform's 2 GiB per-file limit. Treat the resulting small/medium/large label as a policy-relative recommendation, never as a database identity or a reason to reduce knowledge scope.
 
@@ -66,12 +68,12 @@ python3 "$GRDR_LAUNCHER" database-storage-status <project>
 Preparation must produce:
 
 - ordinary source-repository files: configuration, adapters, locked Plan, snapshot manifest, canonical archive receipt, README, and tests;
-- Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, runtime descriptor, executable entrypoint and runtime audit, optional observation archives only when GitHub is an observation placement, and `manifest.json`;
+- Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, Runtime 2.0 descriptor, executable entrypoint, offline runtime audit, online access manifest, and online runtime audit; optional observation archives only when GitHub is an observation placement; and `manifest.json`;
 - Elements: complete expanded `knowledge/` and `agent/`, plus `observations/` only when Elements is an observation placement;
-- optional mounted large-data copies or verified official-upstream pointers;
+- optional mounted large-data copies plus verified official or GRDR Release online routes;
 - `storage_package.json` bound to the locked knowledge scope, completeness claim, location-aware file inventory, canonical archive receipt, and every checksum.
 
-Always exclude declared observation roots from `knowledge/`. Reject any content hash shared by knowledge and observations. Reject zero or denominator-mismatched observations in mirror modes, local observations in federated mode, any indexed Variable the runtime cannot resolve, checksum mismatch, missing repository files, path conflicts, altered manifests, or mismatch at any location that claims a copy.
+Always exclude declared observation roots from `knowledge/`. Reject any content hash shared by knowledge and observations. Reject zero or denominator-mismatched observations in mirror modes, any observation input or placement in no-mirror mode, any indexed Variable the Runtime cannot resolve, any online route whose test failed, any registered Variable with no tested online route, checksum mismatch, missing repository files, path conflicts, altered manifests, or mismatch at any location that claims a copy.
 
 For `partitioned_mirror`, require `observation_partition_manifest.schema.json`. Every partition must state a boundary and must enumerate exactly the copied files, relative paths, sizes, and SHA-256 values. Partition names must equal `observation_inputs[].name`; file and partition counts must match both the manifest and the Storage completeness declaration.
 
@@ -101,6 +103,6 @@ Do not invent a publication record. The command performs its own GitHub read-bac
 
 ## Report
 
-Return Source, project, and snapshot IDs; Core version; knowledge scope and completion claim; observation replication mode, completeness claim, placements, file and partition counts; source repository and Release URLs; Elements and external locations; knowledge, observation, logical-content, package, publication, and Storage-receipt fingerprints; central card ID; and final audit.
+Return Source, project, and snapshot IDs; Core version; knowledge scope and completion claim; online completion state, official status, route methods, online Variable coverage and route policies; observation replication mode, completeness claim, placements, file and partition counts; source repository and Release URLs; Elements and external locations; knowledge, observation, logical-content, package, publication, and Storage-receipt fingerprints; central card ID; and final audit.
 
 Only `storage_complete: true`, `completion_ready: true`, and a valid `storage_receipt.json` mean the three-step factory has completed. A canonical archive receipt alone means knowledge records entered GRDR; it does not mean the database snapshot has been stored.

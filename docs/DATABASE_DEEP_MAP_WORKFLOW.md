@@ -12,8 +12,9 @@ Step 2 Execute
 逐单元深读 → 恢复两根主干和一座桥 → 暂存规范记录 → 密封执行包
         ↓ sealed_deep_map_execution
 Step 3 Storage
-中央入库 → 继承知识范围 → 选择观测复制模式与位置 → 独立源仓库
-→ 完整知识包 → Agent运行时/索引 → 位置清单 → 核验 → 中央卡片 → Storage回执
+中央入库 → 继承知识范围 → 完成全部变量的在线调用 → 独立选择观测复制与位置
+→ 独立源仓库 → 完整知识包 → Agent Runtime 2.0／索引 → 双清单与审计
+→ 发布核验 → 中央卡片 → Storage回执
         ↓ versioned_database_snapshot
 ```
 
@@ -25,7 +26,7 @@ Step 3 Storage
 
 原来的Archive只是Storage内部的“中央注册表事务归档”，不再是第三个公开Skill，也不能单独代表数据库已经完成存储。
 
-三步工厂是数据库生产面。统一检索、变量匹配、快照挂载、访问计划解析和官方数据调用属于独立的GRDR Agent Runtime使用面，不是第四个生产步骤，也不并入Storage。Storage只负责把源运行时作为快照制品保存，并验证它能解析全部已登记变量。
+三步工厂是数据库生产面。统一检索、变量匹配、快照挂载、访问计划解析和实际数据调用属于独立的GRDR Agent Runtime使用面，不是第四个生产步骤，也不并入Storage。Storage负责把来源专属 Runtime 作为快照制品保存，并在交付前验证全部已登记变量既能离线解析访问计划，也至少拥有一条已经测试的在线执行路线。
 
 ## Step 1：Plan
 
@@ -68,21 +69,21 @@ Execute只写工程内部`staging/`及账本。`execution_ready_for_storage: tru
 | 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent运行时与SQLite索引、清单、回执；仅在策略指定时保存观测数据 | 知识与Agent完整 |
 | Elements磁盘 | 完整知识与Agent展开目录；仅在策略指定时保存观测数据 | 知识与Agent完整 |
 | 大型数据存储 | 完整或分区观测镜像及逐文件哈希 | 按完整性声明 |
-| 官方上游 | 联邦模式的权威观测数据 | 不复制 |
+| 官方上游 | 所有数据库都必须建设和测试的首选在线调用路线；可为API、整表下载或网页自动化 | 不属于复制位置 |
 
 一个Source对应一个独立仓库；一个快照对应一个Release和一个Elements快照目录。独立仓库引用GRDR Core版本，不复制Core Skill。
 
-### 三个快照核心属性
+### 三个独立判断轴
 
 Storage必须保存：
 
 1. `knowledge_scope`：直接继承Plan的范围、完成声明、边界和范围指纹，Storage不得修改；
-2. `observation_replication`：`full_mirror`、`partitioned_mirror`或`federated_on_demand`；
-3. `observation_placement`：GitHub Release、Elements、大型数据存储、官方上游和按需研究项目缓存的可组合位置。
+2. `online_access`：覆盖全部已登记Variable的可执行路线、官方可用状态、路线优先级和实际在线测试证据；
+3. `observation_replication`：`full_mirror`、`partitioned_mirror`或`no_mirror`，以及GitHub Release、Elements、挂载对象存储中的实际复制位置。
 
 快照还必须保存`capacity_assessment`：实际捕获字节数、可选的上游总体量估计、当时启用的外部容量阈值、策略相对的规模分类和最终模式。默认GitHub观测总量阈值为5 GiB、Elements完整镜像阈值为10 GiB；两者都可随硬件调整。GitHub每个Release文件必须严格小于2 GiB。
 
-知识拆解是否完整与观测数据复制多少是两个独立结论。联邦模式仍必须完整保存锁定范围内的数据库结构、变量、语义、证据和调用能力。
+知识拆解是否完整、在线调用是否完整、观测数据复制多少是三个独立结论。容量阈值只能改变第三项；不能降低知识深度，也不能豁免在线变量覆盖。
 
 ### 逻辑快照与去重
 
@@ -94,6 +95,8 @@ agent/grdr-agent-index.sqlite
 agent/runtime.json
 agent/<source-runtime>.py
 agent/runtime_audit.json
+agent/online_access.json
+agent/online_runtime_audit.json
 ```
 
 `observations/`只出现在策略指定的位置。清单逐文件保存逻辑路径、实际位置、SHA-256与字节数，并保存每个Release资产的SHA-256与展开成员。
@@ -102,7 +105,7 @@ agent/runtime_audit.json
 
 ### 执行命令
 
-先写Schema 3.0 Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、三属性快照、观测数据输入、适配器和源运行时：
+先写Schema 4.0 Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、三个判断轴、观测数据输入、在线路线、适配器和来源专属Runtime：
 
 ```bash
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
@@ -117,7 +120,7 @@ agent/runtime_audit.json
 .venv/bin/python scripts/grdr.py store-database-deep-map <project> <storage-spec.json>
 ```
 
-完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；分区镜像还要求Schema有效的分区清单逐项匹配分区边界、名称、成员路径、大小和SHA-256；联邦模式要求零本地观测输入、官方上游位置和已验证Runtime。所有模式都拒绝超出所选位置容量阈值、运行时不能解析全部索引变量、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；分区镜像还要求Schema有效的分区清单逐项匹配分区边界、名称、成员路径、大小和SHA-256；`no_mirror`要求零观测输入和零复制位置。三种复制模式一律要求Runtime 2.0在线自检：路线清单与测试结果完全对应，每个已登记Variable至少映射一条可执行路线，未解决数量必须为零。所有模式都拒绝超出所选位置容量阈值、Runtime不能解析全部索引变量、在线覆盖不完整、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
 
 发布顺序是硬约束：先上传并核验知识、Agent和可选观测资产，再生成并上传最终Storage回执；只有从GitHub重新读取并核验回执、Release标签、精确提交和所有资产哈希以后，才能写本地／Elements回执、中央卡片和`complete`状态。
 
@@ -130,12 +133,12 @@ research question
 → search-variables（中央记录 + 本地分布式索引）
 → source-snapshot-status / materialize-source-snapshot
 → resolve-variable-access
-→ fetch-variable
-→ 已核验的Elements镜像／挂载镜像／官方上游
+→ fetch-variable --route-policy latest|reproducible|offline
+→ 按策略尝试官方在线／GRDR Release／Elements／挂载镜像
 → 原始字节、筛选结果与provenance
 ```
 
-GitHub Release是在线知识与Agent分发版。Elements是本地可调用展开版。`materialize-source-snapshot`下载并核验GitHub实际持有的资产；大型观测文件无需经过GitHub。研究调用可用`fetch-variable --research-project-dir`或`fetch-indicator-data --seal-data-snapshot`生成带查询参数、来源、快照、变量和逐文件哈希的项目级数据快照。
+GitHub Release是在线知识与Agent分发版，也可在观测资产实际放入Release且路线通过测试时充当在线数据后备。Elements是本地可调用展开版。`latest`默认先尝试官方在线路线，`reproducible`优先冻结快照，`offline`只允许本地或挂载复制；每次回退均写入调用结果。研究调用可用`fetch-variable --research-project-dir`或`fetch-indicator-data --seal-data-snapshot`生成带路由策略、实际选中路线、查询参数、来源、快照、变量和逐文件哈希的项目级数据快照。
 
 ## 完成定义
 
@@ -143,8 +146,8 @@ GitHub Release是在线知识与Agent分发版。Elements是本地可调用展�
 
 1. `execution_ready_for_storage`：Execute已密封；
 2. `canonical_archive_complete`：知识记录已事务写入中央GRDR；
-3. `ready_for_publish`：源仓库、Release资产和Elements已在本地构建并一致；
-4. `storage_complete`：GitHub仓库和Release已验证，Elements存在，中央卡片与Storage回执有效；
+3. `ready_for_publish`：源仓库、Release资产和Elements已在本地构建并一致，全部变量的在线路线测试通过；
+4. `storage_complete`：GitHub仓库和Release已验证，Elements存在，在线清单／审计、中央卡片与Storage回执有效；
 5. `completion_ready`：Plan、Execute和Storage全部通过。
 
 只有第4和第5项同时为真，才能说某个数据库已经按照GRDR三步工厂完整收录并存档。核心仓库不保存任何真实数据库工程，因此这里不声明任何具体数据库已经完成。

@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.3.0] - 2026-08-25
+
+### Breaking storage and runtime contract
+
+- Separate every snapshot into three independent axes: Plan-locked knowledge scope, mandatory online access, and capacity-dependent observation replication.
+- Replace `federated_on_demand` as a replication choice with `no_mirror`; official online access is now universal rather than one mutually exclusive storage mode.
+- Upgrade new source artifacts to `grdr-source-runtime/2.0` and route context `grdr-route-context/1.0`.
+
+### Added
+
+- Add Schema-validated `online_access.json` and `online_runtime_audit.json` artifacts with explicit official availability, API/bulk-download/browser-automation/GRDR-Release methods, exact Variable-to-route coverage, and zero-unresolved completion.
+- Add `latest`, `reproducible`, and `offline` Runtime policies with ordered route attempts, automatic declared-route fallback, and selected-route evidence.
+- Add independent full-mirror, partitioned-mirror, and no-mirror replication while keeping capacity thresholds limited to copied observation bytes.
+- Persist requested route policy and actual observation route in research-project data snapshots.
+
+### Validation
+
+- Add Storage regression coverage for all three replication modes and for rejection of any indexed Variable without an online route.
+- Add Runtime regression coverage for latest/reproducible/offline ordering and official-to-GRDR-Release fallback.
+- Align the architecture diagrams, decision tables, workflow documentation, and relevant Skills with the executable v4.3 contract.
+
 ## [4.2.0] - 2026-08-25
 
 ### Added

@@ -1,6 +1,6 @@
 ---
 name: grdr-resolve-research-semantics
-description: Resolve GRDR research indicators through the persisted scientific-semantic B spine to callable A-side variables, data elements, structures, datasets, and official source runtimes. Use when a persisted GRDR research project already has leaf indicators from a topic scaffold or literature-grounded Indicator Builder and Codex must perform full-text candidate recall, evidence-constrained ResearchIndicator-to-Construct/SemanticNode alignment, auditable multi-hop graph traversal, variable-fit classification, match explanation, data-gap diagnosis, or indicator-scoped official data invocation.
+description: Resolve GRDR research indicators through the persisted scientific-semantic B spine to callable A-side variables, data elements, structures, datasets, and source runtimes. Use when a persisted GRDR research project already has leaf indicators from a topic scaffold or literature-grounded Indicator Builder and Codex must perform full-text candidate recall, evidence-constrained ResearchIndicator-to-Construct/SemanticNode alignment, auditable multi-hop graph traversal, variable-fit classification, match explanation, data-gap diagnosis, or indicator-scoped invocation with latest, reproducible, or offline route policy.
 ---
 
 # GRDR Research Semantic Resolver
@@ -15,8 +15,8 @@ R: ResearchQuestion / ResearchIndicator
 B: stored SemanticNode / Construct spine
   -> stored B-to-A graph relationships
 A: Variable / DataElement / DataStructure / Dataset
-  -> verified source runtime
-official data
+  -> verified source Runtime 2.0
+policy-selected observations
 ```
 
 Use the B created by Plan -> Execute -> Storage. Never create a second B, write project judgments into `registry/*.jsonl`, or promote a missing construct into canonical Storage. Keep candidate recall, alignments, paths, and mappings under the research project.
@@ -107,16 +107,16 @@ python3 "$GRDR_LAUNCHER" explain-indicator-match <project> <indicator-id>
 
 The explanation must expose recall, alignment decision, graph edges, selected variable, fit, snapshot, and uncertainty rather than return an opaque score.
 
-### 5. Invoke official data through the selected path
+### 5. Invoke data through the selected path and explicit route policy
 
-Resolve a single-variable mapping through its verified source runtime:
+Resolve a single-variable mapping through its verified source Runtime. Use `latest` for current data, `reproducible` for frozen/versioned results, or `offline` when network access is forbidden:
 
 ```bash
-python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --dry-run
-python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --seal-data-snapshot
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --route-policy latest --dry-run
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --route-policy reproducible --seal-data-snapshot
 ```
 
-Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, upstream provenance, and snapshot manifest.
+Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, requested route policy, attempted routes, selected route, upstream provenance, and snapshot manifest.
 
 ## Recover and expand
 
@@ -142,5 +142,5 @@ Report semantic resolution complete only when:
 - `mapping_snapshot_health.status` is `current`; superseded snapshot identifiers have been rebuilt before invocation;
 - ordinary current-data recall used `latest_callable`; any use of `history` is explicit and justified by the research design;
 - contested mappings remain human-gated;
-- official invocation is callable or its concrete access blocker is reported;
+- policy-selected invocation is callable or its concrete route blocker is reported;
 - `research-project-status` contains no semantic-file validation errors.

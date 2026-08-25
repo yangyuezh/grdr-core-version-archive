@@ -1,6 +1,6 @@
 # Access and Storage Boundary
 
-Use this reference when adding an adapter, federated query, or source snapshot. GRDR's broad registry can describe access without copying data; the Plan → Execute → Storage factory has a stricter completion rule.
+Use this reference when adding an adapter, online query route, or source snapshot. GRDR's broad registry can describe access without copying data; the Plan → Execute → Storage factory has a stricter completion rule.
 
 ## Separate knowledge from retrieval
 
@@ -8,15 +8,16 @@ The registry records what a source is, who maintains it, what it contains, how a
 
 An adapter performs actual retrieval. Knowing a source exists and being authorized to retrieve its records are different capabilities.
 
-The three-step factory is the production plane. The independent GRDR Agent Runtime is the use plane. Storage packages the source adapter/runtime and proves its interface is callable; Core Runtime performs unified search, snapshot materialization, variable resolution, and retrieval.
+The three-step factory is the production plane. The independent GRDR Agent Runtime is the use plane. Storage packages source Runtime 2.0 and proves every registered Variable has a tested online route; Core Runtime performs unified search, snapshot materialization, variable resolution, policy-ordered invocation, and fallback.
 
 ## Optional access modes
 
-- `federated_access`: query the authoritative upstream API or bulk service.
+- `official_online`: query an authoritative API, bulk-download service, or browser workflow through a source adapter.
+- `grdr_release_snapshot`: use a verified GitHub Release observation snapshot as an online fallback.
 - `local_snapshot`: keep a versioned copy only when licensing, privacy, cost, and scale permit.
 - `controlled_access_pointer`: retain metadata and application instructions for restricted, commercial, sensitive, secure, or physical collections.
 
-Do not equate “not copied locally” with “not registered in GRDR.” Also do not equate registration with completed Storage: a three-step database project requires complete knowledge within its locked Plan scope, a verified callable Release and Elements representation, an explicit full/partitioned/federated observation policy, verified declared locations, a central card, and a Storage receipt.
+Do not equate “not copied locally” with “not registered in GRDR.” Also do not equate registration with completed Storage: a three-step database project requires complete knowledge within its locked Plan scope, complete tested online coverage for all registered Variables, an explicit full/partitioned/no-mirror replication policy, verified declared locations, a callable Release and Elements representation, a central card, and a Storage receipt.
 
 ## Adapter requirements
 

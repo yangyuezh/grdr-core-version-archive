@@ -190,12 +190,34 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
     receipt = read_json(receipt_path)
     descriptor = read_json(descriptor_path)
     audit = read_json(audit_path)
+    access = None
+    online_audit = None
+    if descriptor.get("protocol_version") == "grdr-source-runtime/2.0":
+        access_path = snapshot / "agent" / descriptor.get("online_access_manifest", "")
+        online_audit_path = snapshot / "agent" / "online_runtime_audit.json"
+        missing_online = [
+            str(path) for path in (access_path, online_audit_path) if not path.is_file()
+        ]
+        if missing_online:
+            status["errors"].extend(f"missing {path}" for path in missing_online)
+            return status
+        access = read_json(access_path)
+        online_audit = read_json(online_audit_path)
     if receipt.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
         status["errors"].append("Elements receipt fingerprint differs from the central source card")
     if descriptor.get("source_id") != card["source_id"]:
         status["errors"].append("runtime descriptor source_id differs from the central source card")
     if audit.get("status") != "ready" or audit.get("unresolved_variable_count") != 0:
         status["errors"].append("runtime audit does not prove complete variable resolution")
+    if online_audit is not None:
+        if (
+            online_audit.get("status") != "ready"
+            or online_audit.get("unresolved_online_variable_count") != 0
+            or online_audit.get("online_callable_variable_count") != online_audit.get("variable_count")
+        ):
+            status["errors"].append("online runtime audit does not prove complete variable callability")
+        if access.get("status") != "callable_complete":
+            status["errors"].append("online access manifest is not callable_complete")
     manifest_path = snapshot / "receipts" / "manifest.json"
     manifest = read_json(manifest_path) if manifest_path.is_file() else None
     receipt_fingerprint = receipt.get("receipt_fingerprint")
@@ -218,6 +240,8 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             status["snapshot_profile"] = profile
             status["observation_replication_mode"] = profile["observation_replication"]["mode"]
             status["observation_placements"] = profile["observation_placement"]["locations"]
+            if "online_access" in profile:
+                status["online_access"] = profile["online_access"]
     cache_key = (
         card["source_id"],
         card["latest_snapshot"],
@@ -232,6 +256,8 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         return cached_status
     status["runtime_ready"] = not status["errors"]
     status["runtime_audit"] = audit
+    if online_audit is not None:
+        status["online_runtime_audit"] = online_audit
     if verify:
         records = snapshot_inventory(snapshot)
         if manifest is None:
@@ -292,7 +318,12 @@ def available_runtimes(
     return result
 
 
-def observation_route_context(snapshot: Path) -> dict[str, Any]:
+def observation_route_context(
+    snapshot: Path,
+    route_policy: str = "latest",
+) -> dict[str, Any]:
+    if route_policy not in {"latest", "reproducible", "offline"}:
+        raise DistributedRuntimeError(f"unknown observation route policy: {route_policy}")
     manifest_path = snapshot / "receipts" / "manifest.json"
     manifest = read_json(manifest_path) if manifest_path.is_file() else {}
     profile = manifest.get("snapshot_profile", {})
@@ -310,6 +341,86 @@ def observation_route_context(snapshot: Path) -> dict[str, Any]:
         ),
         None,
     )
+    access_path = snapshot / "agent" / "online_access.json"
+    if access_path.is_file():
+        access = read_json(access_path)
+        policy_order = access["route_policies"][route_policy]
+        candidates: list[dict[str, Any]] = []
+        for route_class in policy_order:
+            if route_class == "official_online":
+                official_routes = sorted(
+                    (route for route in access["routes"] if route["authority"] == "official"),
+                    key=lambda route: (
+                        route["freshness"] != "current_upstream",
+                        route["route_id"],
+                    ),
+                )
+                for route in official_routes:
+                    if route["authority"] != "official":
+                        continue
+                    if (
+                        route_policy == "reproducible"
+                        and route["freshness"] not in {"version_pinned", "frozen_snapshot"}
+                    ):
+                        continue
+                    candidates.append({
+                        "route_class": route_class,
+                        "selected_route": "official_upstream",
+                        "route_id": route["route_id"],
+                        "access_method": route["access_method"],
+                        "uri": route["uri"],
+                        "observation_root": "",
+                    })
+            elif route_class == "github_release_snapshot":
+                for route in access["routes"]:
+                    if route["access_method"] != "grdr_release_snapshot":
+                        continue
+                    candidates.append({
+                        "route_class": route_class,
+                        "selected_route": "github_release_snapshot",
+                        "route_id": route["route_id"],
+                        "access_method": route["access_method"],
+                        "uri": route["uri"],
+                        "observation_root": "",
+                    })
+            elif route_class == "elements_mirror":
+                if "elements" in locations and local_observations.is_dir():
+                    candidates.append({
+                        "route_class": route_class,
+                        "selected_route": "elements_mirror",
+                        "route_id": "elements-mirror",
+                        "access_method": "local_mirror",
+                        "uri": local_observations.as_uri(),
+                        "observation_root": str(local_observations),
+                    })
+            elif route_class == "mounted_object_store" and mounted is not None:
+                observation_root = Path(mounted["local_path"]) / "observations"
+                candidates.append({
+                    "route_class": route_class,
+                    "selected_route": "mounted_object_store",
+                    "route_id": "mounted-object-store",
+                    "access_method": "mounted_mirror",
+                    "uri": mounted["uri"],
+                    "observation_root": str(observation_root),
+                })
+        if not candidates:
+            raise DistributedRuntimeError(
+                f"snapshot has no available observation route for policy {route_policy}"
+            )
+        selected = candidates[0]
+        return {
+            "route_policy": route_policy,
+            "replication_mode": replication.get("mode", "legacy_or_unknown"),
+            "placements": locations,
+            "selected_route": selected["selected_route"],
+            "selected_route_id": selected["route_id"],
+            "access_method": selected["access_method"],
+            "uri": selected["uri"],
+            "observation_root": selected["observation_root"],
+            "candidate_routes": candidates,
+            "external_locations": external_locations,
+            "online_access": access,
+        }
     if local_observations.is_dir():
         selected_route = "elements_mirror"
         observation_root = str(local_observations)
@@ -320,10 +431,22 @@ def observation_route_context(snapshot: Path) -> dict[str, Any]:
         selected_route = "official_upstream"
         observation_root = ""
     return {
+        "route_policy": "legacy_fixed",
         "replication_mode": replication.get("mode", "legacy_or_unknown"),
         "placements": locations,
         "selected_route": selected_route,
+        "selected_route_id": selected_route.replace("_", "-"),
+        "access_method": "legacy",
+        "uri": "",
         "observation_root": observation_root,
+        "candidate_routes": [{
+            "route_class": selected_route,
+            "selected_route": selected_route,
+            "route_id": selected_route.replace("_", "-"),
+            "access_method": "legacy",
+            "uri": "",
+            "observation_root": observation_root,
+        }],
         "external_locations": external_locations,
     }
 
@@ -822,6 +945,7 @@ def invoke_source_runtime(
     operation: str,
     root: str | Path | None = None,
     extra_args: Iterable[str] = (),
+    route_policy: str = "latest",
 ) -> dict[str, Any]:
     for card, snapshot in available_runtimes(cards, root):
         index = snapshot / card["runtime"]["agent_index"]
@@ -840,42 +964,87 @@ def invoke_source_runtime(
             except (IndexError, ValueError):
                 pass
         command = [sys.executable, str(entrypoint), operation, "--index", str(index), "--variable-id", variable_id, *arguments]
-        route_context = observation_route_context(snapshot)
-        runtime_environment = {
-            **os.environ,
-            "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
-            "GRDR_OBSERVATION_REPLICATION_MODE": route_context["replication_mode"],
-            "GRDR_OBSERVATION_PLACEMENTS": json.dumps(route_context["placements"], separators=(",", ":")),
-            "GRDR_OBSERVATION_ROUTE": route_context["selected_route"],
-            "GRDR_OBSERVATION_ROOT": route_context["observation_root"],
-            "GRDR_OBSERVATION_EXTERNAL_LOCATIONS": json.dumps(route_context["external_locations"], separators=(",", ":")),
-        }
-        try:
-            completed = subprocess.run(
-                command,
-                cwd=entrypoint.parent,
-                env=runtime_environment,
-                capture_output=True,
-                text=True,
-                timeout=invocation_timeout,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise DistributedRuntimeError(
-                f"source runtime exceeded {invocation_timeout:g} seconds"
-            ) from exc
-        if completed.returncode:
-            raise DistributedRuntimeError((completed.stderr or completed.stdout).strip() or "source runtime invocation failed")
-        try:
-            result = json.loads(completed.stdout)
-        except json.JSONDecodeError as exc:
-            raise DistributedRuntimeError("source runtime did not emit one JSON object") from exc
-        return {
-            "source_id": card["source_id"],
-            "snapshot_id": card["latest_snapshot"],
-            "runtime_protocol": card["runtime"]["protocol_version"],
-            "observation_route": route_context,
-            "result": result,
-        }
+        route_context = observation_route_context(snapshot, route_policy)
+        attempted_routes = []
+        for candidate in route_context["candidate_routes"]:
+            runtime_environment = {
+                **os.environ,
+                "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
+                "GRDR_ROUTE_POLICY": route_policy,
+                "GRDR_OBSERVATION_REPLICATION_MODE": route_context["replication_mode"],
+                "GRDR_OBSERVATION_PLACEMENTS": json.dumps(route_context["placements"], separators=(",", ":")),
+                "GRDR_OBSERVATION_ROUTE": candidate["selected_route"],
+                "GRDR_OBSERVATION_ROUTE_ID": candidate["route_id"],
+                "GRDR_OBSERVATION_ACCESS_METHOD": candidate["access_method"],
+                "GRDR_OBSERVATION_URI": candidate["uri"],
+                "GRDR_OBSERVATION_ROOT": candidate["observation_root"],
+                "GRDR_OBSERVATION_EXTERNAL_LOCATIONS": json.dumps(route_context["external_locations"], separators=(",", ":")),
+                "GRDR_ONLINE_ACCESS_MANIFEST": str(snapshot / "agent" / "online_access.json"),
+                "GRDR_ONLINE_ACCESS_ROUTES": json.dumps(route_context.get("online_access", {}).get("routes", []), separators=(",", ":")),
+            }
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=entrypoint.parent,
+                    env=runtime_environment,
+                    capture_output=True,
+                    text=True,
+                    timeout=invocation_timeout,
+                )
+            except subprocess.TimeoutExpired:
+                attempted_routes.append({
+                    "route_id": candidate["route_id"],
+                    "selected_route": candidate["selected_route"],
+                    "status": "failed",
+                    "error": f"source runtime exceeded {invocation_timeout:g} seconds",
+                })
+                continue
+            if completed.returncode:
+                attempted_routes.append({
+                    "route_id": candidate["route_id"],
+                    "selected_route": candidate["selected_route"],
+                    "status": "failed",
+                    "error": (completed.stderr or completed.stdout).strip() or "source runtime invocation failed",
+                })
+                continue
+            try:
+                result = json.loads(completed.stdout)
+            except json.JSONDecodeError:
+                attempted_routes.append({
+                    "route_id": candidate["route_id"],
+                    "selected_route": candidate["selected_route"],
+                    "status": "failed",
+                    "error": "source runtime did not emit one JSON object",
+                })
+                continue
+            attempted_routes.append({
+                "route_id": candidate["route_id"],
+                "selected_route": candidate["selected_route"],
+                "status": "succeeded",
+                "error": None,
+            })
+            selected_context = {
+                **route_context,
+                "selected_route": candidate["selected_route"],
+                "selected_route_id": candidate["route_id"],
+                "access_method": candidate["access_method"],
+                "uri": candidate["uri"],
+                "observation_root": candidate["observation_root"],
+                "attempted_routes": attempted_routes,
+            }
+            return {
+                "source_id": card["source_id"],
+                "snapshot_id": card["latest_snapshot"],
+                "runtime_protocol": card["runtime"]["protocol_version"],
+                "observation_route": selected_context,
+                "result": result,
+            }
+        detail = "; ".join(
+            f"{item['route_id']}: {item['error']}" for item in attempted_routes
+        )
+        raise DistributedRuntimeError(
+            f"every {route_policy} observation route failed for {variable_id}: {detail}"
+        )
     raise DistributedRuntimeError(f"variable is absent from every locally available source runtime: {variable_id}")
 
 
@@ -901,6 +1070,7 @@ def research_project_data_snapshot(
     project_dir: str | Path,
     root: str | Path | None = None,
     extra_args: Iterable[str] = (),
+    route_policy: str = "latest",
 ) -> dict[str, Any]:
     cards = list(cards)
     project = Path(project_dir).expanduser().resolve()
@@ -924,8 +1094,7 @@ def research_project_data_snapshot(
     if isinstance(profile, dict):
         placement = profile["observation_placement"]
         if (
-            "research_project_cache" not in placement["locations"]
-            or placement["cache"]["mode"] != "on_demand"
+            placement["cache"]["mode"] != "on_demand"
             or not placement["cache"]["research_project_snapshots"]
         ):
             raise DistributedRuntimeError(
@@ -936,6 +1105,7 @@ def research_project_data_snapshot(
     query_fingerprint = fingerprint({
         "variable_id": variable_id,
         "arguments": arguments,
+        "route_policy": route_policy,
         "fetched_at": fetched_at,
     })
     capture_id = timestamp.strftime("%Y%m%dT%H%M%SZ") + "-" + query_fingerprint[:12]
@@ -952,6 +1122,7 @@ def research_project_data_snapshot(
             "fetch-variable",
             root,
             [*arguments, "--output-dir", str(data_dir)],
+            route_policy,
         )
         result_path = data_dir / "runtime_result.json"
         atomic_write_text(
@@ -968,7 +1139,7 @@ def research_project_data_snapshot(
                 "size_bytes": path.stat().st_size,
             })
         manifest = {
-            "schema_version": "1.0.0",
+            "schema_version": "2.0.0",
             "capture_id": capture_id,
             "research_project_path": str(project),
             "source_id": invocation["source_id"],
@@ -976,6 +1147,8 @@ def research_project_data_snapshot(
             "variable_id": variable_id,
             "runtime_protocol": invocation["runtime_protocol"],
             "query_arguments": arguments,
+            "route_policy": route_policy,
+            "observation_route": invocation["observation_route"],
             "fetched_at": fetched_at,
             "files": files,
             "data_content_fingerprint": fingerprint(files),

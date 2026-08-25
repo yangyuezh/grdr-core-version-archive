@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "elements_snapshot_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "runtime", "runtime_audit", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
   "properties": {
-    "schema_version": {"enum": ["2.0.0", "3.0.0"]},
+    "schema_version": {"enum": ["2.0.0", "3.0.0", "4.0.0"]},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -42,6 +42,8 @@
         "unresolved_variable_count": {"const": 0}
       }
     },
+    "online_access_manifest": {"$ref": "#/$defs/online_access"},
+    "online_runtime_audit": {"$ref": "#/$defs/online_runtime_audit"},
     "knowledge_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "observation_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "duplicate_content_hash_count": {"const": 0},
@@ -65,6 +67,23 @@
       "if": {"properties": {"schema_version": {"const": "3.0.0"}}},
       "then": {
         "required": ["project_scope_fingerprint", "snapshot_profile", "external_observation_locations", "knowledge_content_fingerprint", "observation_content_fingerprint", "duplicate_content_hash_count"]
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "4.0.0"}}},
+      "then": {
+        "required": ["project_scope_fingerprint", "snapshot_profile", "external_observation_locations", "online_access_manifest", "online_runtime_audit", "knowledge_content_fingerprint", "observation_content_fingerprint", "duplicate_content_hash_count"],
+        "properties": {
+          "snapshot_profile": {"required": ["online_access"]},
+          "runtime": {
+            "required": ["route_environment_protocol", "online_access_manifest", "supported_access_methods"],
+            "properties": {
+              "schema_version": {"const": "2.0.0"},
+              "protocol_version": {"const": "grdr-source-runtime/2.0"},
+              "operations": {"contains": {"const": "self-test-online"}}
+            }
+          }
+        }
       }
     }
   ],
@@ -93,8 +112,8 @@
           "additionalProperties": false,
           "required": ["mode", "completeness_claim", "completeness_basis", "expected_file_count", "actual_file_count", "expected_partition_count", "actual_partition_count", "partition_manifest"],
           "properties": {
-            "mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand"]},
-            "completeness_claim": {"enum": ["complete_within_knowledge_scope", "complete_declared_partition_set", "knowledge_complete_observations_federated"]},
+            "mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand", "no_mirror"]},
+            "completeness_claim": {"enum": ["complete_within_knowledge_scope", "complete_declared_partition_set", "knowledge_complete_observations_federated", "observations_not_replicated"]},
             "completeness_basis": {"type": "string", "minLength": 1},
             "expected_file_count": {"type": ["integer", "null"], "minimum": 1},
             "actual_file_count": {"type": "integer", "minimum": 0},
@@ -103,6 +122,7 @@
             "partition_manifest": {"type": ["object", "null"]}
           }
         },
+        "online_access": {"$ref": "#/$defs/online_access_profile"},
         "observation_placement": {
           "type": "object",
           "additionalProperties": false,
@@ -110,7 +130,6 @@
           "properties": {
             "locations": {
               "type": "array",
-              "minItems": 1,
               "uniqueItems": true,
               "items": {"enum": ["github_release", "elements", "object_store", "official_upstream", "research_project_cache"]}
             },
@@ -139,10 +158,9 @@
             "github_release_observation_max_bytes": {"type": "integer", "minimum": 1},
             "elements_full_mirror_max_bytes": {"type": "integer", "minimum": 1},
             "github_release_asset_max_bytes": {"type": "integer", "minimum": 1},
-            "selected_mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand"]},
+            "selected_mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand", "no_mirror"]},
             "selected_placements": {
               "type": "array",
-              "minItems": 1,
               "uniqueItems": true,
               "items": {"enum": ["github_release", "elements", "object_store", "official_upstream", "research_project_cache"]}
             },
@@ -152,20 +170,121 @@
         }
       }
     },
+    "online_access_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "official_access_status", "official_access_basis", "route_count", "expected_variable_count", "online_callable_variable_count", "unresolved_online_variable_count", "routes", "route_policies"],
+      "properties": {
+        "status": {"const": "callable_complete"},
+        "official_access_status": {"enum": ["callable", "unavailable"]},
+        "official_access_basis": {"type": "string", "minLength": 1},
+        "route_count": {"type": "integer", "minimum": 1},
+        "expected_variable_count": {"type": "integer", "minimum": 0},
+        "online_callable_variable_count": {"type": "integer", "minimum": 0},
+        "unresolved_online_variable_count": {"const": 0},
+        "routes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/online_route"}},
+        "route_policies": {"$ref": "#/$defs/route_policies"}
+      }
+    },
+    "online_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route_id", "access_method", "authority", "uri", "freshness", "coverage_claim", "verification"],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "access_method": {"enum": ["official_api", "official_bulk_download", "official_browser_automation", "grdr_release_snapshot"]},
+        "authority": {"enum": ["official", "grdr"]},
+        "uri": {"type": "string", "format": "uri"},
+        "freshness": {"enum": ["current_upstream", "version_pinned", "frozen_snapshot"]},
+        "coverage_claim": {"enum": ["all_registered_variables", "declared_subset"]},
+        "verification": {"enum": ["live_runtime_test", "staged_release_snapshot_test"]}
+      }
+    },
+    "route_class": {"type": "string", "enum": ["official_online", "github_release_snapshot", "elements_mirror", "mounted_object_store"]},
+    "route_policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latest", "reproducible", "offline"],
+      "properties": {
+        "latest": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/route_class"}},
+        "reproducible": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/route_class"}},
+        "offline": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/route_class"}}
+      }
+    },
+    "online_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "source_id", "snapshot_id", "status", "completion_requirement", "official_access", "routes", "coverage", "route_policies"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "source_id": {"type": "string"},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "status": {"const": "callable_complete"},
+        "completion_requirement": {"const": "all_registered_variables_online_callable"},
+        "official_access": {
+          "type": "object", "additionalProperties": false, "required": ["status", "basis"],
+          "properties": {"status": {"enum": ["callable", "unavailable"]}, "basis": {"type": "string", "minLength": 1}}
+        },
+        "routes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/online_route"}},
+        "coverage": {
+          "type": "object", "additionalProperties": false, "required": ["claim", "expected_variable_count"],
+          "properties": {"claim": {"const": "all_registered_variables"}, "expected_variable_count": {"type": "integer", "minimum": 0}}
+        },
+        "route_policies": {"$ref": "#/$defs/route_policies"}
+      }
+    },
+    "online_runtime_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "source_id", "snapshot_id", "status", "variable_count", "online_callable_variable_count", "unresolved_online_variable_count", "route_results", "variable_routes", "tested_at"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "source_id": {"type": "string"},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "status": {"const": "ready"},
+        "variable_count": {"type": "integer", "minimum": 0},
+        "online_callable_variable_count": {"type": "integer", "minimum": 0},
+        "unresolved_online_variable_count": {"const": 0},
+        "route_results": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["route_id", "status", "access_method", "authority", "tested_at", "evidence_basis"],
+            "properties": {
+              "route_id": {"type": "string"}, "status": {"const": "ready"},
+              "access_method": {"enum": ["official_api", "official_bulk_download", "official_browser_automation", "grdr_release_snapshot"]},
+              "authority": {"enum": ["official", "grdr"]},
+              "tested_at": {"type": "string", "format": "date-time"},
+              "evidence_basis": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "variable_routes": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["variable_id", "route_ids"],
+            "properties": {"variable_id": {"type": "string"}, "route_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}}
+          }
+        },
+        "tested_at": {"type": "string", "format": "date-time"}
+      }
+    },
     "runtime": {
       "type": "object",
       "additionalProperties": false,
       "required": ["schema_version", "protocol_version", "source_id", "entrypoint", "agent_index", "operations", "official_domains"],
       "properties": {
-        "schema_version": {"const": "1.0.0"},
-        "protocol_version": {"const": "grdr-source-runtime/1.0"},
+        "schema_version": {"enum": ["1.0.0", "2.0.0"]},
+        "protocol_version": {"enum": ["grdr-source-runtime/1.0", "grdr-source-runtime/2.0"]},
+        "route_environment_protocol": {"const": "grdr-route-context/1.0"},
         "source_id": {"type": "string"},
         "entrypoint": {"type": "string"},
         "agent_index": {"const": "grdr-agent-index.sqlite"},
+        "online_access_manifest": {"const": "online_access.json"},
         "operations": {
           "type": "array",
           "minItems": 4,
-          "items": {"enum": ["self-test", "search", "resolve-variable", "fetch-variable"]},
+          "items": {"enum": ["self-test", "self-test-online", "search", "resolve-variable", "fetch-variable"]},
           "uniqueItems": true,
           "allOf": [
             {"contains": {"const": "self-test"}},
@@ -173,6 +292,12 @@
             {"contains": {"const": "resolve-variable"}},
             {"contains": {"const": "fetch-variable"}}
           ]
+        },
+        "supported_access_methods": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["official_api", "official_bulk_download", "official_browser_automation", "grdr_release_snapshot"]}
         },
         "official_domains": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
         "notes": {"type": ["string", "null"]}
