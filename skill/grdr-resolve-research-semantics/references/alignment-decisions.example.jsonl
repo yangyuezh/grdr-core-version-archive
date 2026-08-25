@@ -1,0 +1,1 @@
+{"indicator_id":"grdr:research-indicator:example-leaf","target_type":"construct","target_id":"grdr:construct:example-measure","mapping_relation":"exact_match","alignment_role":"primary","confidence":0.96,"rationale":"The research indicator and stored construct use the same population, quantity, denominator, and measurement meaning."}

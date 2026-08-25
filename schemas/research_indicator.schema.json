@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/research_indicator.schema.json",
+  "title": "GRDR research indicator node",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "project_id", "name", "parent_indicator_id", "node_type", "definition", "is_leaf", "provenance_type", "evidence_unit_ids", "synonyms", "operational_spec", "review_status"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "project_id": {"type": "string", "pattern": "^grdr:research-project:[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "parent_indicator_id": {"type": ["string", "null"], "pattern": "^grdr:research-indicator:[a-z0-9][a-z0-9-]*$"},
+    "node_type": {"enum": ["domain", "construct", "subconstruct", "indicator", "operational_requirement"]},
+    "definition": {"type": "string", "minLength": 1},
+    "is_leaf": {"type": "boolean"},
+    "provenance_type": {"enum": ["source_reported", "normalized", "agent_synthesized", "topic_scaffold"]},
+    "evidence_unit_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^grdr:evidence-unit:[a-z0-9][a-z0-9-]*$"},
+      "uniqueItems": true
+    },
+    "synonyms": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "operational_spec": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unit", "denominator", "population", "observation_unit", "spatial_scope", "temporal_scope", "direction", "proxy_allowed"],
+          "properties": {
+            "unit": {"type": ["string", "null"]},
+            "denominator": {"type": ["string", "null"]},
+            "population": {"type": ["string", "null"]},
+            "observation_unit": {"type": ["string", "null"]},
+            "spatial_scope": {"type": ["string", "null"]},
+            "temporal_scope": {"type": ["string", "null"]},
+            "direction": {"enum": ["higher_more", "higher_less", "non_monotonic", "not_applicable", "unknown"]},
+            "proxy_allowed": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "review_status": {"enum": ["agent_candidate", "human_reviewed", "approved_for_mapping", "rejected"]}
+  }
+}

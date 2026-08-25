@@ -1,0 +1,4 @@
+interface:
+  display_name: "GRDR Research Semantic Resolver"
+  short_description: "Map research indicators through semantics to data"
+  default_prompt: "Use $grdr-resolve-research-semantics to align these research indicators with GRDR constructs and trace them to callable variables."
