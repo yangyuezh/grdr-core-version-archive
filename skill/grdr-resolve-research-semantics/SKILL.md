@@ -95,6 +95,8 @@ After rebuilding recall against expanded or updated snapshots, run:
 python3 "$GRDR_LAUNCHER" rerun-matching <project>
 ```
 
+Run `research-project-status` before trusting an existing mapping. Treat `mapping_snapshot_health.status: stale` or `workflow_status: needs_rerun` as a hard stop: rebuild candidates with `--replace`, persist a current R-to-B decision, rebuild paths, and rerun matching before any invocation.
+
 The matcher evaluates construct, population, unit, time, and space and emits only the existing GRDR mapping outcomes. `proxy_candidate` and `definition_conflict` require the contested-mappings human gate. `not_found_registry_snapshot` means only that the current distributed registry has no defensible path.
 
 Explain one result with:
@@ -137,6 +139,7 @@ Report semantic resolution complete only when:
 - every non-`no_match` selected alignment has a stored B-to-A path or is explicitly unresolved;
 - every leaf has a schema-valid mapping outcome;
 - every selected variable is tied to an exact source snapshot and provenance path;
+- `mapping_snapshot_health.status` is `current`; superseded snapshot identifiers have been rebuilt before invocation;
 - ordinary current-data recall used `latest_callable`; any use of `history` is explicit and justified by the research design;
 - contested mappings remain human-gated;
 - official invocation is callable or its concrete access blocker is reported;

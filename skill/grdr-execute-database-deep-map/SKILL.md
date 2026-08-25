@@ -1,6 +1,6 @@
 ---
 name: grdr-execute-database-deep-map
-description: "Execute a fingerprint-locked GRDR database deep-map project: resume its deterministic queue, deeply recover each work unit's native data structure and disciplinary semantics, build the DataElement-to-Variable-to-Construct bridge, stage evidence-backed canonical candidates, and close every route obligation without writing canonical state. Use for Step 2 when a schema-4.0 project must be started, resumed, repaired, or audited through a sealed Storage handoff."
+description: "Execute a fingerprint-locked GRDR database deep-map project: resume its deterministic queue, deeply recover each work unit's native data structure and disciplinary semantics, build the DataElement-to-Variable-to-Construct bridge, stage evidence-backed canonical candidates, and close every route obligation without writing canonical state. Use for Step 2 when a schema-4.1 project must be started, resumed, repaired, or audited through a sealed Storage handoff."
 ---
 
 # GRDR Step 2 — Execute Database Deep Map

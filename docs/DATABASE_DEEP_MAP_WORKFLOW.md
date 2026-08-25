@@ -37,7 +37,7 @@ Plan负责数据库身份、学科多父归属、数据生成过程、原生结�
 .venv/bin/python scripts/grdr.py start-database-deep-map <start-spec.json>
 ```
 
-交付物是schema 4.0工程、锁定Plan、固定边界、稳定有序的`units.jsonl`、路线义务`checks.jsonl`和空的暂存清单。Plan不读取工作单元内容、不写暂存记录、不写中央注册表。
+交付物是schema 4.1工程、锁定Plan、固定边界、稳定有序的`units.jsonl`、路线义务`checks.jsonl`和空的暂存清单。Plan不读取工作单元内容、不写暂存记录、不写中央注册表。
 
 ## Step 2：Execute
 
@@ -63,7 +63,7 @@ Execute只写工程内部`staging/`及账本。`execution_ready_for_storage: tru
 
 | 位置 | 保存内容 | 完整数据 |
 |---|---|---|
-| GRDR核心仓库 | Source卡片、独立仓库、最新快照、Release、清单、指纹和状态 | 否 |
+| 外部GRDR状态目录 | Source卡片、独立仓库、最新快照、Release、清单、指纹和状态 | 否 |
 | 数据库独立私有Git仓库 | Core版本引用、配置、适配器、源运行时代码、Plan、快照清单、README、测试、中央入库回执 | 只保存小型可审查内容 |
 | 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent运行时与SQLite索引、清单、回执；仅在策略指定时保存观测数据 | 知识与Agent完整 |
 | Elements磁盘 | 完整知识与Agent展开目录；仅在策略指定时保存观测数据 | 知识与Agent完整 |

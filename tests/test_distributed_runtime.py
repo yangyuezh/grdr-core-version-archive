@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -13,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import distributed_runtime as runtime  # noqa: E402
+import research_project as research  # noqa: E402
 import semantic_resolver as resolver  # noqa: E402
 
 
@@ -186,6 +189,13 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
                     "label": "Resident population",
                     "dataset_ids": ["grdr:dataset:synthetic-main"],
                     "construct_ids": ["grdr:construct:synthetic-population-r0"],
+                    "role_candidates": ["outcome", "control"],
+                    "observation_unit": "country-year",
+                    "unit": "persons",
+                    "measurement": {"type": "administrative_measure"},
+                    "comparability": {"status": "historical"},
+                    "join_keys": ["REF_AREA", "TIME_PERIOD"],
+                    "verification": {"status": "verified"},
                 },
                 {
                     "id": "grdr:variable:synthetic-population",
@@ -193,10 +203,18 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
                     "label": "Resident population",
                     "dataset_ids": ["grdr:dataset:synthetic-main"],
                     "construct_ids": ["grdr:construct:synthetic-population"],
+                    "role_candidates": ["outcome", "control"],
+                    "observation_unit": "country-year",
+                    "unit": "persons",
+                    "measurement": {"type": "administrative_measure"},
+                    "comparability": {"status": "comparable"},
+                    "join_keys": ["REF_AREA", "TIME_PERIOD"],
+                    "verification": {"status": "verified"},
                 },
             ],
             "semantic_nodes.jsonl": [],
             "relationships.jsonl": [],
+            "source_archives.jsonl": [self.card],
         }
         for filename, values in records.items():
             (registry / filename).write_text(
@@ -214,6 +232,89 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         self.assertEqual(resolved["datasets"][0]["id"], "grdr:dataset:synthetic-main")
         invoked = runtime.invoke_source_runtime([self.card], matches[0]["id"], "resolve-variable", self.root)
         self.assertEqual(invoked["result"]["status"], "ok")
+
+    def test_persisted_elements_root_and_environment_override(self) -> None:
+        state = self.root / "state"
+        state.mkdir()
+        configured = self.root
+        (state / "config.json").write_text(
+            json.dumps({"schema_version": "1.0.0", "elements_root": str(configured)}),
+            encoding="utf-8",
+        )
+        with patch.dict(
+            os.environ,
+            {"GRDR_STATE_ROOT": str(state), "GRDR_ELEMENTS_ROOT": ""},
+            clear=False,
+        ):
+            self.assertEqual(runtime.elements_root(), configured.resolve())
+            override = self.root / "override"
+            os.environ["GRDR_ELEMENTS_ROOT"] = str(override)
+            self.assertEqual(runtime.elements_root(), override.resolve())
+
+    def test_variable_cli_prefers_latest_callable_snapshot(self) -> None:
+        self.write_history_registry()
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "grdr.py"),
+                "search-variables",
+                "--construct",
+                "population",
+                "--limit",
+                "10",
+            ],
+            cwd=ROOT,
+            env={
+                **os.environ,
+                "GRDR_STATE_ROOT": str(self.root),
+                "GRDR_ELEMENTS_ROOT": str(self.root),
+            },
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["snapshot_policy"], "latest_callable")
+        self.assertEqual(payload["callable_source_count"], 1)
+        self.assertEqual(
+            [item["id"] for item in payload["results"]],
+            ["grdr:variable:synthetic-population"],
+        )
+        self.assertEqual(payload["results"][0]["snapshot"]["snapshot_id"], "r1")
+
+    def test_variable_cli_history_is_explicit_and_complete(self) -> None:
+        self.write_history_registry()
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "grdr.py"),
+                "search-variables",
+                "--construct",
+                "population",
+                "--snapshot-policy",
+                "history",
+                "--limit",
+                "10",
+            ],
+            cwd=ROOT,
+            env={
+                **os.environ,
+                "GRDR_STATE_ROOT": str(self.root),
+                "GRDR_ELEMENTS_ROOT": str(self.root),
+            },
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["snapshot_policy"], "history")
+        self.assertEqual(
+            [item["id"] for item in payload["results"]],
+            [
+                "grdr:variable:synthetic-population",
+                "grdr:variable:synthetic-population-r0",
+            ],
+        )
 
     def test_on_demand_fetch_seals_research_project_snapshot(self) -> None:
         project = self.root / "research-project"
@@ -356,6 +457,7 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         with (
             patch("semantic_resolver.source_cards", return_value=[self.card]),
             patch.object(resolver, "REGISTRY_ROOT", registry),
+            patch.object(research, "REGISTRY_ROOT", registry),
         ):
             recalled = resolver.prepare_semantic_candidates(project_dir, limit=5, elements_root=self.root)
             self.assertGreater(recalled["candidate_count"], 0)
@@ -419,6 +521,30 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
                 extra_args=["--dry-run"],
             )
             self.assertEqual(fetched["source_call"]["result"]["status"], "ok")
+
+            superseded = {**self.card, "latest_snapshot": "r2"}
+            (registry / "source_archives.jsonl").write_text(
+                json.dumps(superseded) + "\n",
+                encoding="utf-8",
+            )
+            status = research.research_project_status(project_dir)
+            self.assertEqual(status["workflow_status"], "needs_rerun")
+            self.assertEqual(status["mapping_snapshot_health"]["status"], "stale")
+            self.assertFalse(status["exploratory_matching_complete"])
+            self.assertEqual(status["leaf_match_coverage"]["matched"], 0)
+            with self.assertRaisesRegex(ValueError, "indicator mapping is stale"):
+                resolver.fetch_indicator_data(
+                    project_dir,
+                    indicator_id,
+                    elements_root=self.root,
+                    extra_args=["--dry-run"],
+                )
+            resumed = research.resume_research_project(project_dir)
+            self.assertEqual(resumed["workflow_status"], "ready_to_match", resumed)
+            self.assertEqual(
+                resumed["next_actions"],
+                ["prepare-semantic-candidates --replace"],
+            )
 
 
 if __name__ == "__main__":

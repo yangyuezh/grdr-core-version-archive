@@ -39,6 +39,31 @@ class SkillPortabilityTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             self.assertEqual(pointer.read_text(encoding="utf-8"), str(ROOT) + "\n")
 
+    def test_configure_core_persists_external_elements_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            pointer = root / "codex-home" / "grdr-core-root"
+            state = root / "state"
+            elements = root / "elements-volume" / "GRDR"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts" / "configure_core.py"),
+                    "--pointer",
+                    str(pointer),
+                    "--elements-root",
+                    str(elements),
+                ],
+                cwd=root,
+                env={**os.environ, "GRDR_STATE_ROOT": str(state)},
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            config = json.loads((state / "config.json").read_text(encoding="utf-8"))
+            self.assertEqual(config["schema_version"], "1.0.0")
+            self.assertEqual(config["elements_root"], str(elements.resolve()))
+
     def test_all_installed_skill_launchers_work_from_an_arbitrary_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

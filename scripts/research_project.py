@@ -90,6 +90,73 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     ]
 
 
+def mapping_snapshot_issues(
+    project_dir: str | Path,
+    *,
+    indicator_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return persisted mappings whose source snapshot is no longer current."""
+
+    target = resolve_project_dir(project_dir)
+    require_project(target)
+    cards = {
+        item["source_id"]: item
+        for item in read_jsonl(REGISTRY_ROOT / "source_archives.jsonl")
+    }
+    paths = {
+        item["id"]: item
+        for item in read_jsonl(target / SEMANTIC_PROJECT_FILES["paths"])
+    }
+    issues: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for mapping in read_jsonl(target / "mappings.jsonl"):
+        if indicator_id is not None and mapping["indicator_id"] != indicator_id:
+            continue
+        for path_id in mapping.get("semantic_path_ids", []):
+            path = paths.get(path_id)
+            if path is None:
+                continue
+            source_id = path.get("source_id")
+            mapped_snapshot = path.get("snapshot_id")
+            if not source_id or not mapped_snapshot:
+                continue
+            card = cards.get(source_id)
+            latest_snapshot = card.get("latest_snapshot") if card else None
+            if card is not None and latest_snapshot == mapped_snapshot:
+                continue
+            reason = "source_archive_missing" if card is None else "superseded_snapshot"
+            key = (mapping["indicator_id"], source_id, mapped_snapshot)
+            issues[key] = {
+                "mapping_id": mapping["id"],
+                "indicator_id": mapping["indicator_id"],
+                "semantic_path_id": path_id,
+                "variable_id": path.get("variable_id"),
+                "source_id": source_id,
+                "mapped_snapshot_id": mapped_snapshot,
+                "latest_snapshot_id": latest_snapshot,
+                "reason": reason,
+            }
+    return [issues[key] for key in sorted(issues)]
+
+
+def nonstale_audit_errors(
+    errors: list[str],
+    snapshot_issues: list[dict[str, Any]],
+) -> list[str]:
+    """Suppress only resolution errors caused by an already diagnosed stale Variable ID."""
+
+    stale_variable_ids = {
+        item["variable_id"] for item in snapshot_issues if item.get("variable_id")
+    }
+    return [
+        error
+        for error in errors
+        if not any(
+            f"unknown GRDR variable_id {variable_id}" in error
+            for variable_id in stale_variable_ids
+        )
+    ]
+
+
 def write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -277,12 +344,22 @@ def resume_research_project(project_dir: str | Path) -> dict[str, Any]:
     semantic_candidates = read_jsonl(target / SEMANTIC_PROJECT_FILES["candidates"]) if (target / SEMANTIC_PROJECT_FILES["candidates"]).is_file() else []
     semantic_alignments = read_jsonl(target / SEMANTIC_PROJECT_FILES["alignments"]) if (target / SEMANTIC_PROJECT_FILES["alignments"]).is_file() else []
     semantic_paths = read_jsonl(target / SEMANTIC_PROJECT_FILES["paths"]) if (target / SEMANTIC_PROJECT_FILES["paths"]).is_file() else []
+    snapshot_issues = mapping_snapshot_issues(target)
     audit = audit_project(target, ROOT)
-    if audit["errors"]:
+    actionable_audit_errors = nonstale_audit_errors(audit["errors"], snapshot_issues)
+    if actionable_audit_errors:
         workflow["workflow_status"] = "blocked"
         workflow["current_step"] = "indicator_scaffold"
         workflow["next_actions"] = ["repair-project-records"]
-        summary = f"Blocked by {len(audit['errors'])} audit errors."
+        summary = f"Blocked by {len(actionable_audit_errors)} audit errors."
+    elif snapshot_issues:
+        workflow["workflow_status"] = "ready_to_match"
+        workflow["current_step"] = "rematching"
+        workflow["next_actions"] = ["prepare-semantic-candidates --replace"]
+        summary = (
+            f"Detected {len(snapshot_issues)} mapping snapshot reference(s) that are no longer current; "
+            "rebuild semantic recall, alignment, paths, and matching against the latest callable snapshot."
+        )
     elif not indicators:
         workflow["workflow_status"] = "blocked"
         workflow["current_step"] = "indicator_scaffold"
@@ -331,7 +408,8 @@ def resume_research_project(project_dir: str | Path) -> dict[str, Any]:
         "workflow_status": workflow["workflow_status"],
         "current_step": workflow["current_step"],
         "next_actions": workflow["next_actions"],
-        "audit_errors": audit["errors"],
+        "audit_errors": actionable_audit_errors,
+        "mapping_snapshot_issues": snapshot_issues,
         "summary": summary,
     }
 
@@ -605,17 +683,47 @@ def research_project_status(project_dir: str | Path) -> dict[str, Any]:
     semantic_paths = read_jsonl(target / SEMANTIC_PROJECT_FILES["paths"]) if (target / SEMANTIC_PROJECT_FILES["paths"]).is_file() else []
     audit = audit_project(target, ROOT)
     auxiliary_errors = validate_auxiliary(target)
+    snapshot_issues = mapping_snapshot_issues(target)
+    actionable_audit_errors = nonstale_audit_errors(audit.get("errors", []), snapshot_issues)
+    stale_indicator_ids = {item["indicator_id"] for item in snapshot_issues}
     outcomes: dict[str, int] = {}
     for mapping in mappings:
         status = mapping["mapping_status"]
         outcomes[status] = outcomes.get(status, 0) + 1
     leaves = audit.get("counts", {}).get("leaf_indicators", 0)
-    matched = sum(count for status, count in outcomes.items() if status != "not_found_registry_snapshot")
+    matched = sum(
+        1
+        for mapping in mappings
+        if mapping["mapping_status"] != "not_found_registry_snapshot"
+        and mapping["indicator_id"] not in stale_indicator_ids
+    )
+    effective_workflow_status = "needs_rerun" if snapshot_issues else workflow["workflow_status"]
+    effective_current_step = "rematching" if snapshot_issues else workflow["current_step"]
+    effective_next_actions = (
+        [
+            "prepare-semantic-candidates --replace",
+            "align-research-indicators --replace",
+            "traverse-semantic-paths --replace",
+            "rerun-matching",
+        ]
+        if snapshot_issues
+        else workflow["next_actions"]
+    )
+    snapshot_warning = (
+        [
+            f"{len(snapshot_issues)} persisted mapping snapshot reference(s) are no longer current; "
+            "rebuild recall, R→B alignment, B→A paths, and matching before data invocation."
+        ]
+        if snapshot_issues
+        else []
+    )
     return {
         "operation": "research_project_status",
         "project_id": project["id"], "project_dir": str(target), "title": project["title"],
         "research_question": project["research_question"], "evidence_stage": project["evidence_stage"],
-        "workflow_status": workflow["workflow_status"], "current_step": workflow["current_step"],
+        "workflow_status": effective_workflow_status,
+        "persisted_workflow_status": workflow["workflow_status"],
+        "current_step": effective_current_step,
         "matching_attempt": workflow["matching_attempt"], "gap_expansion_round": workflow["gap_expansion_round"],
         "counts": {
             **audit.get("counts", {}),
@@ -625,13 +733,18 @@ def research_project_status(project_dir: str | Path) -> dict[str, Any]:
             "open_data_gaps": sum(1 for item in gaps if item["status"] in {"open", "expansion_planned"}),
         },
         "mapping_outcomes": dict(sorted(outcomes.items())),
+        "mapping_snapshot_health": {
+            "status": "stale" if snapshot_issues else "current",
+            "issue_count": len(snapshot_issues),
+            "issues": snapshot_issues,
+        },
         "leaf_match_coverage": {"matched": matched, "total": leaves, "ratio": (matched / leaves) if leaves else 0.0},
         "human_gates": project["human_gates"],
         "formal_evidence_ready": audit.get("formal_evidence_ready", False),
         "mapping_ready": audit.get("mapping_ready", False),
-        "exploratory_matching_complete": bool(mappings) and len(mappings) == leaves and not audit.get("errors"),
-        "audit_errors": [*audit.get("errors", []), *auxiliary_errors],
-        "audit_warnings": audit.get("warnings", []),
-        "next_actions": workflow["next_actions"],
+        "exploratory_matching_complete": bool(mappings) and len(mappings) == leaves and not audit.get("errors") and not snapshot_issues,
+        "audit_errors": [*actionable_audit_errors, *auxiliary_errors],
+        "audit_warnings": [*audit.get("warnings", []), *snapshot_warning],
+        "next_actions": effective_next_actions,
         "last_operation": workflow["last_operation"],
     }

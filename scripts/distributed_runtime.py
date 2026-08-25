@@ -17,9 +17,8 @@ import tarfile
 import tempfile
 from typing import Any, Iterable
 
-from grdr_paths import state_root
+from grdr_paths import elements_root as configured_elements_root
 
-DEFAULT_ELEMENTS_ROOT = state_root() / "elements"
 LOGICAL_COMPONENTS = {"knowledge", "agent", "observations"}
 
 
@@ -60,8 +59,7 @@ def load_cards(path: Path) -> list[dict[str, Any]]:
 def elements_root(value: str | Path | None = None) -> Path:
     if value is not None:
         return Path(value).expanduser().resolve()
-    configured = os.environ.get("GRDR_ELEMENTS_ROOT")
-    return Path(configured).expanduser().resolve() if configured else DEFAULT_ELEMENTS_ROOT
+    return configured_elements_root()
 
 
 def source_slug(card: dict[str, Any]) -> str:

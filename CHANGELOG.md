@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.1.1] - 2026-08-25
+
+### Fixed
+
+- Detect research mappings whose persisted semantic paths point to a superseded or missing source snapshot, report `needs_rerun`, and block misleading data invocation until recall, alignment, traversal, and matching are rebuilt.
+- Make ordinary variable search default to latest callable source snapshots while retaining explicit `--snapshot-policy history` access to canonical historical records.
+- Persist the deployment-local Elements root in external GRDR state so Agent commands can discover an existing external-disk snapshot without repeated command-line flags.
+- Align the database factory documentation and Execute Skill with the schema-4.1 immutable-Core and external-card contract.
+
+### Validation
+
+- Add regression coverage for persisted Elements discovery, environment precedence, current-only variable search, stale research-project status, resumable rematching, and stale-fetch rejection.
+- Revalidate all six installed Skill launchers, all three observation modes, Core isolation, Release metadata, and the complete synthetic R→B→A runtime path.
+
 ## [4.1.0] - 2026-08-24
 
 ### Added

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -12,17 +13,47 @@ CORE_REGISTRY_ROOT = CORE_ROOT / "registry"
 REGISTRY_FILENAMES = tuple(sorted(path.name for path in CORE_REGISTRY_ROOT.glob("*.jsonl")))
 
 
+def _require_external(path: Path, label: str) -> Path:
+    resolved = path.expanduser().resolve()
+    if resolved == CORE_ROOT or CORE_ROOT in resolved.parents:
+        raise ValueError(f"{label} must be outside the immutable GRDR Core repository")
+    return resolved
+
+
 def state_root() -> Path:
     """Return the external mutable-state root, never the Core repository."""
 
     configured = os.environ.get("GRDR_STATE_ROOT")
     root = Path(configured).expanduser() if configured else Path.home() / ".grdr"
-    resolved = root.resolve()
-    if resolved == CORE_ROOT or CORE_ROOT in resolved.parents:
-        raise ValueError(
-            "GRDR_STATE_ROOT must be outside the immutable GRDR Core repository"
-        )
-    return resolved
+    return _require_external(root, "GRDR_STATE_ROOT")
+
+
+def runtime_config_file() -> Path:
+    """Return the deployment-local GRDR configuration file."""
+
+    return state_root() / "config.json"
+
+
+def elements_root() -> Path:
+    """Return the persisted Elements root, with environment override support."""
+
+    configured = os.environ.get("GRDR_ELEMENTS_ROOT")
+    if configured:
+        return _require_external(Path(configured), "GRDR_ELEMENTS_ROOT")
+    config_path = runtime_config_file()
+    if config_path.is_file():
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"invalid GRDR runtime configuration: {config_path}") from exc
+        if not isinstance(config, dict):
+            raise ValueError(f"invalid GRDR runtime configuration: {config_path}")
+        value = config.get("elements_root")
+        if value is not None:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"invalid elements_root in GRDR runtime configuration: {config_path}")
+            return _require_external(Path(value), "configured elements_root")
+    return _require_external(state_root() / "elements", "default elements root")
 
 
 def ensure_registry_root() -> Path:

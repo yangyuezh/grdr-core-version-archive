@@ -35,6 +35,12 @@ Treat 100 as a first-round workload target, never a collection limit. Continue l
 
 Resolve the absolute directory containing this active `SKILL.md`, then set `GRDR_LAUNCHER` to its bundled `scripts/grdr.py`. It locates Core through `GRDR_ROOT`, the Codex pointer written by Core's `scripts/configure_core.py`, current ancestors, or a bundled checkout. Never assume the caller's working directory.
 
+Configure an external expanded-snapshot root once instead of repeating `--elements-root`. This writes deployment-local configuration under external `GRDR_STATE_ROOT`, never into Core:
+
+```bash
+python3 "$GRDR_ROOT/scripts/configure_core.py" --elements-root /absolute/path/to/GRDR
+```
+
 Before modifying records, read `docs/NORTH_STAR.md`, the relevant schema, and [references/curation-standard.md](references/curation-standard.md).
 
 Strict Schema validation and deep-map planning require `jsonschema`. Use a project-local environment; a skipped validator is a failure, not a warning:
@@ -56,6 +62,7 @@ python3 "$GRDR_LAUNCHER" list-source-archives
 python3 "$GRDR_LAUNCHER" search-sources --query climate
 python3 "$GRDR_LAUNCHER" search-datasets --topic population
 python3 "$GRDR_LAUNCHER" search-variables --construct population
+python3 "$GRDR_LAUNCHER" search-variables --construct population --snapshot-policy history
 python3 "$GRDR_LAUNCHER" source-snapshot-status --source-id grdr:source:example --verify
 python3 "$GRDR_LAUNCHER" resolve-variable-access grdr:variable:example-measure
 python3 "$GRDR_LAUNCHER" fetch-variable grdr:variable:example-measure --dry-run
@@ -170,6 +177,8 @@ python3 "$GRDR_LAUNCHER" rerun-matching <project-id>
 ```
 
 The Agent may run every command above automatically. `approve-human-gate` is different: call it only after the human explicitly provides the reviewer identity and approval notes. Never use it to convert an Agent-generated topic scaffold into a formal, literature-grounded result. Preserve `workflow.json`, `data_gaps.jsonl`, `semantic_candidates.jsonl`, `semantic_alignments.jsonl`, and `semantic_paths.jsonl` with the five research-content files. Project-scoped R→B decisions must never be copied into canonical registry collections.
+
+Treat `mapping_snapshot_health.status: stale` or `workflow_status: needs_rerun` as a hard invocation stop. Rebuild candidates with `--replace`, persist a current R→B decision, rebuild B→A paths, and run `rerun-matching`; never invoke an identifier carried forward from a superseded source snapshot.
 
 ## Use access extensions carefully
 

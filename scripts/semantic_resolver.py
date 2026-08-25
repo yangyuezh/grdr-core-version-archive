@@ -1020,6 +1020,17 @@ def fetch_indicator_data(
     mapping = mappings.get(indicator_id)
     if mapping is None:
         raise ValueError(f"indicator has no mapping outcome: {indicator_id}")
+    from research_project import mapping_snapshot_issues
+
+    snapshot_issues = mapping_snapshot_issues(target, indicator_id=indicator_id)
+    if snapshot_issues:
+        issue = snapshot_issues[0]
+        raise ValueError(
+            "indicator mapping is stale: "
+            f"{issue['source_id']} moved from {issue['mapped_snapshot_id']} "
+            f"to {issue['latest_snapshot_id'] or 'no registered latest snapshot'}; "
+            "run prepare-semantic-candidates --replace, rebuild alignment and paths, then rerun-matching"
+        )
     if mapping["mapping_status"] == "not_found_registry_snapshot":
         raise ValueError(f"indicator has no callable variable in the current snapshot: {indicator_id}")
     if mapping["human_review_required"] and mapping["review_status"] != "human_approved":

@@ -374,6 +374,22 @@ def search_datasets(args: argparse.Namespace) -> None:
 def search_variables(args: argparse.Namespace) -> None:
     variables = load_jsonl("variables.jsonl")
     constructs = {item["id"]: item for item in load_jsonl("constructs.jsonl")}
+    datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
+    cards = load_jsonl("source_archives.jsonl")
+    callable_source_ids = {
+        card["source_id"]
+        for card, _snapshot in distributed.available_runtimes(cards, args.elements_root)
+    }
+    if args.snapshot_policy == "latest_callable" and callable_source_ids:
+        variables = [
+            variable
+            for variable in variables
+            if not callable_source_ids.intersection(
+                source_id
+                for dataset_id in variable.get("dataset_ids", [])
+                for source_id in datasets.get(dataset_id, {}).get("source_ids", [])
+            )
+        ]
     matches: list[dict[str, Any]] = []
     for variable in variables:
         linked_constructs = [
@@ -395,7 +411,6 @@ def search_variables(args: argparse.Namespace) -> None:
             continue
         matches.append(variable)
 
-    cards = load_jsonl("source_archives.jsonl")
     matches.extend(
         distributed.distributed_variable_matches(
             cards,
@@ -411,12 +426,19 @@ def search_variables(args: argparse.Namespace) -> None:
 
     matches = list({item["id"]: item for item in matches}.values())
 
-    matches.sort(key=verification_sort)
+    matches.sort(
+        key=lambda item: (
+            item.get("_grdr_snapshot") is None,
+            *verification_sort(item),
+        )
+    )
     limited = matches[: args.limit]
     emit(
         {
             "operation": "search_variables",
             "registry_version": REGISTRY_VERSION,
+            "snapshot_policy": args.snapshot_policy,
+            "callable_source_count": len(callable_source_ids),
             "result_count": len(limited),
             "total_matches": len(matches),
             "results": [
@@ -439,7 +461,7 @@ def search_variables(args: argparse.Namespace) -> None:
                 for item in limited
             ],
             "warnings": [
-                "Results include callable local distributed source snapshots. Topic tags on a source are never treated as proof of variable availability."
+                "Latest callable snapshots replace canonical history for the same Source unless --snapshot-policy history is explicit. Topic tags on a source are never treated as proof of variable availability."
             ],
         }
     )
@@ -1420,6 +1442,12 @@ def parser() -> argparse.ArgumentParser:
     )
     search_variable.add_argument("--limit", type=int, default=20)
     search_variable.add_argument("--elements-root", help="Expanded GRDR storage root; defaults to GRDR_ELEMENTS_ROOT or <GRDR_STATE_ROOT>/elements")
+    search_variable.add_argument(
+        "--snapshot-policy",
+        choices=["latest_callable", "history"],
+        default="latest_callable",
+        help="Prefer latest callable source snapshots by default; use history to include canonical historical versions",
+    )
     search_variable.set_defaults(handler=search_variables)
 
     search_semantics = commands.add_parser("search-semantic-nodes", help="Search the multi-parent scientific-semantic graph")

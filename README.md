@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.1.0<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.1.1<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -345,6 +345,9 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-validation.txt
 python3 scripts/configure_core.py
 
+# Persist an external Elements root once for all Agent Runtime commands.
+python3 scripts/configure_core.py --elements-root /absolute/path/to/GRDR
+
 # Optional: choose another external mutable-state location.
 export GRDR_STATE_ROOT=/absolute/path/outside/grdr-core
 
@@ -384,4 +387,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.1.0` makes Storage scale-independent: knowledge scope remains locked to Plan, while observation replication and placement are explicit; full, partitioned, and federated modes share one manifest; GitHub is decoupled from large observation bytes; research queries can seal on-demand project snapshots; and raw observations are forbidden from the knowledge package.
+Version `4.1.1` completes the deployable v4.1 line: Storage remains scale-independent, ordinary search prefers latest callable snapshots, persisted research mappings are invalidated when their source snapshot is superseded, and an external Elements root can be configured once. Knowledge scope remains locked to Plan, observation replication and placement stay explicit, and raw observations remain forbidden from the knowledge package.
