@@ -32,10 +32,10 @@ storage_receipt.json
 
 Knowledge and Agent assets are mandatory. Observation assets are mode- and placement-dependent. Asset logical memberships must be disjoint.
 
-## Elements
+## Optional local snapshot cache
 
 ```text
-<elements-root>/sources/<slug>/snapshots/<snapshot-id>/
+<cache-root>/sources/<slug>/snapshots/<snapshot-id>/
 ├── knowledge/
 │   └── storage/observation_manifest.json
 ├── agent/
@@ -45,14 +45,14 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 │   ├── runtime_audit.json
 │   ├── online_access.json
 │   └── online_runtime_audit.json
-├── observations/<partition>/...       # only when placed on Elements
+├── observations/<partition>/...       # only when present in the downloaded Release
 └── receipts/
     ├── manifest.json
     ├── storage_publication_verification.json
     └── storage_receipt.json
 ```
 
-The receipt and manifest are provenance sidecars and are excluded from the logical inventory.
+This directory is materialized from verified Release assets when local execution needs it. It may be deleted and rebuilt. Its absence never makes a published source snapshot incomplete. The receipt and manifest are provenance sidecars and are excluded from the logical inventory.
 
 ## Mounted large-data store
 

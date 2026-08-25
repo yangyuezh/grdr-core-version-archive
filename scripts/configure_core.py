@@ -23,9 +23,8 @@ def require_external(path: Path, label: str) -> Path:
 
 
 def write_runtime_config(
-    elements_root: Path | None = None,
+    snapshot_cache_root: Path | None = None,
     github_observation_max_gib: float | None = None,
-    elements_full_mirror_max_gib: float | None = None,
 ) -> Path:
     configured_state = os.environ.get("GRDR_STATE_ROOT")
     state = require_external(
@@ -43,21 +42,21 @@ def write_runtime_config(
             raise ValueError(f"invalid existing GRDR runtime configuration: {config_path}")
     else:
         config = {}
-    config["schema_version"] = "1.1.0"
-    if elements_root is not None:
-        config["elements_root"] = str(require_external(elements_root, "elements root"))
-    if github_observation_max_gib is not None or elements_full_mirror_max_gib is not None:
+    config["schema_version"] = "1.2.0"
+    if snapshot_cache_root is not None:
+        config["snapshot_cache_root"] = str(
+            require_external(snapshot_cache_root, "snapshot cache root")
+        )
+        config.pop("elements_root", None)
+    if github_observation_max_gib is not None:
         policy = config.setdefault("storage_capacity_policy", {})
         if not isinstance(policy, dict):
             raise ValueError("existing storage_capacity_policy must be an object")
-        if github_observation_max_gib is not None:
-            policy["github_release_observation_max_bytes"] = round(github_observation_max_gib * GIB)
-        if elements_full_mirror_max_gib is not None:
-            policy["elements_full_mirror_max_bytes"] = round(elements_full_mirror_max_gib * GIB)
+        policy["github_release_observation_max_bytes"] = round(github_observation_max_gib * GIB)
+        policy.pop("elements_full_mirror_max_bytes", None)
         policy.setdefault("github_release_asset_max_bytes", GITHUB_RELEASE_ASSET_HARD_MAX_BYTES)
         github_limit = policy.get("github_release_observation_max_bytes", 5 * GIB)
-        elements_limit = policy.get("elements_full_mirror_max_bytes", 10 * GIB)
-        if not all(isinstance(value, int) and not isinstance(value, bool) and value > 0 for value in (github_limit, elements_limit)):
+        if not isinstance(github_limit, int) or isinstance(github_limit, bool) or github_limit <= 0:
             raise ValueError("storage capacity limits must be positive byte counts")
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=".config.", suffix=".tmp", dir=config_path.parent
@@ -81,19 +80,14 @@ def main() -> int:
     default_codex_root = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
     parser.add_argument("--pointer", type=Path, default=default_codex_root / "grdr-core-root")
     parser.add_argument(
-        "--elements-root",
+        "--snapshot-cache-root",
         type=Path,
-        help="Persist the expanded snapshot root under <GRDR_STATE_ROOT>/config.json",
+        help="Optional disposable local cache for expanded GitHub snapshots",
     )
     parser.add_argument(
         "--github-observation-max-gib",
         type=float,
         help="Maximum total mirrored observation GiB assigned to one GitHub Release",
-    )
-    parser.add_argument(
-        "--elements-full-mirror-max-gib",
-        type=float,
-        help="Maximum observation GiB treated as one complete Elements mirror",
     )
     args = parser.parse_args()
     pointer = args.pointer.expanduser().resolve()
@@ -103,26 +97,24 @@ def main() -> int:
     print(f"Pointer: {pointer}")
     for name, value in (
         ("--github-observation-max-gib", args.github_observation_max_gib),
-        ("--elements-full-mirror-max-gib", args.elements_full_mirror_max_gib),
     ):
         if value is not None and value <= 0:
             parser.error(f"{name} must be greater than zero")
     if any(value is not None for value in (
-        args.elements_root,
+        args.snapshot_cache_root,
         args.github_observation_max_gib,
-        args.elements_full_mirror_max_gib,
     )):
         config_path = write_runtime_config(
-            args.elements_root,
+            args.snapshot_cache_root,
             args.github_observation_max_gib,
-            args.elements_full_mirror_max_gib,
         )
-        if args.elements_root is not None:
-            print(f"Elements root: {require_external(args.elements_root, 'elements root')}")
+        if args.snapshot_cache_root is not None:
+            print(
+                "Snapshot cache root: "
+                f"{require_external(args.snapshot_cache_root, 'snapshot cache root')}"
+            )
         if args.github_observation_max_gib is not None:
             print(f"GitHub observation limit: {args.github_observation_max_gib:g} GiB")
-        if args.elements_full_mirror_max_gib is not None:
-            print(f"Elements full-mirror limit: {args.elements_full_mirror_max_gib:g} GiB")
         print(f"Runtime configuration: {config_path}")
     return 0
 

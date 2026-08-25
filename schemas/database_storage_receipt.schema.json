@@ -4,9 +4,9 @@
   "title": "GRDR complete database snapshot storage receipt",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "source_id", "snapshot_id", "package_fingerprint", "publication_fingerprint", "repository_url", "release_url", "elements_snapshot_path", "logical_content_fingerprint", "canonical_archive_fingerprint", "runtime_protocol_version", "runtime_asset", "status", "stored_at", "receipt_fingerprint"],
+  "required": ["schema_version", "project_id", "source_id", "snapshot_id", "package_fingerprint", "publication_fingerprint", "repository_url", "release_url", "logical_content_fingerprint", "canonical_archive_fingerprint", "runtime_protocol_version", "runtime_asset", "status", "stored_at", "receipt_fingerprint"],
   "properties": {
-    "schema_version": {"enum": ["2.0.0", "3.0.0", "4.0.0"]},
+    "schema_version": {"enum": ["2.0.0", "3.0.0", "4.0.0", "4.1.0"]},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "snapshot_id": {"type": "string", "minLength": 1},
@@ -33,6 +33,16 @@
     },
     {
       "if": {"properties": {"schema_version": {"const": "4.0.0"}}},
+      "then": {
+        "required": ["elements_snapshot_path"],
+        "properties": {
+          "runtime_protocol_version": {"const": "grdr-source-runtime/2.0"},
+          "snapshot_profile": {"required": ["online_access"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "4.1.0"}}},
       "then": {
         "required": ["knowledge_content_fingerprint", "observation_content_fingerprint", "snapshot_profile"],
         "properties": {

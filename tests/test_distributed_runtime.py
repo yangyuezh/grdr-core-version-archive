@@ -414,30 +414,86 @@ print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}
     def test_verified_runtime_cache_invalidates_after_file_mutation(self) -> None:
         first = runtime.local_snapshot_status(self.card, self.root, verify=True)
         self.assertTrue(first["runtime_ready"])
+        runtime._VERIFIED_SNAPSHOT_CACHE.clear()
         second = runtime.local_snapshot_status(self.card, self.root, verify=True)
         self.assertTrue(second["verification_cache_hit"])
+        self.assertEqual(second["verification_cache_scope"], "persistent")
         entrypoint = self.snapshot / "agent" / "synthetic_runtime.py"
         entrypoint.write_text(entrypoint.read_text(encoding="utf-8") + "# tampered\n", encoding="utf-8")
         invalid = runtime.local_snapshot_status(self.card, self.root, verify=True)
         self.assertFalse(invalid["runtime_ready"])
         self.assertTrue(any("inventory differs" in item for item in invalid["errors"]))
 
-    def test_persisted_elements_root_and_environment_override(self) -> None:
+    def test_variable_route_map_filters_unrelated_official_routes(self) -> None:
+        access_path = self.snapshot / "agent" / "online_access.json"
+        access = json.loads(access_path.read_text(encoding="utf-8"))
+        access["routes"].insert(0, {
+            "route_id": "unrelated-explorer",
+            "access_method": "official_api",
+            "authority": "official",
+            "uri": "https://example.org/explorer",
+            "freshness": "current_upstream",
+            "coverage_claim": "declared_subset",
+            "verification": "live_runtime_test",
+        })
+        access_path.write_text(json.dumps(access), encoding="utf-8")
+        context = runtime.observation_route_context(
+            self.snapshot,
+            "latest",
+            "grdr:variable:synthetic-population",
+        )
+        self.assertTrue(context["variable_route_filter_applied"])
+        self.assertEqual(
+            [item["route_id"] for item in context["candidate_routes"]],
+            ["official-api"],
+        )
+
+    def test_transient_online_failure_retries_with_bounded_backoff(self) -> None:
+        failed = subprocess.CompletedProcess([], 1, stdout="", stderr="HTTP 503")
+        succeeded = subprocess.CompletedProcess(
+            [],
+            0,
+            stdout=json.dumps({"status": "ok"}),
+            stderr="",
+        )
+        with (
+            patch.object(runtime, "available_runtimes", return_value=[(self.card, self.snapshot)]),
+            patch.object(runtime.subprocess, "run", side_effect=[failed, succeeded]) as invoked,
+            patch.object(runtime.time, "sleep") as slept,
+        ):
+            result = runtime.invoke_source_runtime(
+                [self.card],
+                "grdr:variable:synthetic-population",
+                "fetch-variable",
+                self.root,
+            )
+        self.assertEqual(invoked.call_count, 2)
+        slept.assert_called_once_with(0.5)
+        self.assertEqual(
+            [item["status"] for item in result["observation_route"]["attempted_routes"]],
+            ["retrying", "succeeded"],
+        )
+
+    def test_snapshot_cache_configuration_and_legacy_override(self) -> None:
         state = self.root / "state"
         state.mkdir()
         configured = self.root
         (state / "config.json").write_text(
-            json.dumps({"schema_version": "1.0.0", "elements_root": str(configured)}),
+            json.dumps({"schema_version": "1.2.0", "snapshot_cache_root": str(configured)}),
             encoding="utf-8",
         )
         with patch.dict(
             os.environ,
-            {"GRDR_STATE_ROOT": str(state), "GRDR_ELEMENTS_ROOT": ""},
+            {
+                "GRDR_STATE_ROOT": str(state),
+                "GRDR_SNAPSHOT_CACHE_ROOT": "",
+                "GRDR_ELEMENTS_ROOT": "",
+            },
             clear=False,
         ):
             self.assertEqual(runtime.elements_root(), configured.resolve())
             override = self.root / "override"
-            os.environ["GRDR_ELEMENTS_ROOT"] = str(override)
+            os.environ["GRDR_SNAPSHOT_CACHE_ROOT"] = str(override)
             self.assertEqual(runtime.elements_root(), override.resolve())
 
     def test_variable_cli_prefers_latest_callable_snapshot(self) -> None:

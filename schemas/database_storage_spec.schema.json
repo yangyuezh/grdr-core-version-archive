@@ -4,9 +4,9 @@
   "title": "GRDR database snapshot storage specification",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "source_id", "source_slug", "snapshot_id", "core", "source_repository", "release", "elements_root", "observation_policy", "observation_inputs", "raw_observation_exclusions", "adapter_inputs", "runtime"],
+  "required": ["schema_version", "source_id", "source_slug", "snapshot_id", "core", "source_repository", "release", "observation_policy", "observation_inputs", "raw_observation_exclusions", "adapter_inputs", "runtime"],
   "properties": {
-    "schema_version": {"const": "4.0.0"},
+    "schema_version": {"enum": ["4.0.0", "4.1.0"]},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
     "snapshot_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
@@ -26,7 +26,7 @@
       "type": "object", "additionalProperties": false, "required": ["tag", "title"],
       "properties": {"tag": {"type": "string", "minLength": 1}, "title": {"type": "string", "minLength": 1}}
     },
-    "elements_root": {"type": "string", "minLength": 1},
+    "elements_root": {"type": "string", "minLength": 1, "deprecated": true},
     "observation_policy": {
       "type": "object",
       "additionalProperties": false,
@@ -137,6 +137,26 @@
     }
   },
   "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": "4.0.0"}}},
+      "then": {"required": ["elements_root"]}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "4.1.0"}}},
+      "then": {
+        "properties": {
+          "observation_policy": {
+            "properties": {
+              "replication": {
+                "properties": {
+                  "placements": {"not": {"contains": {"const": "elements"}}}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     {
       "if": {"properties": {"observation_policy": {"properties": {"replication": {"properties": {"mode": {"const": "full_mirror"}}}}}}},
       "then": {"properties": {

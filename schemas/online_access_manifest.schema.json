@@ -68,7 +68,7 @@
     },
     "route_class": {
       "type": "string",
-      "enum": ["official_online", "github_release_snapshot", "elements_mirror", "mounted_object_store"]
+      "enum": ["official_online", "github_release_snapshot", "local_snapshot_cache", "elements_mirror", "mounted_object_store"]
     },
     "route_order": {
       "type": "array",

@@ -15,7 +15,7 @@ Configure an installed clone once with `python3 scripts/configure_core.py`, or s
 - `registry/`: canonical records and completed source-archive cards;
 - `deep_map_projects/`: locked Plan and resumable Execute/Storage projects;
 - `research_projects/`: indicator and semantic-resolution projects;
-- `elements/`: the default expanded snapshot root when `GRDR_ELEMENTS_ROOT` is unset.
+- `cache/`: optional, disposable Release expansions and persisted verification receipts.
 
 `GRDR_STATE_ROOT` must resolve outside the Core repository. Storage must leave every Core file byte-identical.
 
@@ -36,13 +36,13 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 
 - One deeply stored Source owns one private source repository.
 - One snapshot owns one GitHub Release containing complete knowledge, Agent Runtime, manifest, receipt, and only those observations explicitly assigned to GitHub.
-- The same snapshot owns one expanded Elements directory containing complete knowledge and Agent Runtime plus only those observations explicitly assigned to Elements.
+- Agent Runtime may materialize a verified Release into an expanded local cache. The cache is disposable, rebuildable, and not owned by the canonical snapshot.
 - Large observation bytes may instead live on a mounted object store or remain only at the official upstream; this replication decision does not remove the online-callability requirement.
-- A location-aware manifest maps every logical file to its actual locations and SHA-256. Knowledge and Agent files must match across Release and Elements; observation parity is checked only across locations that claim a copy.
+- A location-aware manifest maps every logical file to its canonical locations and SHA-256. Observation parity is checked only across locations that claim a normative copy; a local cache is checked against the Release manifest when present.
 - Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
 - Source repositories reference a Core version; they never copy Core Skills.
-- External runtime configuration owns adjustable GitHub-observation and Elements-full-mirror thresholds. The snapshot records the exact policy and measured bytes used for its decision.
+- External runtime configuration owns the adjustable GitHub-observation total threshold. GitHub's under-2-GiB per-asset limit is always enforced. The snapshot records the exact policy and measured bytes used for its decision.
 
 Storage may promote sealed records into external state after validation. It must never promote them into the immutable Core checkout.
 
@@ -72,13 +72,13 @@ Supported online methods are official API, official bulk download, official brow
 
 Agent Runtime applies one of three route policies:
 
-- `latest`: official online, then GRDR GitHub Release, then Elements or mounted replicas;
-- `reproducible`: frozen GRDR or source snapshot, then Elements or mounted replicas, then a version-checked official route;
-- `offline`: Elements or mounted replicas only.
+- `latest`: official online, then GRDR GitHub Release, then a materialized local cache or mounted replica;
+- `reproducible`: frozen GRDR or source snapshot, then a materialized local cache or mounted replica, then a version-checked official route;
+- `offline`: materialized local cache or mounted replicas only.
 
 A no-mirror snapshot backed only by an unversioned current API has no reproducible route. It must add a frozen online snapshot or version-pinned official route before Storage can complete.
 
-Before every local operation, Agent Runtime verifies the complete manifest-bound inventory. During invocation it passes the selected route context to the source-specific Runtime, tries candidates in policy order, records failures, and falls back only to another declared and verified route. A missing location that claims a copy is an error, not a warning.
+On first materialization, after file changes, and during explicit audit, Agent Runtime verifies the complete manifest-bound inventory. It persists a filesystem-bound verification receipt so unchanged snapshots do not repeat full-file hashing on every new CLI process. During invocation it prefilters routes with the Variable-to-route map, passes the selected route context to the source-specific Runtime, performs bounded retry only for transient online failures, records every attempt, and falls back only to another declared and verified route. A missing canonical location that claims a copy is an error; an absent optional cache is normal.
 
 ## On-demand research data
 

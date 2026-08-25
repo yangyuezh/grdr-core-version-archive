@@ -15,7 +15,7 @@ Turn one sealed Step 2 execution into one durable `versioned_database_snapshot`.
 4. require source Runtime 2.0 to test every declared online route and map every registered Variable to at least one executable route;
 5. load the deployment-local capacity policy, measure actual observation bytes before copying, record any upstream-size estimate, and validate the selected replication and placement;
 6. build the complete knowledge artifact, Agent SQLite index, source Runtime, online manifests/audits, and only the observation artifacts required by the selected replication mode;
-7. publish knowledge and Agent artifacts in the GitHub Release, materialize them in Elements, and place observation bytes only where declared;
+7. publish knowledge and Agent artifacts in the GitHub Release and place observation bytes only where declared; any local expanded copy is a disposable cache;
 8. verify every declared route and location, prove zero knowledge/observation duplication, and prove the Runtime resolves every indexed Variable both offline and online;
 9. upload the final receipt, read it back from GitHub, and only then write the external central card and complete state.
 
@@ -41,7 +41,6 @@ Create a Schema-valid Storage specification with:
 - one snapshot ID and one Release tag;
 - exact GRDR Core version and repository URL;
 - one private `owner/grdr-source-<slug>` repository and local working path;
-- the Elements root;
 - one replication mode: `full_mirror`, `partitioned_mirror`, or `no_mirror`;
 - an optional upstream observation-size estimate and evidence basis when the full upstream byte size is known;
 - an explicit completeness claim and the actual observation placements;
@@ -52,7 +51,7 @@ Create a Schema-valid Storage specification with:
 - source-specific adapter files needed for reproducibility.
 - one Schema-valid `grdr-source-runtime/2.0` descriptor and its source-specific executable files, including `self-test-online` and the route-context protocol.
 
-Configure deployment thresholds outside Core. Defaults are 5 GiB of observations per GitHub Release and 10 GiB for one Elements full mirror; both are adjustable without changing the Skill. GitHub Release files must always remain below the platform's 2 GiB per-file limit. Treat the resulting small/medium/large label as a policy-relative recommendation, never as a database identity or a reason to reduce knowledge scope.
+Configure the GitHub observation threshold outside Core. The default is 5 GiB of observations per database Release and is adjustable without changing the Skill. Every GitHub Release file must remain strictly below 2 GiB. These are the only two default capacity boundaries. Treat the resulting size label as a policy-relative recommendation, never as a database identity or a reason to reduce knowledge scope.
 
 The source repository references the Core version. Never duplicate Core Skills into it.
 
@@ -69,7 +68,7 @@ Preparation must produce:
 
 - ordinary source-repository files: configuration, adapters, locked Plan, snapshot manifest, canonical archive receipt, README, and tests;
 - Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, Runtime 2.0 descriptor, executable entrypoint, offline runtime audit, online access manifest, and online runtime audit; optional observation archives only when GitHub is an observation placement; and `manifest.json`;
-- Elements: complete expanded `knowledge/` and `agent/`, plus `observations/` only when Elements is an observation placement;
+- optional local runtime cache: a rebuildable expansion of verified Release assets; it is not canonical and is not required for completion;
 - optional mounted large-data copies plus verified official or GRDR Release online routes;
 - `storage_package.json` bound to the locked knowledge scope, completeness claim, location-aware file inventory, canonical archive receipt, and every checksum.
 
@@ -91,7 +90,7 @@ Or run preparation and publication together:
 python3 "$GRDR_LAUNCHER" store-database-deep-map <project> <storage-spec.json>
 ```
 
-Publication creates or updates the private source repository, pushes its reviewable files, creates one GitHub Release for the snapshot, and uploads the prepared knowledge/Agent and any GitHub-placed observation assets. It then constructs and uploads `storage_receipt.json`, reads back the repository, Release tag, exact commit, every asset, and the receipt hash. Only after that verification succeeds may it transactionally write the local/Elements receipt, publication-verification evidence, complete project state, and `registry/source_archives.jsonl` card. A failed receipt upload leaves the snapshot `ready_for_publish`, never `complete`.
+Publication creates or updates the private source repository, pushes its reviewable files, creates one GitHub Release for the snapshot, and uploads the prepared knowledge/Agent and any GitHub-placed observation assets. It then constructs and uploads `storage_receipt.json`, reads back the repository, Release tag, exact commit, every asset, and the receipt hash. Only after that verification succeeds may it transactionally write local project evidence, complete project state, and the external `registry/source_archives.jsonl` card. A failed receipt upload leaves the snapshot `ready_for_publish`, never `complete`.
 
 If publication was performed by another trusted process, record its verified machine evidence with:
 
@@ -103,6 +102,6 @@ Do not invent a publication record. The command performs its own GitHub read-bac
 
 ## Report
 
-Return Source, project, and snapshot IDs; Core version; knowledge scope and completion claim; online completion state, official status, route methods, online Variable coverage and route policies; observation replication mode, completeness claim, placements, file and partition counts; source repository and Release URLs; Elements and external locations; knowledge, observation, logical-content, package, publication, and Storage-receipt fingerprints; central card ID; and final audit.
+Return Source, project, and snapshot IDs; Core version; knowledge scope and completion claim; online completion state, official status, route methods, online Variable coverage and route policies; observation replication mode, completeness claim, placements, file and partition counts; source repository and Release URLs; optional local-cache state and external locations; knowledge, observation, logical-content, package, publication, and Storage-receipt fingerprints; central card ID; and final audit.
 
 Only `storage_complete: true`, `completion_ready: true`, and a valid `storage_receipt.json` mean the three-step factory has completed. A canonical archive receipt alone means knowledge records entered GRDR; it does not mean the database snapshot has been stored.

@@ -337,6 +337,11 @@ def route_policies(spec: dict[str, Any]) -> dict[str, list[str]]:
         classes.add("official_online")
     if any(item["access_method"] == "grdr_release_snapshot" for item in routes):
         classes.add("github_release_snapshot")
+    if (
+        spec.get("schema_version") == "4.1.0"
+        and "github_release" in replication["placements"]
+    ):
+        classes.add("local_snapshot_cache")
     if "elements" in replication["placements"]:
         classes.add("elements_mirror")
     if "object_store" in replication["placements"]:
@@ -346,6 +351,7 @@ def route_policies(spec: dict[str, Any]) -> dict[str, list[str]]:
             item for item in (
                 "official_online",
                 "github_release_snapshot",
+                "local_snapshot_cache",
                 "elements_mirror",
                 "mounted_object_store",
             ) if item in classes
@@ -353,6 +359,7 @@ def route_policies(spec: dict[str, Any]) -> dict[str, list[str]]:
         "reproducible": [
             item for item in (
                 "github_release_snapshot",
+                "local_snapshot_cache",
                 "elements_mirror",
                 "mounted_object_store",
                 "official_online",
@@ -360,6 +367,7 @@ def route_policies(spec: dict[str, Any]) -> dict[str, list[str]]:
         ],
         "offline": [
             item for item in (
+                "local_snapshot_cache",
                 "elements_mirror",
                 "mounted_object_store",
             ) if item in classes
@@ -568,6 +576,14 @@ def component_location_map(spec: dict[str, Any]) -> dict[str, list[str]]:
         item for item in ("github_release", "elements", "object_store")
         if item in placements
     ]
+    if spec.get("schema_version") == "4.1.0":
+        return {
+            "knowledge": ["github_release"],
+            "agent": ["github_release"],
+            "observations": [
+                item for item in observation_locations if item != "elements"
+            ],
+        }
     return {
         "knowledge": ["elements", "github_release"],
         "agent": ["elements", "github_release"],
@@ -630,18 +646,22 @@ def snapshot_profile(
 def classify_observation_size(total_bytes: int | None, policy: dict[str, Any]) -> str:
     if total_bytes is None:
         return "unknown"
-    lower_limit = min(
-        policy["github_release_observation_max_bytes"],
-        policy["elements_full_mirror_max_bytes"],
-    )
-    upper_limit = max(
-        policy["github_release_observation_max_bytes"],
-        policy["elements_full_mirror_max_bytes"],
-    )
-    if total_bytes <= lower_limit:
+    if isinstance(policy.get("elements_full_mirror_max_bytes"), int):
+        lower_limit = min(
+            policy["github_release_observation_max_bytes"],
+            policy["elements_full_mirror_max_bytes"],
+        )
+        upper_limit = max(
+            policy["github_release_observation_max_bytes"],
+            policy["elements_full_mirror_max_bytes"],
+        )
+        if total_bytes <= lower_limit:
+            return "small"
+        if total_bytes <= upper_limit:
+            return "medium"
+        return "large"
+    if total_bytes <= policy["github_release_observation_max_bytes"]:
         return "small"
-    if total_bytes <= upper_limit:
-        return "medium"
     return "large"
 
 
@@ -671,26 +691,10 @@ def assess_storage_capacity(
             "captured observations exceed the configured GitHub Release observation limit; "
             "remove github_release from placements or raise the external deployment policy"
         )
-    if (
-        mode == "full_mirror"
-        and "elements" in placements
-        and captured_bytes > policy["elements_full_mirror_max_bytes"]
-    ):
-        errors.append(
-            "full-mirror observations exceed the configured Elements full-mirror limit; "
-            "choose partitioned_mirror/no_mirror or raise the external deployment policy"
-        )
     if errors:
         raise ValueError("; ".join(errors))
     if size_class == "small":
-        recommendation = "full_mirror may use github_release plus elements"
-    elif size_class == "medium":
-        eligible = []
-        if estimated_total is not None and estimated_total <= policy["github_release_observation_max_bytes"]:
-            eligible.append("github_release")
-        if estimated_total is not None and estimated_total <= policy["elements_full_mirror_max_bytes"]:
-            eligible.append("elements")
-        recommendation = "full_mirror may use only capacity-eligible placements: " + ", ".join(eligible)
+        recommendation = "captured observations are eligible for GitHub Release replication"
     elif size_class == "large":
         recommendation = "prefer partitioned_mirror or no_mirror; online access remains mandatory"
     else:
@@ -702,7 +706,6 @@ def assess_storage_capacity(
         "captured_bytes": captured_bytes,
         "size_class": size_class,
         "github_release_observation_max_bytes": policy["github_release_observation_max_bytes"],
-        "elements_full_mirror_max_bytes": policy["elements_full_mirror_max_bytes"],
         "github_release_asset_max_bytes": policy["github_release_asset_max_bytes"],
         "selected_mode": mode,
         "selected_placements": sorted(placements),
@@ -838,7 +841,7 @@ def package_payload(
     project: dict[str, Any],
     spec: dict[str, Any],
     archive_receipt: dict[str, Any],
-    elements_path: Path,
+    local_cache_path: Path,
     release_assets_path: Path,
     logical_files: list[dict[str, Any]],
     release_assets: list[dict[str, Any]],
@@ -853,7 +856,7 @@ def package_payload(
     knowledge_files = content_records(logical_files, "knowledge")
     observation_files = content_records(logical_files, "observations")
     payload = {
-        "schema_version": "4.0.0",
+        "schema_version": "4.1.0" if spec.get("schema_version") == "4.1.0" else "4.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "source_slug": spec["source_slug"],
@@ -865,7 +868,6 @@ def package_payload(
         "release_tag": spec["release"]["tag"],
         "release_title": spec["release"]["title"],
         "release_assets_path": str(release_assets_path),
-        "elements_snapshot_path": str(elements_path),
         "canonical_archive_fingerprint": archive_receipt["receipt_fingerprint"],
         "project_scope_fingerprint": project["locks"]["scope_fingerprint"],
         "snapshot_profile": profile,
@@ -886,6 +888,10 @@ def package_payload(
         "logical_content_fingerprint": fingerprint(logical_files),
         "prepared_at": prepared_at,
     }
+    if spec.get("schema_version") == "4.1.0":
+        payload["local_snapshot_cache_path"] = str(local_cache_path)
+    else:
+        payload["elements_snapshot_path"] = str(local_cache_path)
     payload["package_fingerprint"] = fingerprint(payload)
     return payload
 
@@ -913,8 +919,9 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 - Logical content fingerprint: `{package['logical_content_fingerprint']}`
 
 The GitHub Release always carries the knowledge and Agent artifacts. Observation bytes exist only
-at the locations named by the snapshot manifest. The Elements directory is the expanded callable
-working representation. `snapshots/{package['snapshot_id']}/manifest.json` binds every location.
+at the locations named by the snapshot manifest. An expanded local copy is a disposable runtime
+cache, not a canonical storage requirement. `snapshots/{package['snapshot_id']}/manifest.json`
+binds every canonical location.
 """
 
 
@@ -947,12 +954,14 @@ def materialize_source_repository(
     repository.mkdir(parents=True, exist_ok=True)
     ignore_path = repository / ".gitignore"
     ignore = ignore_path.read_text(encoding="utf-8") if ignore_path.exists() else ""
-    line = ".grdr-release-assets/"
-    if line not in ignore.splitlines():
-        atomic_write_text(ignore_path, (ignore.rstrip() + "\n" + line + "\n").lstrip("\n"))
+    ignored_lines = [".grdr-release-assets/", ".grdr-runtime-cache/"]
+    for line in ignored_lines:
+        if line not in ignore.splitlines():
+            ignore = (ignore.rstrip() + "\n" + line + "\n").lstrip("\n")
+    atomic_write_text(ignore_path, ignore)
     write_source_readme(repository / "README.md", generated_readme(project, package))
     source_config = {
-        "schema_version": "4.0.0",
+        "schema_version": package["schema_version"],
         "source_id": project["source_id"],
         "core_repository": package["core_repository"],
         "core_version": package["core_version"],
@@ -1040,9 +1049,16 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         raise ValueError("canonical archive transaction is incomplete; Storage cannot package unpromoted records")
     archive_receipt = read_json(target / ARCHIVE_RECEIPT_FILE)
     source_repository = resolve_input(spec["source_repository"]["local_path"], ROOT)
-    elements_root = resolve_input(spec["elements_root"], ROOT)
-    elements_root.mkdir(parents=True, exist_ok=True)
-    elements_path = elements_root / "sources" / spec["source_slug"] / "snapshots" / spec["snapshot_id"]
+    if spec.get("schema_version") == "4.1.0":
+        local_cache_path = (
+            source_repository / ".grdr-runtime-cache" / spec["snapshot_id"]
+        )
+    else:
+        legacy_root = resolve_input(spec["elements_root"], ROOT)
+        legacy_root.mkdir(parents=True, exist_ok=True)
+        local_cache_path = (
+            legacy_root / "sources" / spec["source_slug"] / "snapshots" / spec["snapshot_id"]
+        )
     release_assets_path = source_repository / ".grdr-release-assets" / spec["snapshot_id"]
     if (target / STORAGE_PACKAGE_FILE).is_file():
         existing = read_json(target / STORAGE_PACKAGE_FILE)
@@ -1052,8 +1068,8 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
             if not audit["errors"]:
                 return {"operation": "prepare_database_storage", "status": "already_prepared", "package": existing, "audit": audit}
         raise ValueError("a different or invalid storage package already exists; use a new snapshot_id")
-    if elements_path.exists():
-        raise ValueError(f"Elements snapshot path already exists: {elements_path}")
+    if local_cache_path.exists():
+        raise ValueError(f"local snapshot cache already exists: {local_cache_path}")
     if release_assets_path.exists():
         raise ValueError(f"release asset path already exists: {release_assets_path}")
     for external in spec["observation_policy"]["replication"]["external_locations"]:
@@ -1069,7 +1085,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         if external_path.exists():
             raise ValueError(f"object-store snapshot path already exists: {external_path}")
 
-    temporary_parent = elements_path.parent
+    temporary_parent = local_cache_path.parent
     temporary_parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f".{spec['snapshot_id']}.", dir=temporary_parent) as temporary:
         workspace = Path(temporary)
@@ -1215,7 +1231,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
             )
         prepared_at = now()
         package = package_payload(
-            project, spec, archive_receipt, elements_path, release_assets_path,
+            project, spec, archive_receipt, local_cache_path, release_assets_path,
             logical_files, release_assets, runtime, runtime_audit,
             online_access_manifest, online_runtime_audit, profile, external_locations,
             prepared_at,
@@ -1224,12 +1240,17 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         if validation_errors:
             raise ValueError("generated storage package failed Schema validation: " + "; ".join(validation_errors))
         write_json(assets / "manifest.json", package)
-        elements_build = workspace / "elements"
+        local_cache_build = workspace / "local-cache"
         for component in ("knowledge", "agent"):
-            shutil.copytree(logical_root / component, elements_build / component)
-        if "elements" in spec["observation_policy"]["replication"]["placements"]:
-            shutil.copytree(logical_root / "observations", elements_build / "observations")
-        write_json(elements_build / "receipts" / SNAPSHOT_MANIFEST_FILE, package)
+            shutil.copytree(logical_root / component, local_cache_build / component)
+        cache_observations = (
+            "github_release" in spec["observation_policy"]["replication"]["placements"]
+            if spec.get("schema_version") == "4.1.0"
+            else "elements" in spec["observation_policy"]["replication"]["placements"]
+        )
+        if cache_observations:
+            shutil.copytree(logical_root / "observations", local_cache_build / "observations")
+        write_json(local_cache_build / "receipts" / SNAPSHOT_MANIFEST_FILE, package)
         prepared_object_locations: list[tuple[Path, Path]] = []
         for external in external_locations:
             if external["type"] != "object_store":
@@ -1246,8 +1267,8 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
                 external_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(external_build), str(external_path))
                 created_locations.append(external_path)
-            shutil.move(str(elements_build), str(elements_path))
-            created_locations.append(elements_path)
+            shutil.move(str(local_cache_build), str(local_cache_path))
+            created_locations.append(local_cache_path)
             release_assets_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(assets), str(release_assets_path))
             created_locations.append(release_assets_path)
@@ -1309,7 +1330,7 @@ def source_archive_card(
     stored_at: str,
 ) -> dict[str, Any]:
     card = {
-        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0"} else "2.0.0",
+        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0", "4.1.0"} else "2.0.0",
         "id": f"grdr:source-archive:{package['source_slug']}",
         "source_id": project["source_id"],
         "repository": publication["repository_url"],
@@ -1325,14 +1346,14 @@ def source_archive_card(
             **({
                 "route_environment_protocol": package["runtime"]["route_environment_protocol"],
                 "online_access_manifest": f"agent/{package['runtime']['online_access_manifest']}",
-            } if package["schema_version"] == "4.0.0" else {}),
+            } if package["schema_version"] in {"4.0.0", "4.1.0"} else {}),
             "asset": agent_asset_name(package),
             "entrypoint": f"agent/{package['runtime']['entrypoint']}",
             "agent_index": f"agent/{package['runtime']['agent_index']}",
             "operations": package["runtime"]["operations"],
         },
     }
-    if package["schema_version"] in {"3.0.0", "4.0.0"}:
+    if package["schema_version"] in {"3.0.0", "4.0.0", "4.1.0"}:
         card.update({
             "knowledge_fingerprint": package["knowledge_content_fingerprint"],
             "observation_fingerprint": package["observation_content_fingerprint"],
@@ -1348,7 +1369,7 @@ def build_storage_receipt(
     stored_at: str,
 ) -> dict[str, Any]:
     receipt = {
-        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0"} else "2.0.0",
+        "schema_version": package["schema_version"] if package["schema_version"] in {"3.0.0", "4.0.0", "4.1.0"} else "2.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "snapshot_id": package["snapshot_id"],
@@ -1356,7 +1377,6 @@ def build_storage_receipt(
         "publication_fingerprint": publication["publication_fingerprint"],
         "repository_url": publication["repository_url"],
         "release_url": publication["release_url"],
-        "elements_snapshot_path": package["elements_snapshot_path"],
         "logical_content_fingerprint": package["logical_content_fingerprint"],
         "canonical_archive_fingerprint": package["canonical_archive_fingerprint"],
         "runtime_protocol_version": package["runtime"]["protocol_version"],
@@ -1364,7 +1384,9 @@ def build_storage_receipt(
         "status": "complete",
         "stored_at": stored_at,
     }
-    if package["schema_version"] in {"3.0.0", "4.0.0"}:
+    if package["schema_version"] != "4.1.0":
+        receipt["elements_snapshot_path"] = package["elements_snapshot_path"]
+    if package["schema_version"] in {"3.0.0", "4.0.0", "4.1.0"}:
         receipt.update({
             "knowledge_content_fingerprint": package["knowledge_content_fingerprint"],
             "observation_content_fingerprint": package["observation_content_fingerprint"],
@@ -1547,7 +1569,8 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
     if package.get("project_id") != project["id"] or package.get("source_id") != project["source_id"]:
         errors.append("storage package identity does not match the deep-map project")
     legacy_package = package.get("schema_version") == "2.0.0"
-    current_package = package.get("schema_version") == "4.0.0"
+    current_package = package.get("schema_version") in {"4.0.0", "4.1.0"}
+    optional_cache_package = package.get("schema_version") == "4.1.0"
     if not legacy_package:
         if package.get("project_scope_fingerprint") != project["locks"]["scope_fingerprint"]:
             errors.append("Storage knowledge scope fingerprint differs from the locked Plan")
@@ -1583,22 +1606,26 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                 errors.append("capacity assessment captured_bytes differs from the observation inventory")
             embedded_policy = {
                 "github_release_observation_max_bytes": capacity.get("github_release_observation_max_bytes"),
-                "elements_full_mirror_max_bytes": capacity.get("elements_full_mirror_max_bytes"),
             }
+            if isinstance(capacity.get("elements_full_mirror_max_bytes"), int):
+                embedded_policy["elements_full_mirror_max_bytes"] = capacity["elements_full_mirror_max_bytes"]
             if all(isinstance(value, int) and not isinstance(value, bool) for value in embedded_policy.values()):
                 if classify_observation_size(capacity.get("estimated_total_bytes"), embedded_policy) != capacity.get("size_class"):
                     errors.append("capacity assessment size_class is stale")
                 if "github_release" in profile.get("observation_placement", {}).get("locations", []) and captured_bytes > embedded_policy["github_release_observation_max_bytes"]:
                     errors.append("GitHub observation placement exceeds its sealed capacity limit")
                 if (
-                    replication.get("mode") == "full_mirror"
+                    "elements_full_mirror_max_bytes" in embedded_policy
+                    and replication.get("mode") == "full_mirror"
                     and "elements" in profile.get("observation_placement", {}).get("locations", [])
                     and captured_bytes > embedded_policy["elements_full_mirror_max_bytes"]
                 ):
                     errors.append("Elements full mirror exceeds its sealed capacity limit")
         for item in package["logical_files"]:
             expected_locations = (
-                ["elements", "github_release"]
+                ["github_release"]
+                if optional_cache_package and item["component"] in {"knowledge", "agent"}
+                else ["elements", "github_release"]
                 if item["component"] in {"knowledge", "agent"}
                 else sorted(
                     location for location in profile["observation_placement"]["locations"]
@@ -1627,32 +1654,42 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                 errors.append("snapshot online-access profile differs from the sealed access manifest")
             if online_profile.get("online_callable_variable_count") != online_audit.get("online_callable_variable_count"):
                 errors.append("snapshot online-access coverage differs from the sealed runtime audit")
-    elements = Path(package["elements_snapshot_path"])
-    if not elements.is_dir():
-        errors.append(f"Elements snapshot is missing: {elements}")
+    local_cache_value = package.get(
+        "local_snapshot_cache_path",
+        package.get("elements_snapshot_path"),
+    )
+    local_cache = Path(local_cache_value) if local_cache_value else None
+    if local_cache is None or not local_cache.is_dir():
+        if optional_cache_package:
+            warnings.append("Optional local snapshot cache is absent; GitHub publication remains canonical.")
+        else:
+            errors.append(f"Elements snapshot is missing: {local_cache}")
         actual_files = []
     else:
-        actual_files = inventory(elements)
-        expected_elements = (
+        actual_files = inventory(local_cache)
+        expected_cache = (
             package["logical_files"]
             if legacy_package
-            else records_for_location(package["logical_files"], "elements")
+            else records_for_location(
+                package["logical_files"],
+                "github_release" if optional_cache_package else "elements",
+            )
         )
-        if actual_files != expected_elements:
-            errors.append("Elements location inventory or SHA-256 values differ from the storage package")
+        if actual_files != expected_cache:
+            errors.append("local snapshot cache inventory or SHA-256 values differ from the storage package")
         if not legacy_package:
-            elements_manifest = elements / "receipts" / SNAPSHOT_MANIFEST_FILE
-            if not elements_manifest.is_file() or read_json(elements_manifest) != package:
-                errors.append("Elements location manifest is missing or differs from the storage package")
+            cache_manifest = local_cache / "receipts" / SNAPSHOT_MANIFEST_FILE
+            if not cache_manifest.is_file() or read_json(cache_manifest) != package:
+                errors.append("local snapshot cache manifest is missing or differs from the storage package")
             replication = package["snapshot_profile"]["observation_replication"]
             if replication["mode"] == "partitioned_mirror":
                 partition_record = replication.get("partition_manifest")
                 if not isinstance(partition_record, dict) or not partition_record.get("path"):
                     errors.append("partitioned mirror has no sealed partition-manifest record")
                 else:
-                    stored_partition = elements / partition_record["path"]
+                    stored_partition = local_cache / partition_record["path"]
                     if not stored_partition.is_file():
-                        errors.append("partitioned mirror manifest is missing from Elements knowledge")
+                        errors.append("partitioned mirror manifest is missing from cached knowledge")
                     elif (
                         sha256_file(stored_partition) != partition_record.get("sha256")
                         or stored_partition.stat().st_size != partition_record.get("size_bytes")
@@ -1681,12 +1718,12 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                         except (ValueError, OSError, json.JSONDecodeError) as exc:
                             errors.append(str(exc))
             if current_package:
-                element_access = elements / "agent" / ONLINE_ACCESS_FILE
-                element_online_audit = elements / "agent" / ONLINE_RUNTIME_AUDIT_FILE
-                if not element_access.is_file() or read_json(element_access) != package.get("online_access_manifest"):
-                    errors.append("Elements online access manifest is missing or differs from the storage package")
-                if not element_online_audit.is_file() or read_json(element_online_audit) != package.get("online_runtime_audit"):
-                    errors.append("Elements online runtime audit is missing or differs from the storage package")
+                cached_access = local_cache / "agent" / ONLINE_ACCESS_FILE
+                cached_online_audit = local_cache / "agent" / ONLINE_RUNTIME_AUDIT_FILE
+                if not cached_access.is_file() or read_json(cached_access) != package.get("online_access_manifest"):
+                    errors.append("cached online access manifest is missing or differs from the storage package")
+                if not cached_online_audit.is_file() or read_json(cached_online_audit) != package.get("online_runtime_audit"):
+                    errors.append("cached online runtime audit is missing or differs from the storage package")
     assets_path = Path(package["release_assets_path"])
     expected_release_files = (
         package["logical_files"]
@@ -1721,19 +1758,19 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
     manifest_path = assets_path / "manifest.json"
     if not manifest_path.is_file() or read_json(manifest_path) != package:
         errors.append("release manifest is missing or differs from storage_package.json")
-    if elements.is_dir():
-        agent_dir = elements / "agent"
+    if local_cache is not None and local_cache.is_dir():
+        agent_dir = local_cache / "agent"
         descriptor_path = agent_dir / RUNTIME_DESCRIPTOR_FILE
         if not descriptor_path.is_file() or read_json(descriptor_path) != package.get("runtime"):
-            errors.append("Elements source runtime descriptor is missing or differs from the storage package")
+            errors.append("cached source runtime descriptor is missing or differs from the storage package")
         else:
             try:
                 runtime_audit = run_source_runtime_self_test(agent_dir, package["runtime"])
                 if runtime_audit != package.get("runtime_audit"):
-                    errors.append("Elements source runtime audit differs from the sealed runtime audit")
+                    errors.append("cached source runtime audit differs from the sealed runtime audit")
                 if current_package:
                     refreshed_online = run_source_runtime_online_test(
-                        agent_dir, package["runtime"], elements
+                        agent_dir, package["runtime"], local_cache
                     )
                     sealed_online = package.get("online_runtime_audit", {})
                     for key in (
@@ -1813,9 +1850,10 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             ))
             if fingerprint({key: value for key, value in verification.items() if key != "verification_fingerprint"}) != verification.get("verification_fingerprint"):
                 errors.append("publication verification fingerprint is stale")
-            elements_verification = elements / "receipts" / PUBLICATION_VERIFICATION_FILE
-            if not elements_verification.is_file() or read_json(elements_verification) != verification:
-                errors.append("Elements publication verification evidence is missing or differs")
+            if not optional_cache_package and local_cache is not None:
+                cache_verification = local_cache / "receipts" / PUBLICATION_VERIFICATION_FILE
+                if not cache_verification.is_file() or read_json(cache_verification) != verification:
+                    errors.append("legacy Elements publication verification evidence is missing or differs")
     else:
         warnings.append("The complete local snapshot is prepared but has not yet been verified as a GitHub Release.")
     receipt_valid = storage_receipt_is_valid(target, project) if publication_present else False
@@ -1848,7 +1886,11 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         "observation_content_fingerprint": package.get("observation_content_fingerprint"),
         "snapshot_profile": package.get("snapshot_profile"),
         "release_asset_count": len(package["release_assets"]) + 1,
-        "elements_snapshot_path": package["elements_snapshot_path"],
+        **({
+            "local_snapshot_cache_path": package.get("local_snapshot_cache_path"),
+        } if optional_cache_package else {
+            "elements_snapshot_path": package["elements_snapshot_path"],
+        }),
         "source_repository_path": package["source_repository_path"],
         "publication_present": publication_present,
         "receipt_valid": receipt_valid,
@@ -1915,8 +1957,11 @@ def record_database_storage_publication(
     validate_storage_receipt_candidate(receipt, project, package, publication)
     verification = verify_github_publication(package, publication, receipt_path)
     timestamp = receipt["stored_at"]
-    elements_receipt = Path(package["elements_snapshot_path"]) / "receipts" / STORAGE_RECEIPT_FILE
-    elements_verification = Path(package["elements_snapshot_path"]) / "receipts" / PUBLICATION_VERIFICATION_FILE
+    legacy_elements_receipt = None
+    legacy_elements_verification = None
+    if package.get("schema_version") != "4.1.0":
+        legacy_elements_receipt = Path(package["elements_snapshot_path"]) / "receipts" / STORAGE_RECEIPT_FILE
+        legacy_elements_verification = Path(package["elements_snapshot_path"]) / "receipts" / PUBLICATION_VERIFICATION_FILE
     release_receipt = Path(package["release_assets_path"]) / STORAGE_RECEIPT_FILE
     cards = read_jsonl(SOURCE_ARCHIVE_FILE) if SOURCE_ARCHIVE_FILE.exists() else []
     card = source_archive_card(project, package, publication, timestamp)
@@ -1942,8 +1987,7 @@ def record_database_storage_publication(
         target / STORAGE_PUBLICATION_FILE,
         target / PUBLICATION_VERIFICATION_FILE,
         target / STORAGE_RECEIPT_FILE,
-        elements_verification,
-        elements_receipt,
+        *([legacy_elements_verification, legacy_elements_receipt] if legacy_elements_receipt is not None else []),
         release_receipt,
         SOURCE_ARCHIVE_FILE,
         target / PROJECT_FILE,
@@ -1953,8 +1997,9 @@ def record_database_storage_publication(
         write_json(target / STORAGE_PUBLICATION_FILE, publication)
         write_json(target / PUBLICATION_VERIFICATION_FILE, verification)
         write_json(target / STORAGE_RECEIPT_FILE, receipt)
-        write_json(elements_verification, verification)
-        write_json(elements_receipt, receipt)
+        if legacy_elements_verification is not None and legacy_elements_receipt is not None:
+            write_json(legacy_elements_verification, verification)
+            write_json(legacy_elements_receipt, receipt)
         write_json(release_receipt, receipt)
         write_jsonl(SOURCE_ARCHIVE_FILE, updated_cards)
         write_json(target / PROJECT_FILE, updated_project)

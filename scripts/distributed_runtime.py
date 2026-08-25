@@ -16,9 +16,10 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 from typing import Any, Iterable
 
-from grdr_paths import elements_root as configured_elements_root
+from grdr_paths import snapshot_cache_root as configured_snapshot_cache_root
 
 LOGICAL_COMPONENTS = {"knowledge", "agent", "observations"}
 _VERIFIED_SNAPSHOT_CACHE: dict[tuple[str, str, str, str], tuple[str, dict[str, Any]]] = {}
@@ -59,9 +60,61 @@ def load_cards(path: Path) -> list[dict[str, Any]]:
 
 
 def elements_root(value: str | Path | None = None) -> Path:
+    """Return the optional local snapshot cache root.
+
+    The function name is retained for API compatibility with Core <=4.3.
+    """
+
     if value is not None:
         return Path(value).expanduser().resolve()
-    return configured_elements_root()
+    return configured_snapshot_cache_root()
+
+
+def snapshot_cache_root(value: str | Path | None = None) -> Path:
+    return elements_root(value)
+
+
+def verification_cache_file(root: str | Path | None = None) -> Path:
+    return snapshot_cache_root(root) / ".snapshot-verification-cache.json"
+
+
+def load_persistent_verification_cache(root: str | Path | None = None) -> dict[str, Any]:
+    path = verification_cache_file(root)
+    if not path.is_file():
+        return {}
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(document, dict) or document.get("schema_version") != "1.0.0":
+        return {}
+    entries = document.get("entries")
+    return entries if isinstance(entries, dict) else {}
+
+
+def persist_verification_result(
+    root: str | Path | None,
+    cache_id: str,
+    stat_fingerprint: str,
+    status: dict[str, Any],
+) -> None:
+    path = verification_cache_file(root)
+    entries = load_persistent_verification_cache(root)
+    entries[cache_id] = {
+        "stat_fingerprint": stat_fingerprint,
+        "status": status,
+        "verified_at": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    atomic_write_text(
+        path,
+        json.dumps(
+            {"schema_version": "1.0.0", "entries": entries},
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+    )
 
 
 def source_slug(card: dict[str, Any]) -> str:
@@ -156,7 +209,13 @@ def manifest_records_for_location(
     ]
 
 
-def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, verify: bool = False) -> dict[str, Any]:
+def local_snapshot_status(
+    card: dict[str, Any],
+    root: str | Path | None = None,
+    verify: bool = False,
+    *,
+    force_verify: bool = False,
+) -> dict[str, Any]:
     snapshot = snapshot_path(card, root)
     status: dict[str, Any] = {
         "source_id": card["source_id"],
@@ -172,7 +231,7 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         "warnings": [],
     }
     if not snapshot.is_dir():
-        status["errors"].append("local Elements snapshot is not materialized")
+        status["errors"].append("local snapshot cache is not materialized")
         return status
     try:
         _, index, entrypoint = runtime_paths(card, root)
@@ -204,7 +263,7 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         access = read_json(access_path)
         online_audit = read_json(online_audit_path)
     if receipt.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
-        status["errors"].append("Elements receipt fingerprint differs from the central source card")
+        status["errors"].append("local cache receipt fingerprint differs from the central source card")
     if descriptor.get("source_id") != card["source_id"]:
         status["errors"].append("runtime descriptor source_id differs from the central source card")
     if audit.get("status") != "ready" or audit.get("unresolved_variable_count") != 0:
@@ -224,17 +283,17 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
     if receipt_fingerprint is not None:
         receipt_payload = {key: value for key, value in receipt.items() if key != "receipt_fingerprint"}
         if fingerprint(receipt_payload) != receipt_fingerprint:
-            status["errors"].append("Elements Storage receipt fingerprint is invalid")
+            status["errors"].append("local cache Storage receipt fingerprint is invalid")
     if manifest is not None:
         package_fingerprint = manifest.get("package_fingerprint")
         if package_fingerprint is not None:
             package_payload = {key: value for key, value in manifest.items() if key != "package_fingerprint"}
             if fingerprint(package_payload) != package_fingerprint:
-                status["errors"].append("Elements manifest package fingerprint is invalid")
+                status["errors"].append("local cache manifest package fingerprint is invalid")
         if manifest.get("source_id") != card["source_id"] or manifest.get("snapshot_id") != card["latest_snapshot"]:
-            status["errors"].append("Elements manifest identity differs from the central source card")
+            status["errors"].append("local cache manifest identity differs from the central source card")
         if manifest.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
-            status["errors"].append("Elements manifest fingerprint differs from the central source card")
+            status["errors"].append("local cache manifest fingerprint differs from the central source card")
         profile = manifest.get("snapshot_profile")
         if isinstance(profile, dict):
             status["snapshot_profile"] = profile
@@ -249,11 +308,28 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         fingerprint(card),
     )
     stat_fingerprint = snapshot_stat_fingerprint(snapshot) if verify else None
-    cached = _VERIFIED_SNAPSHOT_CACHE.get(cache_key) if verify else None
+    cache_id = fingerprint(cache_key)
+    cached = _VERIFIED_SNAPSHOT_CACHE.get(cache_key) if verify and not force_verify else None
     if cached is not None and cached[0] == stat_fingerprint:
         cached_status = copy.deepcopy(cached[1])
         cached_status["verification_cache_hit"] = True
+        cached_status["verification_cache_scope"] = "process"
         return cached_status
+    if verify and not force_verify:
+        persisted = load_persistent_verification_cache(root).get(cache_id)
+        if (
+            isinstance(persisted, dict)
+            and persisted.get("stat_fingerprint") == stat_fingerprint
+            and isinstance(persisted.get("status"), dict)
+        ):
+            cached_status = copy.deepcopy(persisted["status"])
+            cached_status["verification_cache_hit"] = True
+            cached_status["verification_cache_scope"] = "persistent"
+            _VERIFIED_SNAPSHOT_CACHE[cache_key] = (
+                str(stat_fingerprint),
+                copy.deepcopy(cached_status),
+            )
+            return cached_status
     status["runtime_ready"] = not status["errors"]
     status["runtime_audit"] = audit
     if online_audit is not None:
@@ -267,9 +343,14 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             status["location_inventory_verified"] = status["logical_parity_verified"]
             status["observation_location_verified"] = status["logical_parity_verified"]
             if not status["logical_parity_verified"]:
-                status["errors"].append("computed Elements logical fingerprint differs from the central source card")
+                status["errors"].append("computed local-cache logical fingerprint differs from the central source card")
         else:
-            expected = manifest_records_for_location(manifest, "elements")
+            expected_location = (
+                "github_release"
+                if manifest.get("schema_version") == "4.1.0"
+                else "elements"
+            )
+            expected = manifest_records_for_location(manifest, expected_location)
             actual_knowledge_agent = [
                 item for item in records if item["component"] in {"knowledge", "agent"}
             ]
@@ -277,7 +358,7 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
                 item for item in expected if item["component"] in {"knowledge", "agent"}
             ]
             if actual_knowledge_agent != expected_knowledge_agent:
-                status["errors"].append("Elements knowledge or Agent inventory differs from the snapshot manifest")
+                status["errors"].append("local-cache knowledge or Agent inventory differs from the snapshot manifest")
             actual_observations = [
                 item for item in records if item["component"] == "observations"
             ]
@@ -287,18 +368,25 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             status["observation_location_verified"] = actual_observations == expected_observations
             if not status["observation_location_verified"]:
                 status["errors"].append(
-                    "Elements observation inventory differs from the location-aware snapshot manifest."
+                    "local-cache observation inventory differs from the location-aware snapshot manifest."
                 )
             status["location_inventory_verified"] = (
                 actual_knowledge_agent == expected_knowledge_agent
                 and status["observation_location_verified"]
             )
             status["logical_parity_verified"] = status["location_inventory_verified"]
-            status["computed_elements_inventory_fingerprint"] = fingerprint(records)
+            status["computed_local_cache_inventory_fingerprint"] = fingerprint(records)
         status["runtime_ready"] = not status["errors"]
         status["verification_cache_hit"] = False
+        status["verification_cache_scope"] = "full_sha256"
         if status["runtime_ready"] and stat_fingerprint is not None:
             _VERIFIED_SNAPSHOT_CACHE[cache_key] = (stat_fingerprint, copy.deepcopy(status))
+            persist_verification_result(
+                root,
+                cache_id,
+                stat_fingerprint,
+                copy.deepcopy(status),
+            )
     return status
 
 
@@ -321,6 +409,7 @@ def available_runtimes(
 def observation_route_context(
     snapshot: Path,
     route_policy: str = "latest",
+    variable_id: str | None = None,
 ) -> dict[str, Any]:
     if route_policy not in {"latest", "reproducible", "offline"}:
         raise DistributedRuntimeError(f"unknown observation route policy: {route_policy}")
@@ -344,6 +433,19 @@ def observation_route_context(
     access_path = snapshot / "agent" / "online_access.json"
     if access_path.is_file():
         access = read_json(access_path)
+        variable_route_ids: set[str] | None = None
+        online_audit_path = snapshot / "agent" / "online_runtime_audit.json"
+        if variable_id and online_audit_path.is_file():
+            online_audit = read_json(online_audit_path)
+            mapping = next(
+                (
+                    item for item in online_audit.get("variable_routes", [])
+                    if item.get("variable_id") == variable_id
+                ),
+                None,
+            )
+            if mapping is not None:
+                variable_route_ids = set(mapping.get("route_ids", []))
         policy_order = access["route_policies"][route_policy]
         candidates: list[dict[str, Any]] = []
         for route_class in policy_order:
@@ -356,6 +458,8 @@ def observation_route_context(
                     ),
                 )
                 for route in official_routes:
+                    if variable_route_ids is not None and route["route_id"] not in variable_route_ids:
+                        continue
                     if route["authority"] != "official":
                         continue
                     if (
@@ -382,6 +486,16 @@ def observation_route_context(
                         "access_method": route["access_method"],
                         "uri": route["uri"],
                         "observation_root": "",
+                    })
+            elif route_class == "local_snapshot_cache":
+                if local_observations.is_dir():
+                    candidates.append({
+                        "route_class": route_class,
+                        "selected_route": "local_snapshot_cache",
+                        "route_id": "local-snapshot-cache",
+                        "access_method": "local_mirror",
+                        "uri": local_observations.as_uri(),
+                        "observation_root": str(local_observations),
                     })
             elif route_class == "elements_mirror":
                 if "elements" in locations and local_observations.is_dir():
@@ -420,6 +534,8 @@ def observation_route_context(
             "candidate_routes": candidates,
             "external_locations": external_locations,
             "online_access": access,
+            "variable_route_filter_applied": variable_route_ids is not None,
+            "variable_route_ids": sorted(variable_route_ids or []),
         }
     if local_observations.is_dir():
         selected_route = "elements_mirror"
@@ -939,6 +1055,24 @@ def resolve_distributed_variable(cards: Iterable[dict[str, Any]], variable_id: s
     return None
 
 
+def retryable_runtime_failure(candidate: dict[str, Any], error: str, timed_out: bool) -> bool:
+    """Retry only transient online failures; never retry semantic or input errors."""
+
+    if candidate.get("access_method") not in {
+        "official_api",
+        "official_bulk_download",
+        "official_browser_automation",
+    }:
+        return False
+    if timed_out:
+        return True
+    return bool(re.search(
+        r"(?:\b429\b|\b500\b|\b502\b|\b503\b|\b504\b|timed?\s*out|timeout|temporar(?:y|ily)|connection\s+(?:reset|aborted|refused)|remote\s+end\s+closed)",
+        error,
+        flags=re.IGNORECASE,
+    ))
+
+
 def invoke_source_runtime(
     cards: Iterable[dict[str, Any]],
     variable_id: str,
@@ -964,7 +1098,7 @@ def invoke_source_runtime(
             except (IndexError, ValueError):
                 pass
         command = [sys.executable, str(entrypoint), operation, "--index", str(index), "--variable-id", variable_id, *arguments]
-        route_context = observation_route_context(snapshot, route_policy)
+        route_context = observation_route_context(snapshot, route_policy, variable_id)
         attempted_routes = []
         for candidate in route_context["candidate_routes"]:
             runtime_environment = {
@@ -982,47 +1116,55 @@ def invoke_source_runtime(
                 "GRDR_ONLINE_ACCESS_MANIFEST": str(snapshot / "agent" / "online_access.json"),
                 "GRDR_ONLINE_ACCESS_ROUTES": json.dumps(route_context.get("online_access", {}).get("routes", []), separators=(",", ":")),
             }
-            try:
-                completed = subprocess.run(
-                    command,
-                    cwd=entrypoint.parent,
-                    env=runtime_environment,
-                    capture_output=True,
-                    text=True,
-                    timeout=invocation_timeout,
-                )
-            except subprocess.TimeoutExpired:
+            maximum_attempts = 3 if candidate.get("access_method", "").startswith("official_") else 1
+            result = None
+            for attempt in range(1, maximum_attempts + 1):
+                timed_out = False
+                try:
+                    completed = subprocess.run(
+                        command,
+                        cwd=entrypoint.parent,
+                        env=runtime_environment,
+                        capture_output=True,
+                        text=True,
+                        timeout=invocation_timeout,
+                    )
+                    error = (
+                        (completed.stderr or completed.stdout).strip()
+                        if completed.returncode
+                        else ""
+                    )
+                except subprocess.TimeoutExpired:
+                    completed = None
+                    timed_out = True
+                    error = f"source runtime exceeded {invocation_timeout:g} seconds"
+                if completed is not None and completed.returncode == 0:
+                    try:
+                        result = json.loads(completed.stdout)
+                    except json.JSONDecodeError:
+                        error = "source runtime did not emit one JSON object"
+                    else:
+                        attempted_routes.append({
+                            "route_id": candidate["route_id"],
+                            "selected_route": candidate["selected_route"],
+                            "attempt": attempt,
+                            "status": "succeeded",
+                            "error": None,
+                        })
+                        break
+                retryable = retryable_runtime_failure(candidate, error, timed_out)
                 attempted_routes.append({
                     "route_id": candidate["route_id"],
                     "selected_route": candidate["selected_route"],
-                    "status": "failed",
-                    "error": f"source runtime exceeded {invocation_timeout:g} seconds",
+                    "attempt": attempt,
+                    "status": "retrying" if retryable and attempt < maximum_attempts else "failed",
+                    "error": error or "source runtime invocation failed",
                 })
+                if not retryable or attempt >= maximum_attempts:
+                    break
+                time.sleep(0.5 * (2 ** (attempt - 1)))
+            if result is None:
                 continue
-            if completed.returncode:
-                attempted_routes.append({
-                    "route_id": candidate["route_id"],
-                    "selected_route": candidate["selected_route"],
-                    "status": "failed",
-                    "error": (completed.stderr or completed.stdout).strip() or "source runtime invocation failed",
-                })
-                continue
-            try:
-                result = json.loads(completed.stdout)
-            except json.JSONDecodeError:
-                attempted_routes.append({
-                    "route_id": candidate["route_id"],
-                    "selected_route": candidate["selected_route"],
-                    "status": "failed",
-                    "error": "source runtime did not emit one JSON object",
-                })
-                continue
-            attempted_routes.append({
-                "route_id": candidate["route_id"],
-                "selected_route": candidate["selected_route"],
-                "status": "succeeded",
-                "error": None,
-            })
             selected_context = {
                 **route_context,
                 "selected_route": candidate["selected_route"],
@@ -1199,9 +1341,9 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
         raise DistributedRuntimeError("the indexed snapshot predates the callable runtime artifact format")
     destination = snapshot_path(card, root)
     if destination.exists():
-        status = local_snapshot_status(card, root, verify=True)
+        status = local_snapshot_status(card, root, verify=True, force_verify=True)
         if not status["runtime_ready"]:
-            raise DistributedRuntimeError("existing Elements callable snapshot differs from the central card")
+            raise DistributedRuntimeError("existing local snapshot cache differs from the central card")
         return {"status": "already_materialized", **status}
     repository = card["repository"].removeprefix("https://github.com/").rstrip("/")
     release_tag = card["release"].rsplit("/tag/", 1)[-1]
@@ -1245,11 +1387,15 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
             raise DistributedRuntimeError("expanded GitHub Release differs from its declared location inventory")
         logical = workspace / "logical"
         logical.mkdir()
-        expected_elements = {
-            item["path"]: item for item in manifest_records_for_location(manifest, "elements")
+        cache_location = (
+            "github_release" if manifest.get("schema_version") == "4.1.0" else "elements"
+        )
+        expected_cache = {
+            item["path"]: item
+            for item in manifest_records_for_location(manifest, cache_location)
         }
         for record in actual_release:
-            if record["path"] not in expected_elements:
+            if record["path"] not in expected_cache:
                 continue
             source = expanded_release / record["path"]
             target = logical / record["path"]
@@ -1263,7 +1409,7 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
         shutil.copy2(receipt, receipts / receipt.name)
         shutil.copy2(manifest_path, receipts / "manifest.json")
         shutil.move(str(logical), str(destination))
-    status = local_snapshot_status(card, root, verify=True)
+    status = local_snapshot_status(card, root, verify=True, force_verify=True)
     if not status["runtime_ready"]:
         shutil.rmtree(destination, ignore_errors=True)
         raise DistributedRuntimeError(

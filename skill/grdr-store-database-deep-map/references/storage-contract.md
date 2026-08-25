@@ -2,7 +2,7 @@
 
 ## Fixed topology
 
-One deeply read Source owns one private source repository. One dated or versioned snapshot owns one GitHub Release, one callable Elements directory, and one location-aware manifest. Immutable GRDR Core stores only shared schemas, Skills, programs, empty templates, and search infrastructure. External GRDR state stores the latest source-archive index card and canonical records.
+One deeply read Source owns one private source repository. One dated or versioned snapshot owns one GitHub Release and one location-aware manifest. An expanded local snapshot may be materialized as a disposable runtime cache, but it is not canonical storage and is never required for completion. Immutable GRDR Core stores only shared schemas, Skills, programs, empty templates, and search infrastructure. External GRDR state stores the latest source-archive index card and canonical records.
 
 The source repository declares its Core version. It must not fork or copy Core Skills.
 
@@ -12,7 +12,7 @@ Storage must persist three independent properties:
 
 1. `knowledge_scope`: inherit the Plan scope mode, completion claim, boundary, snapshot time, and scope fingerprint without modification;
 2. `online_access`: require `all_registered_variables_online_callable`, declare official availability and executable routes, and persist exact route policies and test coverage;
-3. `observation_replication`: select `full_mirror`, `partitioned_mirror`, or `no_mirror`, state the exact completeness basis, and declare any `github_release`, `elements`, or `object_store` placements;
+3. `observation_replication`: select `full_mirror`, `partitioned_mirror`, or `no_mirror`, state the exact completeness basis, and declare any `github_release` or mounted `object_store` placements;
 4. `cache`: separately declare whether research-project query snapshots may be created on demand;
 5. `capacity_assessment`: record the deployment-local thresholds, actual captured bytes, optional upstream-size estimate, policy-relative size class, selected replication and placements, and compliance result.
 
@@ -20,7 +20,7 @@ Knowledge completeness, online callability, and observation replication are not 
 
 ## Required representations
 
-The GitHub Release and Elements always contain:
+The GitHub Release always contains:
 
 - `knowledge/`: Plan, Execute ledgers, staged canonical records, evidence, canonical archive package and receipt, and human report;
 - `agent/`: the source-scoped SQLite index, Runtime 2.0 descriptor, source-specific executable entrypoint, sealed offline runtime audit, `online_access.json`, and `online_runtime_audit.json`.
@@ -45,7 +45,7 @@ Raw observation files must never enter `knowledge/`. Exclude every observation i
 - `partitioned_mirror`: require nonzero inputs, a Schema-valid partition manifest, and exact agreement among partition boundaries, names, file paths, sizes, SHA-256 values, and declared file and partition denominators.
 - `no_mirror`: require zero observation inputs and zero replication placements. It does not relax online-access obligations.
 
-GitHub observation archives are optional. Elements observation bytes are optional. A mounted object-store copy must be copied and hashed before completion. Research-project caches are derived use-plane artifacts and never mutate the canonical source snapshot.
+GitHub observation archives are optional. A mounted object-store copy must be copied and hashed before completion. Local snapshot caches and research-project captures are derived use-plane artifacts and never mutate the canonical source snapshot.
 
 ## Transaction order
 
@@ -56,7 +56,7 @@ GitHub observation archives are optional. Elements observation bytes are optiona
 5. Build the online-access manifest, run every online route test, and prove exact all-Variable route coverage.
 6. Apply the independent observation replication and placement policy, build each declared inventory, and prove no cross-component duplicate.
 7. Generate Release assets and source-repository files.
-8. Verify every claimed location and the non-receipt GitHub publication assets by read-back.
+8. Verify every claimed canonical location and the non-receipt GitHub publication assets by read-back; never require an optional local cache.
 9. Build and upload the Storage receipt, then read back and verify its exact size and SHA-256 plus the Release tag and source-repository commit.
 10. Transactionally seal publication evidence and receipts, then write the central source-archive card to external GRDR state and prove Core remained byte-identical.
 

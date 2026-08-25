@@ -106,7 +106,7 @@ class DatabaseStorageTests(unittest.TestCase):
             "".join(json.dumps(item) + "\n" for item in checks), encoding="utf-8"
         )
 
-    def test_storage_builds_release_elements_parity_and_rejects_tampering(self) -> None:
+    def test_storage_builds_canonical_release_with_optional_local_cache(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             source = {
@@ -339,7 +339,7 @@ else:
             sealed_template = root / "sealed-template"
             shutil.copytree(project_dir, sealed_template)
             spec = {
-                "schema_version": "4.0.0",
+                "schema_version": "4.1.0",
                 "source_id": "grdr:source:synthetic-example",
                 "source_slug": "synthetic-example-test",
                 "snapshot_id": "2026-08-22-r1",
@@ -356,11 +356,10 @@ else:
                     "tag": "synthetic-example-test-2026-08-22-r1",
                     "title": "Synthetic Core test snapshot",
                 },
-                "elements_root": str(root / "Elements"),
                 "observation_policy": {
                     "replication": {
                         "mode": "full_mirror",
-                        "placements": ["github_release", "elements"],
+                        "placements": ["github_release"],
                         "completeness": {
                             "claim": "complete_within_knowledge_scope",
                             "basis": "The one declared synthetic observation file exhausts the locked fixture scope.",
@@ -420,15 +419,15 @@ else:
             self.assertGreaterEqual(audit["release_asset_count"], 4)
 
             package = json.loads((project_dir / "storage_package.json").read_text(encoding="utf-8"))
-            self.assertEqual(package["schema_version"], "4.0.0")
+            self.assertEqual(package["schema_version"], "4.1.0")
             self.assertEqual(package["snapshot_profile"]["observation_replication"]["mode"], "full_mirror")
             self.assertEqual(package["snapshot_profile"]["online_access"]["status"], "callable_complete")
             self.assertEqual(
                 package["snapshot_profile"]["online_access"]["route_policies"],
                 {
-                    "latest": ["official_online", "github_release_snapshot", "elements_mirror"],
-                    "reproducible": ["github_release_snapshot", "elements_mirror"],
-                    "offline": ["elements_mirror"],
+                    "latest": ["official_online", "github_release_snapshot", "local_snapshot_cache"],
+                    "reproducible": ["github_release_snapshot", "local_snapshot_cache"],
+                    "offline": ["local_snapshot_cache"],
                 },
             )
             self.assertEqual(package["snapshot_profile"]["knowledge_scope"]["scope_fingerprint"], locks_after["scope_fingerprint"])
@@ -533,8 +532,10 @@ else:
             )
             partition_spec = json.loads(json.dumps(spec))
             partition_spec.update({
+                "schema_version": "4.0.0",
                 "snapshot_id": "2026-08-22-r2",
                 "source_slug": "synthetic-example-partitioned",
+                "elements_root": str(root / "Elements"),
             })
             partition_spec["source_repository"].update({
                 "github": "example/grdr-source-synthetic-example-partitioned",
@@ -602,9 +603,11 @@ else:
             shutil.rmtree(no_mirror_project / "raw_observations")
             no_mirror_spec = json.loads(json.dumps(spec))
             no_mirror_spec.update({
+                "schema_version": "4.1.0",
                 "snapshot_id": "2026-08-22-r3",
                 "source_slug": "synthetic-example-no-mirror",
             })
+            no_mirror_spec.pop("elements_root", None)
             no_mirror_spec["source_repository"].update({
                 "github": "example/grdr-source-synthetic-example-no-mirror",
                 "local_path": str(root / "source-repo-no-mirror"),
@@ -655,7 +658,7 @@ else:
                 "no_mirror",
             )
             self.assertFalse(
-                Path(no_mirror_package["elements_snapshot_path"], "observations").exists()
+                Path(no_mirror_package["local_snapshot_cache_path"], "observations").exists()
             )
             self.assertEqual(
                 no_mirror_package["snapshot_profile"]["online_access"]["route_policies"],
@@ -665,18 +668,24 @@ else:
                     "offline": [],
                 },
             )
+            local_cache = Path(no_mirror_package["local_snapshot_cache_path"])
+            shutil.rmtree(local_cache)
+            cacheless_audit = audit_database_storage(no_mirror_project)
+            self.assertEqual(cacheless_audit["errors"], [])
+            self.assertTrue(any("Optional local snapshot cache" in item for item in cacheless_audit["warnings"]))
 
-            elements = Path(audit["elements_snapshot_path"])
-            stored_observation = elements / "observations" / "main" / observation.name
+            local_cache = Path(audit["local_snapshot_cache_path"])
+            stored_observation = local_cache / "observations" / "main" / observation.name
             stored_observation.write_text("tampered\n", encoding="utf-8")
             tampered = audit_database_storage(project_dir)
-            self.assertTrue(any("Elements location inventory" in item for item in tampered["errors"]))
+            self.assertTrue(any("local snapshot cache inventory" in item for item in tampered["errors"]))
 
     def test_storage_spec_exposes_three_observation_modes(self) -> None:
         schema = json.loads((ROOT / "schemas" / "database_storage_spec.schema.json").read_text(encoding="utf-8"))
         modes = schema["properties"]["observation_policy"]["properties"]["replication"]["properties"]["mode"]["enum"]
         self.assertEqual(modes, ["full_mirror", "partitioned_mirror", "no_mirror"])
         self.assertNotIn("minItems", schema["properties"]["observation_inputs"])
+        self.assertNotIn("elements_root", schema["required"])
 
     def test_online_completion_rejects_an_uncovered_registered_variable(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -752,20 +761,20 @@ print(json.dumps({
         base_policy = {
             "replication": {
                 "mode": "full_mirror",
-                "placements": ["elements"],
+                "placements": [],
             },
         }
         with patch.dict(os.environ, {
             "GRDR_GITHUB_OBSERVATION_MAX_BYTES": "5",
-            "GRDR_ELEMENTS_FULL_MIRROR_MAX_BYTES": "10",
         }):
-            medium = assess_storage_capacity(
+            larger_than_github = assess_storage_capacity(
                 {"observation_policy": base_policy},
                 [{"size_bytes": 6}],
             )
-            self.assertEqual(medium["size_class"], "medium")
+            self.assertEqual(larger_than_github["size_class"], "large")
+            self.assertNotIn("elements_full_mirror_max_bytes", larger_than_github)
             github_policy = json.loads(json.dumps(base_policy))
-            github_policy["replication"]["placements"] = ["github_release", "elements"]
+            github_policy["replication"]["placements"] = ["github_release"]
             with self.assertRaisesRegex(ValueError, "GitHub Release observation limit"):
                 assess_storage_capacity(
                     {"observation_policy": github_policy},
@@ -788,7 +797,6 @@ print(json.dumps({
             self.assertEqual(large["captured_bytes"], 0)
         with patch.dict(os.environ, {
             "GRDR_GITHUB_OBSERVATION_MAX_BYTES": "10",
-            "GRDR_ELEMENTS_FULL_MIRROR_MAX_BYTES": "5",
         }):
             github_only = assess_storage_capacity(
                 {"observation_policy": {
@@ -799,8 +807,8 @@ print(json.dumps({
                 }},
                 [{"size_bytes": 6}],
             )
-            self.assertEqual(github_only["size_class"], "medium")
-            self.assertIn("github_release", github_only["recommendation"])
+            self.assertEqual(github_only["size_class"], "small")
+            self.assertIn("GitHub Release", github_only["recommendation"])
 
     def test_macos_filesystem_sidecars_are_not_storage_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -14,7 +14,7 @@ Treat GRDR as an immutable Core plus external mutable registry state:
 - Agent Research Data Infrastructure;
 - a source-matching and data-gap reasoning system;
 - a continuously expanding cross-disciplinary knowledge base.
-- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, callable Elements copy, complete online-access audit, independent observation-replication policy, and source-specific Runtime.
+- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, complete online-access audit, independent observation-replication policy, and source-specific Runtime; a local expanded snapshot is only an optional rebuildable cache.
 - an independent Agent Runtime that searches, resolves, and invokes those snapshots using explicit latest, reproducible, or offline route policies.
 
 Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped knowledge and Agent snapshots. Require tested online callability for every registered Variable. Independently store observation bytes as a full mirror, partitioned mirror, or no mirror according to the snapshot's explicit capacity-aware replication policy.
@@ -35,10 +35,10 @@ Treat 100 as a first-round workload target, never a collection limit. Continue l
 
 Resolve the absolute directory containing this active `SKILL.md`, then set `GRDR_LAUNCHER` to its bundled `scripts/grdr.py`. It locates Core through `GRDR_ROOT`, the Codex pointer written by Core's `scripts/configure_core.py`, current ancestors, or a bundled checkout. Never assume the caller's working directory.
 
-Configure an external expanded-snapshot root once instead of repeating `--elements-root`. This writes deployment-local configuration under external `GRDR_STATE_ROOT`, never into Core:
+Optionally configure a disposable expanded-snapshot cache. GitHub Releases remain canonical and the cache is never required for Storage completion:
 
 ```bash
-python3 "$GRDR_ROOT/scripts/configure_core.py" --elements-root /absolute/path/to/GRDR
+python3 "$GRDR_ROOT/scripts/configure_core.py" --snapshot-cache-root /absolute/path/to/cache
 ```
 
 Before modifying records, read `docs/NORTH_STAR.md`, the relevant schema, and [references/curation-standard.md](references/curation-standard.md).
@@ -94,7 +94,7 @@ When one database must be understood beyond Source registration, dispatch three 
 2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
 3. `$grdr-store-database-deep-map` alone promotes the sealed records, inherits the locked knowledge scope, proves online callability for every registered Variable, independently selects observation replication and placement, excludes raw observations from knowledge, builds the callable snapshot artifacts, verifies every declared route and location, writes the central card, and issues the Storage receipt.
 
-Storage reads adjustable deployment-local capacity thresholds from external GRDR configuration. These thresholds affect only observation replication and placement. The snapshot records the measured bytes, optional upstream-size estimate, policy-relative size class, selected mode, and exact thresholds; it never uses size to weaken Plan-locked knowledge depth.
+Storage reads one adjustable total-observation threshold for GitHub Releases from external GRDR configuration and enforces GitHub's strict under-2-GiB per-asset boundary. These limits affect only observation replication. The snapshot records measured bytes, any upstream-size estimate, policy-relative size class, selected mode, and exact thresholds; it never uses size to weaken Plan-locked knowledge depth.
 
 Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies source Runtime 2.0 plus its online route graph; unified search, snapshot materialization, route-policy selection, variable access resolution, fallback, and retrieval are Core Runtime operations.
 

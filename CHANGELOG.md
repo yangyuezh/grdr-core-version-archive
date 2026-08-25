@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.4.0] - 2026-08-25
+
+### Changed
+
+- Make the GitHub source repository and Release the canonical published snapshot; remove external Elements storage from new Storage specifications, capacity decisions, completion gates, receipts, and diagrams.
+- Treat any expanded local snapshot as a disposable, rebuildable runtime cache. Retain read compatibility for legacy Elements paths and Core 4.0–4.3 source cards.
+- Reduce the default capacity contract to two GitHub boundaries: 5 GiB total observation bytes per database Release and strictly under 2 GiB per Release asset.
+
+### Performance and reliability
+
+- Persist manifest-bound full-SHA verification receipts outside immutable Core, so unchanged snapshots avoid rehashing all content on every fresh CLI process while explicit audit, first materialization, and file mutation still force full verification.
+- Prefilter official route candidates through the exact Variable-to-route map before invoking a source Runtime.
+- Add bounded exponential-backoff retry for transient official-route timeouts, HTTP 429/5xx responses, and connection interruptions; preserve an attempt-by-attempt trace and never retry semantic or request errors.
+
+### Validation
+
+- Add Schema 4.1 Storage artifacts and Plan pipeline contract 4.2 with mandatory GitHub knowledge/Agent publication and optional local cache semantics.
+- Update Storage, Runtime, Skills, human/Agent documentation, architecture diagrams, capacity tables, and compatibility tests to the same executable contract.
+
 ## [4.3.0] - 2026-08-25
 
 ### Breaking storage and runtime contract

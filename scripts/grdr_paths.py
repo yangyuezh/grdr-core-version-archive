@@ -15,7 +15,6 @@ GIB = 1024 ** 3
 GITHUB_RELEASE_ASSET_HARD_MAX_BYTES = 2 * GIB - 1
 DEFAULT_STORAGE_CAPACITY_POLICY = {
     "github_release_observation_max_bytes": 5 * GIB,
-    "elements_full_mirror_max_bytes": 10 * GIB,
     "github_release_asset_max_bytes": GITHUB_RELEASE_ASSET_HARD_MAX_BYTES,
 }
 
@@ -54,20 +53,35 @@ def _runtime_config() -> dict:
     return config
 
 
-def elements_root() -> Path:
-    """Return the persisted Elements root, with environment override support."""
+def snapshot_cache_root() -> Path:
+    """Return the optional local snapshot cache root.
 
-    configured = os.environ.get("GRDR_ELEMENTS_ROOT")
+    GitHub Releases are canonical. This directory is a disposable deployment-
+    local expansion cache and is never a Storage completion requirement.
+    Legacy Elements configuration remains readable so existing deployments do
+    not lose their already materialized snapshots.
+    """
+
+    configured = os.environ.get("GRDR_SNAPSHOT_CACHE_ROOT")
     if configured:
-        return _require_external(Path(configured), "GRDR_ELEMENTS_ROOT")
+        return _require_external(Path(configured), "GRDR_SNAPSHOT_CACHE_ROOT")
+    legacy_environment = os.environ.get("GRDR_ELEMENTS_ROOT")
+    if legacy_environment:
+        return _require_external(Path(legacy_environment), "legacy GRDR_ELEMENTS_ROOT")
     config_path = runtime_config_file()
     config = _runtime_config()
-    value = config.get("elements_root")
+    value = config.get("snapshot_cache_root", config.get("elements_root"))
     if value is not None:
         if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"invalid elements_root in GRDR runtime configuration: {config_path}")
-        return _require_external(Path(value), "configured elements_root")
-    return _require_external(state_root() / "elements", "default elements root")
+            raise ValueError(f"invalid snapshot cache root in GRDR runtime configuration: {config_path}")
+        return _require_external(Path(value), "configured snapshot cache root")
+    return _require_external(state_root() / "cache", "default snapshot cache root")
+
+
+def elements_root() -> Path:
+    """Backward-compatible alias for pre-4.4 callers."""
+
+    return snapshot_cache_root()
 
 
 def storage_capacity_policy() -> dict[str, int | str]:
@@ -83,7 +97,6 @@ def storage_capacity_policy() -> dict[str, int | str]:
         raise ValueError("storage_capacity_policy in GRDR runtime configuration must be an object")
     for key in (
         "github_release_observation_max_bytes",
-        "elements_full_mirror_max_bytes",
         "github_release_asset_max_bytes",
     ):
         if key in configured:
@@ -93,7 +106,6 @@ def storage_capacity_policy() -> dict[str, int | str]:
             values[key] = value
     environment_overrides = {
         "github_release_observation_max_bytes": "GRDR_GITHUB_OBSERVATION_MAX_BYTES",
-        "elements_full_mirror_max_bytes": "GRDR_ELEMENTS_FULL_MIRROR_MAX_BYTES",
         "github_release_asset_max_bytes": "GRDR_GITHUB_RELEASE_ASSET_MAX_BYTES",
     }
     used_environment_override = False

@@ -802,7 +802,15 @@ def source_snapshot_status(args: argparse.Namespace) -> None:
         item for item in load_jsonl("source_archives.jsonl")
         if args.source_id is None or item["source_id"] == args.source_id
     ]
-    results = [distributed.local_snapshot_status(item, args.elements_root, args.verify) for item in cards]
+    results = [
+        distributed.local_snapshot_status(
+            item,
+            args.elements_root,
+            args.verify,
+            force_verify=args.verify,
+        )
+        for item in cards
+    ]
     emit({
         "operation": "source_snapshot_status",
         "registry_version": REGISTRY_VERSION,
@@ -1411,6 +1419,19 @@ def stats(_args: argparse.Namespace) -> None:
     )
 
 
+def add_cache_root_argument(command: argparse.ArgumentParser) -> None:
+    command.add_argument(
+        "--cache-root",
+        dest="elements_root",
+        help="Optional disposable local snapshot cache root",
+    )
+    command.add_argument(
+        "--elements-root",
+        dest="elements_root",
+        help=argparse.SUPPRESS,
+    )
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Query the local GRDR registry")
     commands = root.add_subparsers(dest="command", required=True)
@@ -1454,7 +1475,7 @@ def parser() -> argparse.ArgumentParser:
         choices=["unverified", "partially_verified", "verified", "stale", "conflicted", "deprecated", "unavailable"],
     )
     search_variable.add_argument("--limit", type=int, default=20)
-    search_variable.add_argument("--elements-root", help="Expanded GRDR storage root; defaults to GRDR_ELEMENTS_ROOT or <GRDR_STATE_ROOT>/elements")
+    add_cache_root_argument(search_variable)
     search_variable.add_argument(
         "--snapshot-policy",
         choices=["latest_callable", "history"],
@@ -1467,7 +1488,7 @@ def parser() -> argparse.ArgumentParser:
     search_semantics.add_argument("--query")
     search_semantics.add_argument("--node-type", choices=["discipline", "subdiscipline", "research_field", "research_object", "system", "phenomenon", "process", "state", "population", "observation_unit", "analysis_unit", "application_area", "method", "other"])
     search_semantics.add_argument("--limit", type=int, default=20)
-    search_semantics.add_argument("--elements-root")
+    add_cache_root_argument(search_semantics)
     search_semantics.set_defaults(handler=search_semantic_nodes)
 
     get = commands.add_parser("get-source", help="Get a source and related records")
@@ -1480,12 +1501,12 @@ def parser() -> argparse.ArgumentParser:
 
     get_variable_command = commands.add_parser("get-variable", help="Get a variable with datasets and constructs")
     get_variable_command.add_argument("variable_id")
-    get_variable_command.add_argument("--elements-root")
+    add_cache_root_argument(get_variable_command)
     get_variable_command.set_defaults(handler=get_variable)
 
     get_semantic_command = commands.add_parser("get-semantic-node", help="Get one scientific-semantic node with parents, children, and relationships")
     get_semantic_command.add_argument("semantic_node_id")
-    get_semantic_command.add_argument("--elements-root")
+    add_cache_root_argument(get_semantic_command)
     get_semantic_command.set_defaults(handler=get_semantic_node)
 
     get_element_command = commands.add_parser("get-data-element", help="Get a source-native dimension, measure, identifier, or attribute")
@@ -1773,7 +1794,7 @@ def parser() -> argparse.ArgumentParser:
         help="Match every leaf indicator through persisted R-to-B-to-A semantic paths, with legacy exact fallback",
     )
     match_project.add_argument("project_dir")
-    match_project.add_argument("--elements-root")
+    add_cache_root_argument(match_project)
     match_project.set_defaults(handler=match_indicators_command)
 
     recall_semantics = commands.add_parser(
@@ -1783,7 +1804,7 @@ def parser() -> argparse.ArgumentParser:
     recall_semantics.add_argument("project_dir")
     recall_semantics.add_argument("--queries", help="Optional Agent-expanded JSONL query terms by indicator")
     recall_semantics.add_argument("--limit", type=int, default=25)
-    recall_semantics.add_argument("--elements-root")
+    add_cache_root_argument(recall_semantics)
     recall_semantics.add_argument(
         "--snapshot-policy",
         choices=["latest_callable", "history"],
@@ -1808,7 +1829,7 @@ def parser() -> argparse.ArgumentParser:
     )
     traverse_semantics.add_argument("project_dir")
     traverse_semantics.add_argument("--limit", type=int, default=100)
-    traverse_semantics.add_argument("--elements-root")
+    add_cache_root_argument(traverse_semantics)
     traverse_semantics.add_argument("--replace", action="store_true")
     traverse_semantics.set_defaults(handler=traverse_semantic_paths_command)
 
@@ -1832,7 +1853,7 @@ def parser() -> argparse.ArgumentParser:
         help="Replace project mappings after registry expansion and retain attempt history",
     )
     rerun_project.add_argument("project_dir")
-    rerun_project.add_argument("--elements-root")
+    add_cache_root_argument(rerun_project)
     rerun_project.set_defaults(handler=rerun_matching_command)
 
     fetch_indicator = commands.add_parser(
@@ -1842,7 +1863,7 @@ def parser() -> argparse.ArgumentParser:
     fetch_indicator.add_argument("project_dir")
     fetch_indicator.add_argument("indicator_id")
     fetch_indicator.add_argument("--variable-id")
-    fetch_indicator.add_argument("--elements-root")
+    add_cache_root_argument(fetch_indicator)
     fetch_indicator.add_argument("--dry-run", action="store_true")
     fetch_indicator.add_argument("--output-dir")
     fetch_indicator.add_argument("--seal-data-snapshot", action="store_true")
@@ -1868,26 +1889,26 @@ def parser() -> argparse.ArgumentParser:
     source_archives.add_argument("--source-id")
     source_archives.set_defaults(handler=list_source_archives)
 
-    snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally verify their local location inventory")
+    snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally run a fresh full-SHA audit")
     snapshot_status.add_argument("--source-id")
-    snapshot_status.add_argument("--elements-root")
+    add_cache_root_argument(snapshot_status)
     snapshot_status.add_argument("--verify", action="store_true")
     snapshot_status.set_defaults(handler=source_snapshot_status)
 
-    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download and verify the GitHub-hosted knowledge, Agent, and explicitly placed observation assets into Elements")
+    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download and verify GitHub-hosted knowledge, Agent, and available observations into the optional local cache")
     materialize_snapshot.add_argument("source_id")
-    materialize_snapshot.add_argument("--elements-root")
+    add_cache_root_argument(materialize_snapshot)
     materialize_snapshot.set_defaults(handler=materialize_source_snapshot)
 
     resolve_access = commands.add_parser("resolve-variable-access", help="Resolve one distributed Variable through an explicit latest, reproducible, or offline observation route policy")
     resolve_access.add_argument("variable_id")
-    resolve_access.add_argument("--elements-root")
+    add_cache_root_argument(resolve_access)
     resolve_access.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
     resolve_access.set_defaults(handler=resolve_variable_access)
 
     fetch = commands.add_parser("fetch-variable", help="Fetch one distributed Variable through its policy-selected source Runtime route, optionally sealing an on-demand research-project data snapshot")
     fetch.add_argument("variable_id")
-    fetch.add_argument("--elements-root")
+    add_cache_root_argument(fetch)
     fetch.add_argument("--dry-run", action="store_true")
     fetch.add_argument("--output-dir")
     fetch.add_argument("--research-project-dir")

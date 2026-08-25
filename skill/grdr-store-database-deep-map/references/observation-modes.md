@@ -43,9 +43,9 @@ Supported methods are `official_api`, `official_bulk_download`, `official_browse
 
 Both `latest` and `reproducible` policies must be nonempty. A current-only unversioned official API can satisfy `latest`, but not `reproducible`; pair it with a frozen GRDR Release route, a copied mirror, or a version-pinned/frozen official route.
 
-## Deployment-local replication capacity
+## GitHub replication capacity
 
-Run `scripts/configure_core.py --github-observation-max-gib 5 --elements-full-mirror-max-gib 10` to set adjustable deployment thresholds. Storage measures captured bytes before copying and rejects a GitHub or Elements placement that exceeds its configured limit. It records the exact thresholds and decision in `snapshot_profile.capacity_assessment`.
+Run `scripts/configure_core.py --github-observation-max-gib 5` to set the adjustable total-observation threshold for one database Release. Storage measures captured bytes before packaging and rejects a GitHub observation placement that exceeds this limit. It records the exact threshold and decision in `snapshot_profile.capacity_assessment`.
 
 GitHub's platform limit is separate: every Release asset must remain below 2 GiB. The configurable GitHub threshold controls total observation bytes assigned to one database Release; it does not override the per-file platform limit.
 
@@ -65,7 +65,7 @@ Use when every observation file inside the locked scope will be copied.
 ```json
 "replication": {
   "mode": "full_mirror",
-  "placements": ["github_release", "elements"],
+  "placements": ["github_release"],
   "completeness": {
     "claim": "complete_within_knowledge_scope",
     "basis": "Explain the authoritative file denominator.",
@@ -77,7 +77,7 @@ Use when every observation file inside the locked scope will be copied.
 }
 ```
 
-GitHub is optional. For larger full mirrors, use `elements` or `object_store` without `github_release`.
+GitHub observation placement is optional. For observations above the configured Release total, use a declared mounted `object_store`, copy a bounded partition, or choose `no_mirror`. Knowledge and Agent assets still publish to GitHub.
 
 ## Partitioned mirror
 
@@ -86,7 +86,7 @@ Use when the snapshot deliberately copies a declared partition set.
 ```json
 "replication": {
   "mode": "partitioned_mirror",
-  "placements": ["elements"],
+  "placements": ["github_release"],
   "completeness": {
     "claim": "complete_declared_partition_set",
     "basis": "Explain which official partitions are included and why.",

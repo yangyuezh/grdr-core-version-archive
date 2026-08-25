@@ -4,9 +4,9 @@
   "title": "GRDR materialized database snapshot package",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "elements_snapshot_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "runtime", "runtime_audit", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
+  "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "runtime", "runtime_audit", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
   "properties": {
-    "schema_version": {"enum": ["2.0.0", "3.0.0", "4.0.0"]},
+    "schema_version": {"enum": ["2.0.0", "3.0.0", "4.0.0", "4.1.0"]},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -19,6 +19,7 @@
     "release_title": {"type": "string", "minLength": 1},
     "release_assets_path": {"type": "string", "minLength": 1},
     "elements_snapshot_path": {"type": "string", "minLength": 1},
+    "local_snapshot_cache_path": {"type": "string", "minLength": 1},
     "canonical_archive_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "project_scope_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "snapshot_profile": {"$ref": "#/$defs/snapshot_profile"},
@@ -71,6 +72,23 @@
     },
     {
       "if": {"properties": {"schema_version": {"const": "4.0.0"}}},
+      "then": {
+        "required": ["elements_snapshot_path"],
+        "properties": {
+          "snapshot_profile": {"required": ["online_access"]},
+          "runtime": {
+            "required": ["route_environment_protocol", "online_access_manifest", "supported_access_methods"],
+            "properties": {
+              "schema_version": {"const": "2.0.0"},
+              "protocol_version": {"const": "grdr-source-runtime/2.0"},
+              "operations": {"contains": {"const": "self-test-online"}}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "4.1.0"}}},
       "then": {
         "required": ["project_scope_fingerprint", "snapshot_profile", "external_observation_locations", "online_access_manifest", "online_runtime_audit", "knowledge_content_fingerprint", "observation_content_fingerprint", "duplicate_content_hash_count"],
         "properties": {
@@ -148,7 +166,7 @@
         "capacity_assessment": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["policy_source", "estimated_total_bytes", "estimate_basis", "captured_bytes", "size_class", "github_release_observation_max_bytes", "elements_full_mirror_max_bytes", "github_release_asset_max_bytes", "selected_mode", "selected_placements", "recommendation", "policy_compliant"],
+          "required": ["policy_source", "estimated_total_bytes", "estimate_basis", "captured_bytes", "size_class", "github_release_observation_max_bytes", "github_release_asset_max_bytes", "selected_mode", "selected_placements", "recommendation", "policy_compliant"],
           "properties": {
             "policy_source": {"type": "string", "minLength": 1},
             "estimated_total_bytes": {"type": ["integer", "null"], "minimum": 0},
@@ -200,7 +218,7 @@
         "verification": {"enum": ["live_runtime_test", "staged_release_snapshot_test"]}
       }
     },
-    "route_class": {"type": "string", "enum": ["official_online", "github_release_snapshot", "elements_mirror", "mounted_object_store"]},
+    "route_class": {"type": "string", "enum": ["official_online", "github_release_snapshot", "local_snapshot_cache", "elements_mirror", "mounted_object_store"]},
     "route_policies": {
       "type": "object",
       "additionalProperties": false,

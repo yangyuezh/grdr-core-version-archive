@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.3.0<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.4.0<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -171,14 +171,14 @@ flowchart TB
             direction TB
             S_PROMOTE["Transactional external-state promotion<br/>audit sealed execution · Core remains byte-identical"]:::storage
             S_PROFILE["Three independent snapshot axes<br/><b>knowledge scope</b> inherited from Plan<br/><b>online access</b> complete for every registered Variable<br/><b>observation replication + placement</b> decided by Storage"]:::storageStrong
-            S_CAPACITY["Deployment-local capacity assessment<br/>measure bytes before copying · optional upstream estimate<br/>adjustable GitHub + Elements thresholds<br/><i>size never reduces knowledge depth</i>"]:::storage
+            S_CAPACITY["GitHub capacity assessment<br/>measure bytes before copying · optional upstream estimate<br/>5 GiB observation total · each asset strictly below 2 GiB<br/><i>size never reduces knowledge depth</i>"]:::storage
             S_ONLINE["Universal online-callability gate<br/>official API · official bulk download · browser automation<br/>or GRDR Release snapshot fallback<br/><b>100% registered Variables must have an executable route</b>"]:::online
             S_PACKAGE["Build one source-scoped callable snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source Runtime 2.0"]:::storageStrong
             S_MODES["Independent observation replication<br/><b>full mirror</b> · <b>partitioned mirror</b> · <b>no mirror</b><br/>capacity affects copied bytes only"]:::storage
 
             S_REPO["Private source Git repository<br/>Core version reference · config · adapters · runtime code<br/>Plan · manifests · README · tests · archive receipts"]:::artifact
             S_RELEASE["GitHub Release · compressed distribution<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
-            S_ELEMENTS["Elements · expanded callable copy<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
+            S_LOCAL_CACHE["Optional local runtime cache<br/>materialized from verified Release assets<br/><b>disposable · rebuildable · never required for completion</b>"]:::artifact
             S_LARGE["Large-data placement<br/>mounted object store / large disk<br/>partition inventory + SHA-256"]:::artifact
             S_UPSTREAM["Official online routes<br/>API · bulk-download adapter · browser-automation adapter<br/>tested route coverage + explicit availability state"]:::external
             S_CACHE["Use-plane derivative after Storage<br/>on-demand research-project data snapshot<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
@@ -194,15 +194,14 @@ flowchart TB
             S_CAPACITY --> S_MODES
             S_PACKAGE --> S_REPO
             S_PACKAGE --> S_RELEASE
-            S_PACKAGE --> S_ELEMENTS
+            S_RELEASE -. "materialize when local execution needs it" .-> S_LOCAL_CACHE
             S_MODES -. "optional observation placement" .-> S_RELEASE
-            S_MODES -. "optional observation placement" .-> S_ELEMENTS
             S_MODES --> S_LARGE
             S_ONLINE --> S_UPSTREAM
             S_ONLINE --> S_ONLINE_MANIFEST
             S_RELEASE --> S_MANIFEST
             S_RELEASE -. "verified online fallback when declared" .-> S_ONLINE_MANIFEST
-            S_ELEMENTS --> S_MANIFEST
+            S_LOCAL_CACHE -. "verified against Release manifest" .-> S_MANIFEST
             S_LARGE --> S_MANIFEST
             S_UPSTREAM --> S_ONLINE_MANIFEST
             S_REPO --> S_VERIFY
@@ -230,15 +229,14 @@ flowchart TB
 
 “小型／中型／大型”是当前部署容量策略根据字节数计算出的可调建议，不是数据库固有身份。实际快照保存三个互不替代的判断轴：Plan 继承的 `knowledge_scope`；覆盖全部已登记 Variable 的 `online_access`；Storage 选择的 `observation_replication` 及其物理 `placements`。`capacity_assessment` 只约束第三轴，保存当时的阈值、测量字节数、估计依据、分类和决策。以后硬件升级只需调整外部参数，不需要修改 Skill，也不需要重定义数据库的知识或在线能力。
 
-当前默认参数如下。前两项可以在外部配置中调整；第三项是 GitHub 平台的单文件硬约束，不能通过 GRDR 参数突破。
+当前只保留两个容量边界：一个控制单数据库 Release 中观测资产的总量，另一个是 GitHub 单资产平台硬限制。外部 Elements 磁盘不再是配置边界或完成条件。
 
 | 参数 | 当前默认值 | 超过后的实际行为 | 是否可调 |
 |---|---:|---|---|
 | `github_release_observation_max_bytes` | 5 GiB | 不允许把该快照的观测数据配置到 GitHub Release；知识和 Agent 制品仍照常发布 | 是 |
-| `elements_full_mirror_max_bytes` | 10 GiB | 不允许继续选择 Elements 完整镜像；改用分区镜像、不复制，或具备容量的挂载存储 | 是 |
 | `github_release_asset_max_bytes` | 严格低于 2 GiB／文件 | 任何知识、Agent 或观测 Release 文件超限都必须重新分包，不能发布 | 只能调低，不能超过平台上限 |
 
-默认推荐分类为：不超过 GitHub 阈值是“小型”；超过 GitHub 阈值但不超过 Elements 完整镜像阈值是“中型”；超过 Elements 阈值是“大型”。分区镜像或不复制观测值的快照如果没有可靠的上游总体量估计，则分类明确记为 `unknown`，不会用已经复制的局部数据量冒充整个数据库规模。
+默认推荐分类为：不超过 GitHub 观测总量阈值时属于“Release 可完整复制”；超过时属于“需要分区、挂载存储或不复制”。分区镜像或不复制观测值的快照如果没有可靠的上游总体量估计，则分类明确记为 `unknown`，不会用已经复制的局部数据量冒充整个数据库规模。小型／中型／大型只保留为面向人的描述，不再驱动不同工程合同。
 
 | 内容或能力 | 所有数据库的硬性规则 | 常见小型数据库 | 常见中型数据库 | 常见大型或持续更新数据库 |
 |---|---|---|---|---|
@@ -265,8 +263,8 @@ flowchart TB
 
 | 复制模式 | 适用判断 | 规范快照复制多少观测值 | 允许的复制位置 | 强制完整性声明 | 与在线调用的关系 | 完成前必须核验 |
 |---|---|---|---|---|---|---|
-| `full_mirror` 完整镜像 | 锁定范围内的全部观测文件能够复制和持续管理，且所选物理位置没有超过其配置阈值 | 声明范围内全部复制 | GitHub Release、Elements、挂载对象存储，可多选；GitHub 不是必选 | `complete_within_knowledge_scope` | 不替代在线调用；最新数据默认仍先尝试官方在线路径 | 权威文件分母、预期与实际文件数、实际字节数、逐文件 SHA-256、所选位置和容量策略 |
-| `partitioned_mirror` 分区镜像 | 只复制明确且有研究价值的年份、国家、主题或其他分区 | 仅复制分区清单中声明的完整分区 | GitHub Release、Elements、挂载对象存储，可多选 | `complete_declared_partition_set` | 不替代在线调用；镜像可用于复现、离线或失败回退 | Schema 有效的分区清单；每个分区的边界、名称、成员路径、大小、SHA-256；预期与实际分区数和文件数完全一致 |
+| `full_mirror` 完整镜像 | 锁定范围内的全部观测文件能够复制和持续管理，且所选物理位置没有超过其配置阈值 | 声明范围内全部复制 | GitHub Release；必要时可另声明挂载对象存储 | `complete_within_knowledge_scope` | 不替代在线调用；最新数据默认仍先尝试官方在线路径 | 权威文件分母、预期与实际文件数、实际字节数、逐文件 SHA-256、所选位置和容量策略 |
+| `partitioned_mirror` 分区镜像 | 只复制明确且有研究价值的年份、国家、主题或其他分区 | 仅复制分区清单中声明的完整分区 | GitHub Release或挂载对象存储 | `complete_declared_partition_set` | 不替代在线调用；镜像可用于复现、离线或失败回退 | Schema 有效的分区清单；每个分区的边界、名称、成员路径、大小、SHA-256；预期与实际分区数和文件数完全一致 |
 | `no_mirror` 不复制 | 观测值整体复制不合理、持续更新，或当前容量策略不允许复制 | 规范快照不复制原始观测文件 | 无观测复制位置；知识与 Agent 制品仍正常发布 | `observations_not_replicated` | 在线调用仍是硬性要求，不能用“不复制”豁免变量覆盖 | 观测输入为零、复制位置为零；在线审计仍覆盖全部已登记变量 |
 
 选择顺序是：先锁定并完成同等深度的知识解析；为每个已登记 Variable 建立并实测在线路径；再根据观测数据的实际体量、分区性、更新频率和可维护性独立选择复制模式。不得用“数据库很大”缩减知识或在线覆盖，也不得把未复制的数据写成已经镜像。
@@ -287,20 +285,30 @@ Agent Runtime 支持三种明确的路由策略：
 
 | 路由策略 | 目的 | 默认顺序 |
 |---|---|---|
-| `latest` | 获取当前可用数据 | 官方在线 → GRDR GitHub Release 在线后备 → Elements／挂载镜像 |
-| `reproducible` | 优先复现已经冻结的结果 | GRDR／来源版本化快照 → Elements／挂载镜像 → 版本可核验的官方路线 |
-| `offline` | 无网络环境 | Elements／挂载镜像；若没有可用复制则明确失败 |
+| `latest` | 获取当前可用数据 | 官方在线 → GRDR GitHub Release 在线后备 → 已物化本地缓存／挂载镜像 |
+| `reproducible` | 优先复现已经冻结的结果 | GRDR／来源版本化快照 → 已物化本地缓存／挂载镜像 → 版本可核验的官方路线 |
+| `offline` | 无网络环境 | 已物化本地缓存／挂载镜像；若没有可用复制则明确失败 |
 
 每次调用都把候选顺序、失败路线和最终选中路线写入结果；第一条路线失败时 Runtime 自动尝试下一条，而不是静默改用来源不明的数据。
 
 `reproducible` 路线也是完成条件。若快照选择 `no_mirror`，而官方接口只能返回不断变化且无法指定版本的当前数据，就必须增加可核验的冻结在线快照或官方版本化路线；否则该数据库可以继续登记和建设，但不能宣称 Storage 完成。
+
+##### 三个工程标准分别解决什么
+
+它们不是新增 Skill，而是现有 Skills 和运行程序共同遵守的统一格式。
+
+| 工程标准 | 通俗含义 | 直接解决的问题 |
+|---|---|---|
+| Variable 操作化元数据 Schema | 每个变量使用同一张“说明卡”，填写测量定义、总体、观察单位、单位与分母、时间和空间粒度、测量方法及证据 | 防止只按变量名称匹配；让 R→B→A 匹配能够逐项判断人口、单位、时间和空间是否合适 |
+| 在线路线清单 Schema | 每个来源把 API、整表下载、网页自动化、冻结 Release 等路线按同一格式登记，并给每个 Variable 指定已测试路线 | 防止 Agent 盲试错误接口；调用前即可按变量筛掉无关路线 |
+| Source Runtime 协议 | 规定 Core 如何向每个数据库专用适配器传入 Variable、参数、路线和输出目录，以及适配器必须返回什么 | 让不同结构、不同学科、不同访问方式的数据库都能插入同一个 GRDR 调用流程 |
 
 ##### 知识、观测与备份的关系
 
 `knowledge/` 与 `observations/` 在逻辑上必须彻底分离，但通过 Source ID、Snapshot ID、Dataset／Variable ID、位置清单和 SHA-256 精确连接。在线路线另由 `online_access.json` 连接到同一个 Variable。Agent 的标准调用顺序是：检索知识索引 → 解析变量和访问计划 → 按路由策略依次尝试在线或复制路线 → 获取数值 → 必要时封存研究项目数据快照。
 
 - 原始观测文件不得同时混入知识包和观测包；跨逻辑包出现相同内容哈希时，Storage 必须失败。
-- 同一观测资产可以在 GitHub Release、Elements 或对象存储中保留经过核验的物理镜像。多份镜像提高在线可得性、本地速度和灾难恢复能力，但不会改变数据本身的统计准确性。
+- 同一观测资产可以在 GitHub Release 或明确声明的挂载对象存储中保留经过核验的规范镜像；本地缓存只由 Release 物化，可随时删除重建。物理副本数量不会改变数据本身的统计准确性。
 - `location-aware manifest` 必须记录每个逻辑文件的实际位置和哈希，使 Agent 能确认不同位置对应同一快照，而不是两个互相冲突的版本。
 - `online_access.json` 与 `online_runtime_audit.json` 必须分别证明路线定义和实际变量覆盖；它们不能由本地镜像清单替代。
 - 研究项目缓存是带查询范围和来源证据的派生快照，不得冒充数据库的规范观测镜像。
@@ -320,7 +328,7 @@ flowchart TB
     HUMAN -. "human decision; never Agent self-approval" .-> BUILDER
     BUILDER --> R_TREE
 
-    SNAPSHOT["Callable distributed snapshot entry<br/>central source card + semantic/variable index<br/>verified Release/Elements + exact snapshot fingerprint"]:::runtime
+    SNAPSHOT["Callable distributed snapshot entry<br/>central source card + semantic/variable index<br/>verified Release + exact snapshot fingerprint"]:::runtime
 
     subgraph FIVE["Skill 6 · grdr-resolve-research-semantics — persisted five-layer resolver"]
         direction LR
@@ -339,7 +347,7 @@ flowchart TB
 
     SOURCE_RUNTIME["Source-specific callable runtime<br/>verified adapter + exact snapshot + access plan"]:::runtime
     ROUTER["Policy-aware observation router<br/>latest · reproducible · offline<br/>ordered attempts + explicit fallback trace"]:::runtime
-    LOCAL["Verified Elements mirror<br/>full or declared partitions"]:::local
+    LOCAL["Verified optional local cache<br/>materialized Release observations"]:::local
     MOUNTED["Verified mounted mirror<br/>object store / large disk"]:::local
     RELEASE_ROUTE["Verified GRDR online fallback<br/>GitHub Release observation snapshot"]:::runtime
     UPSTREAM["Authoritative upstream route<br/>official API · file · query service"]:::external
@@ -350,7 +358,7 @@ flowchart TB
     INVOKE --> SOURCE_RUNTIME --> ROUTER
     ROUTER -->|"official_online"| UPSTREAM --> RESULT
     ROUTER -->|"github_release_snapshot"| RELEASE_ROUTE --> RESULT
-    ROUTER -->|"elements_mirror"| LOCAL --> RESULT
+    ROUTER -->|"local_snapshot_cache"| LOCAL --> RESULT
     ROUTER -->|"mounted_object_store"| MOUNTED --> RESULT
     FIT -->|"not_found_registry_snapshot / incompatible"| GAP --> EXPAND
 
@@ -401,13 +409,11 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-validation.txt
 python3 scripts/configure_core.py
 
-# Persist an external Elements root once for all Agent Runtime commands.
-python3 scripts/configure_core.py --elements-root /absolute/path/to/GRDR
+# Optionally choose a disposable local snapshot-cache directory.
+python3 scripts/configure_core.py --snapshot-cache-root /absolute/path/to/cache
 
 # Optional deployment policy; change these values later as storage hardware changes.
-python3 scripts/configure_core.py \
-  --github-observation-max-gib 5 \
-  --elements-full-mirror-max-gib 10
+python3 scripts/configure_core.py --github-observation-max-gib 5
 
 # Optional: choose another external mutable-state location.
 export GRDR_STATE_ROOT=/absolute/path/outside/grdr-core
@@ -448,4 +454,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.3.0` separates three concerns that must never be conflated: Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication. A new snapshot reaches `callable_complete` only when every registered Variable has an executable online route proven by Runtime 2.0; API, bulk-download, browser-automation, and verified GRDR Release routes are explicit. Agent Runtime applies auditable `latest`, `reproducible`, or `offline` route policies with automatic fallback, while full, partitioned, or no-mirror replication independently controls copied observation bytes. Knowledge remains complete within the locked Plan boundary, and raw observations remain forbidden from the knowledge package.
+Version `4.4.0` separates three concerns that must never be conflated: Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication. A new snapshot reaches `callable_complete` only when every registered Variable has an executable online route proven by Runtime 2.0; API, bulk-download, browser-automation, and verified GRDR Release routes are explicit. GitHub is the canonical publication plane; a local expanded snapshot is a disposable cache. Agent Runtime applies auditable `latest`, `reproducible`, or `offline` route policies with Variable-aware prefiltering, bounded transient retry, and explicit fallback, while full, partitioned, or no-mirror replication independently controls copied observation bytes. Knowledge remains complete within the locked Plan boundary, and raw observations remain forbidden from the knowledge package.
