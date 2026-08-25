@@ -155,6 +155,26 @@ def source_archive_file() -> Path:
     return registry_root() / "source_archives.jsonl"
 
 
+def indexes_root() -> Path:
+    """Return the external, rebuildable cross-source Runtime index directory."""
+
+    target = state_root() / "indexes"
+    target.mkdir(parents=True, exist_ok=True)
+    return _require_external(target, "GRDR Runtime indexes root")
+
+
+def global_index_file() -> Path:
+    """Return the derived GRDR global discovery and routing SQLite index."""
+
+    return indexes_root() / "grdr-global-index.sqlite"
+
+
+def global_index_manifest_file() -> Path:
+    """Return the human- and Agent-readable global-index status manifest."""
+
+    return indexes_root() / "grdr-global-index-manifest.json"
+
+
 def deep_map_projects_root() -> Path:
     target = state_root() / "deep_map_projects"
     target.mkdir(parents=True, exist_ok=True)

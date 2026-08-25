@@ -15,6 +15,7 @@ Configure an installed clone once with `python3 scripts/configure_core.py`, or s
 - `registry/`: canonical records and completed source-archive cards;
 - `deep_map_projects/`: locked Plan and resumable Execute/Storage projects;
 - `research_projects/`: indicator and semantic-resolution projects;
+- `indexes/`: derived, rebuildable global discovery and routing SQLite plus its status manifest;
 - `cache/`: optional, disposable Release expansions and persisted verification receipts.
 
 `GRDR_STATE_ROOT` must resolve outside the Core repository. Storage must leave every Core file byte-identical.
@@ -41,6 +42,7 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 - A location-aware manifest maps every logical file to its canonical locations and SHA-256. Observation parity is checked only across locations that claim a normative copy; a local cache is checked against the Release manifest when present.
 - Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
+- Agent Runtime derives one global index from central records and the latest locally callable source shards. It stores only search summaries, exact entity locators, Variable-to-Construct links, and Variable-to-route links; it is never canonical and may be deleted and rebuilt.
 - Source repositories reference a Core version; they never copy Core Skills.
 - External runtime configuration owns the adjustable GitHub-observation total threshold. GitHub's under-2-GiB per-asset limit is always enforced. The snapshot records the exact policy and measured bytes used for its decision.
 
@@ -75,6 +77,8 @@ Agent Runtime applies one of three route policies:
 - `latest`: official online, then GRDR GitHub Release, then a materialized local cache or mounted replica;
 - `reproducible`: frozen GRDR or source snapshot, then a materialized local cache or mounted replica, then a version-checked official route;
 - `offline`: materialized local cache or mounted replicas only.
+
+Before applying a source route policy, Agent Runtime performs two-stage cross-source routing: query the global index, select the candidate Source and exact snapshot, then open only that source's Agent SQLite and Runtime 2.0. Ordinary queries compare central registry and source-card fingerprints and incrementally refresh changed shards. `rebuild-global-index` recreates all derived state; `audit-global-index --verify-sources` additionally performs fresh source-level verification. If the global index cannot be opened or refreshed, the legacy distributed scan remains an explicit fallback rather than turning an infrastructure failure into an empty-result claim.
 
 A no-mirror snapshot backed only by an unversioned current API has no reproducible route. It must add a frozen online snapshot or version-pinned official route before Storage can complete.
 

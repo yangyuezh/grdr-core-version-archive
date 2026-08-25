@@ -130,13 +130,17 @@ Storage完成后，Core按以下链路使用快照：
 
 ```text
 research question
-→ search-variables（中央记录 + 本地分布式索引）
+→ Global Index（中央记录 + 最新可调用源分片的派生索引）
+→ 两阶段检索：全局候选召回 → 只打开选中的源级Agent SQLite
+→ route-variable（Variable → Source → Snapshot → route IDs）
 → source-snapshot-status / materialize-source-snapshot
 → resolve-variable-access
 → fetch-variable --route-policy latest|reproducible|offline
 → 按策略尝试官方在线／GRDR Release／已物化本地缓存／挂载镜像
 → 原始字节、筛选结果与provenance
 ```
+
+全局索引与路由层属于独立Agent Runtime使用面，不是第四个生产步骤，也不是第七个Skill。它位于外部`GRDR_STATE_ROOT/indexes/`，只保存检索摘要、精确定位和路由关系，可以删除并由中央Registry与源快照重建。Storage仍然只负责发布源快照和写入规范中央卡片；卡片变化使派生索引在下一次Runtime查询时增量刷新。全局索引不可用时，Core明确回退到旧的逐库扫描路径，不能把索引故障报告成“数据库中没有变量”。
 
 GitHub Release是在线知识与Agent分发版，也可在观测资产实际放入Release且路线通过测试时充当在线数据后备。本地可调用展开版由Agent按需从Release物化，缺失时可重建。`latest`默认先尝试官方在线路线，`reproducible`优先冻结快照，`offline`只允许已物化本地或挂载复制；每次回退均写入调用结果。研究调用可用`fetch-variable --research-project-dir`或`fetch-indicator-data --seal-data-snapshot`生成带路由策略、实际选中路线、查询参数、来源、快照、变量和逐文件哈希的项目级数据快照。
 

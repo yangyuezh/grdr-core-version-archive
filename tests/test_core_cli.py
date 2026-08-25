@@ -47,6 +47,15 @@ class CoreCliTests(unittest.TestCase):
         self.assertEqual(archives["result_count"], len(expected))
         self.assertEqual(archives["results"], expected)
 
+    def test_empty_global_runtime_index_is_external_and_rebuildable(self) -> None:
+        status = run_cli("global-index-status")
+        self.assertEqual(status["status"], "ready")
+        self.assertEqual(status["source_count"], 0)
+        self.assertEqual(status["record_count"], 0)
+        self.assertTrue(status["rebuildable"])
+        self.assertFalse(status["canonical"])
+        self.assertFalse(ROOT in Path(status["index_path"]).parents)
+
     def test_release_metadata(self) -> None:
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "check_release.py")],

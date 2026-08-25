@@ -13,6 +13,7 @@ import unicodedata
 from typing import Any, Iterable
 
 import distributed_runtime as distributed
+import global_runtime_index as global_index
 from grdr_paths import CORE_ROOT, registry_root, research_projects_root
 
 
@@ -462,10 +463,17 @@ def prepare_semantic_candidates(
     cards = source_cards()
     if snapshot_policy not in {"latest_callable", "history"}:
         raise ValueError("snapshot_policy must be 'latest_callable' or 'history'")
-    callable_source_ids = {
-        card["source_id"]
-        for card, _snapshot in distributed.available_runtimes(cards, elements_root)
-    }
+    use_global_index = global_index.cards_match_external_registry(cards)
+    if use_global_index:
+        try:
+            callable_source_ids = global_index.callable_source_ids(cards, elements_root)
+        except (OSError, ValueError, sqlite3.Error, json.JSONDecodeError):
+            use_global_index = False
+    if not use_global_index:
+        callable_source_ids = {
+            card["source_id"]
+            for card, _snapshot in distributed.available_runtimes(cards, elements_root)
+        }
     timestamp = now()
     all_records = []
     counts: dict[str, int] = {}
@@ -477,19 +485,28 @@ def prepare_semantic_candidates(
             terms = list(dict.fromkeys([*(item.strip() for item in phrases if item.strip()), *terms]))
         if not terms:
             raise ValueError(f"leaf indicator has no usable semantic query terms: {indicator_id}")
-        distributed_recalled = distributed.distributed_semantic_candidates(
-            cards, terms, elements_root, limit=limit
-        )
-        central_recalled = central_semantic_candidates(
-            terms,
-            limit,
-            exclude_source_ids=callable_source_ids if snapshot_policy == "latest_callable" else None,
-        )
-        distributed_target_ids = {item["target_id"] for item in distributed_recalled}
-        recalled = [
-            *distributed_recalled,
-            *(item for item in central_recalled if item["target_id"] not in distributed_target_ids),
-        ]
+        if use_global_index:
+            recalled = global_index.search_semantic_candidates(
+                cards,
+                terms,
+                elements_root,
+                limit=limit,
+                snapshot_policy=snapshot_policy,
+            )
+        else:
+            distributed_recalled = distributed.distributed_semantic_candidates(
+                cards, terms, elements_root, limit=limit
+            )
+            central_recalled = central_semantic_candidates(
+                terms,
+                limit,
+                exclude_source_ids=callable_source_ids if snapshot_policy == "latest_callable" else None,
+            )
+            distributed_target_ids = {item["target_id"] for item in distributed_recalled}
+            recalled = [
+                *distributed_recalled,
+                *(item for item in central_recalled if item["target_id"] not in distributed_target_ids),
+            ]
         deduped: dict[tuple[str, str | None, str | None], dict[str, Any]] = {}
         for item in recalled:
             snapshot = item.get("snapshot") or {}
@@ -544,6 +561,7 @@ def prepare_semantic_candidates(
         "candidate_count": len(all_records),
         "candidate_counts_by_indicator": counts,
         "snapshot_policy": snapshot_policy,
+        "discovery_engine": "global_index" if use_global_index else "legacy_distributed_scan",
         "callable_source_count": len(callable_source_ids),
         "candidate_file": str(candidate_path),
         "next_actions": workflow["next_actions"],

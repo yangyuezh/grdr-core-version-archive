@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/global_runtime_index_manifest.schema.json",
+  "title": "GRDR derived global discovery and routing index manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "index_schema_version",
+    "status",
+    "index_path",
+    "search_backend",
+    "built_at",
+    "updated_at",
+    "central_registry_signature",
+    "source_cards_signature",
+    "source_count",
+    "source_status_counts",
+    "record_count",
+    "entity_counts",
+    "variable_route_count",
+    "route_count",
+    "unavailable_sources",
+    "rebuildable",
+    "canonical",
+    "last_update_actions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "index_schema_version": {"const": "1.0.0"},
+    "status": {"enum": ["ready", "degraded"]},
+    "index_path": {"type": "string", "minLength": 1},
+    "search_backend": {"enum": ["fts5", "scan"]},
+    "built_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "central_registry_signature": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_cards_signature": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_count": {"type": "integer", "minimum": 0},
+    "source_status_counts": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "record_count": {"type": "integer", "minimum": 0},
+    "entity_counts": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "variable_route_count": {"type": "integer", "minimum": 0},
+    "route_count": {"type": "integer", "minimum": 0},
+    "unavailable_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "snapshot_id", "reason"],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "snapshot_id": {"type": "string", "minLength": 1},
+          "reason": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "rebuildable": {"const": true},
+    "canonical": {"const": false},
+    "last_update_actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["central_rebuilt", "sources_updated", "sources_removed", "sources_unchanged"],
+      "properties": {
+        "central_rebuilt": {"type": "boolean"},
+        "sources_updated": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source_id", "status"],
+            "properties": {
+              "source_id": {"type": "string", "minLength": 1},
+              "status": {"enum": ["ready", "unavailable"]}
+            }
+          }
+        },
+        "sources_removed": {"type": "array", "items": {"type": "string"}},
+        "sources_unchanged": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

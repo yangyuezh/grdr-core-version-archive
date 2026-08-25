@@ -406,6 +406,33 @@ def available_runtimes(
     return result
 
 
+def globally_routed_cards_for_variable(
+    cards: Iterable[dict[str, Any]],
+    variable_id: str,
+    root: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """Use the external global locator when the caller supplied live central cards."""
+
+    supplied = list(cards)
+    try:
+        import global_runtime_index as global_index
+
+        if not global_index.cards_match_external_registry(supplied):
+            return supplied
+        source_ids = global_index.candidate_source_ids_for_variable(
+            supplied, variable_id, root
+        )
+        if source_ids:
+            rank = {source_id: index for index, source_id in enumerate(source_ids)}
+            return sorted(
+                (card for card in supplied if card["source_id"] in rank),
+                key=lambda card: rank[card["source_id"]],
+            )
+    except (OSError, ValueError, sqlite3.Error, json.JSONDecodeError):
+        pass
+    return supplied
+
+
 def observation_route_context(
     snapshot: Path,
     route_policy: str = "latest",
@@ -1028,7 +1055,8 @@ def distributed_variable_matches(
 
 
 def resolve_distributed_variable(cards: Iterable[dict[str, Any]], variable_id: str, root: str | Path | None = None) -> dict[str, Any] | None:
-    for card, snapshot in available_runtimes(cards, root):
+    routed_cards = globally_routed_cards_for_variable(cards, variable_id, root)
+    for card, snapshot in available_runtimes(routed_cards, root):
         index = snapshot / card["runtime"]["agent_index"]
         connection = sqlite3.connect(index)
         try:
@@ -1081,7 +1109,8 @@ def invoke_source_runtime(
     extra_args: Iterable[str] = (),
     route_policy: str = "latest",
 ) -> dict[str, Any]:
-    for card, snapshot in available_runtimes(cards, root):
+    routed_cards = globally_routed_cards_for_variable(cards, variable_id, root)
+    for card, snapshot in available_runtimes(routed_cards, root):
         index = snapshot / card["runtime"]["agent_index"]
         connection = sqlite3.connect(index)
         try:
@@ -1195,7 +1224,8 @@ def callable_card_for_variable(
     variable_id: str,
     root: str | Path | None = None,
 ) -> dict[str, Any] | None:
-    for card, snapshot in available_runtimes(cards, root):
+    routed_cards = globally_routed_cards_for_variable(cards, variable_id, root)
+    for card, snapshot in available_runtimes(routed_cards, root):
         index = snapshot / card["runtime"]["agent_index"]
         connection = sqlite3.connect(index)
         try:

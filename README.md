@@ -12,7 +12,7 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 2. `grdr-execute-database-deep-map` follows the deterministic queue, reconstructs native structure and disciplinary semantics, builds the DataElement → Variable → Construct bridge, and seals the execution without canonical writes.
 3. `grdr-store-database-deep-map` transactionally promotes sealed records, inherits the locked knowledge scope, completes and tests online access for every registered Variable, independently chooses full, partitioned, or no observation replication, publishes the callable knowledge and Runtime artifacts, verifies every declared location, writes the central source card, and issues the final Storage receipt.
 
-These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, performs full manifest and SHA-256 verification before treating a snapshot as callable, resolves a variable to its source-native access plan, and passes the sealed observation-route context to the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
+These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: its external, rebuildable Global Index & Routing Layer incrementally indexes central records and the latest source snapshots, performs cross-source candidate recall, opens only selected source indexes, and dispatches one Variable to its source-specific Runtime 2.0. Snapshot verification, policy-ordered invocation, and fallback remain Runtime operations. Storage packages and tests each source runtime and writes the central card that invalidates the derived global index; it does not own unified search, matching, or retrieval behavior.
 
 ## Research use plane
 
@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.4.0<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.0<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -44,9 +44,10 @@ flowchart TB
         direction LR
         BUILD_OV["<b>Skill 5 · Indicator Builder</b><br/>question + literature → evidence-linked R"]:::research
         SEM_OV["<b>Skill 6 · Semantic Resolver</b><br/>recall → R→B → B→A → fit → invocation"]:::semantic
-        RUN_OV["Agent Runtime + source runtime<br/><i>execution code, not additional Skills</i><br/>search · mount · resolve · call"]:::runtime
+        RUN_OV["Agent Runtime<br/><i>execution code, not an additional Skill</i><br/>global index · cross-source router · verify · invoke"]:::runtime
+        SOURCE_RUN_OV["Source Runtime 2.0 per database<br/>source-native resolve · fetch · normalize"]:::runtime
         OUT_OV["Verified observations<br/>latest · reproducible · offline route policies<br/>+ route trace + provenance + uncertainty"]:::result
-        BUILD_OV --> SEM_OV --> RUN_OV --> OUT_OV
+        BUILD_OV --> SEM_OV --> RUN_OV --> SOURCE_RUN_OV --> OUT_OV
     end
 
     GAP_OV["Data-gap loop<br/>missing variable/dimension → discover or deepen source<br/>→ rebuild snapshot → rerun matching"]:::gap
@@ -211,6 +212,9 @@ flowchart TB
             S_CARD -. "later Agent query" .-> S_CACHE
         end
 
+        GLOBAL_DERIVED["Agent Runtime derived state after Storage<br/>central-card change → incremental global-index refresh<br/><b>rebuildable · non-canonical · outside Core</b>"]:::runtime
+        S_CARD -. "invalidates/refreshes use-plane index" .-> GLOBAL_DERIVED
+
     classDef shared fill:#E8F1F5,stroke:#5E879A,color:#173B57,stroke-width:1.5px;
     classDef handoff fill:#263849,stroke:#17212B,color:#FFFFFF,stroke-width:2px;
     classDef storage fill:#FFF0DF,stroke:#D48638,color:#69370F,stroke-width:1.5px;
@@ -220,6 +224,7 @@ flowchart TB
     classDef artifactStrong fill:#FFEAD4,stroke:#C56A1B,color:#69370F,stroke-width:2px;
     classDef external fill:#FFFFFF,stroke:#64748B,color:#263849,stroke-width:1.5px;
     classDef verify fill:#E7F6EC,stroke:#4D9B63,color:#204F2D,stroke-width:2px;
+    classDef runtime fill:#E5F3FF,stroke:#4787B8,color:#173B57,stroke-width:2px;
     style STORAGE fill:#FFFAF3,stroke:#D99A5D,stroke-width:1.5px
 ```
 
@@ -328,7 +333,9 @@ flowchart TB
     HUMAN -. "human decision; never Agent self-approval" .-> BUILDER
     BUILDER --> R_TREE
 
-    SNAPSHOT["Callable distributed snapshot entry<br/>central source card + semantic/variable index<br/>verified Release + exact snapshot fingerprint"]:::runtime
+    SNAPSHOT["Canonical distributed source snapshots<br/>central cards + source Agent indexes + Runtime 2.0<br/>verified Releases + exact fingerprints"]:::runtime
+    GLOBAL_INDEX["<b>Core Agent Runtime · Global Index</b><br/>1 incremental cross-source index · 2 global candidate recall<br/>3 two-stage source selection<br/><i>external derived state · rebuildable · not a Skill</i>"]:::globalRuntime
+    GLOBAL_ROUTE["<b>Core Agent Runtime · Global Router</b><br/>4 Variable → Source → Snapshot → route IDs<br/>selected source shard only"]:::globalRuntime
 
     subgraph FIVE["Skill 6 · grdr-resolve-research-semantics — persisted five-layer resolver"]
         direction LR
@@ -341,11 +348,11 @@ flowchart TB
     end
 
     R_TREE --> RECALL
-    SNAPSHOT -. "central + distributed recall" .-> RECALL
-    SNAPSHOT --> INVOKE
+    SNAPSHOT -. "source-card or registry change refreshes derived index" .-> GLOBAL_INDEX
+    GLOBAL_INDEX -->|"global B/A candidates"| RECALL
     HUMAN -. "approve contested decisions" .-> FIT
 
-    SOURCE_RUNTIME["Source-specific callable runtime<br/>verified adapter + exact snapshot + access plan"]:::runtime
+    SOURCE_RUNTIME["Source Runtime 2.0 · selected database only<br/>verified adapter + exact snapshot + access plan"]:::runtime
     ROUTER["Policy-aware observation router<br/>latest · reproducible · offline<br/>ordered attempts + explicit fallback trace"]:::runtime
     LOCAL["Verified optional local cache<br/>materialized Release observations"]:::local
     MOUNTED["Verified mounted mirror<br/>object store / large disk"]:::local
@@ -355,7 +362,8 @@ flowchart TB
     GAP["Data-gap diagnosis<br/>missing construct · variable · population · unit<br/>time · space · modality · joinability"]:::gap
     EXPAND["Expansion and rerun<br/>discover or deepen source → Plan → Execute → Storage<br/>→ rebuild recall/alignment/path → rerun matching"]:::shared
 
-    INVOKE --> SOURCE_RUNTIME --> ROUTER
+    INVOKE --> GLOBAL_ROUTE -->|"open selected source shard"| SOURCE_RUNTIME --> ROUTER
+    GLOBAL_INDEX -. "exact entity locators" .-> GLOBAL_ROUTE
     ROUTER -->|"official_online"| UPSTREAM --> RESULT
     ROUTER -->|"github_release_snapshot"| RELEASE_ROUTE --> RESULT
     ROUTER -->|"local_snapshot_cache"| LOCAL --> RESULT
@@ -369,6 +377,7 @@ flowchart TB
     classDef resolver fill:#EEE9FF,stroke:#7B62C5,color:#3F2A72,stroke-width:1.5px;
     classDef resolverStrong fill:#DED3FF,stroke:#6646B7,color:#3F2A72,stroke-width:2px;
     classDef runtime fill:#E5F3FF,stroke:#4787B8,color:#173B57,stroke-width:2px;
+    classDef globalRuntime fill:#D9ECFF,stroke:#276A9A,color:#103B59,stroke-width:3px;
     classDef local fill:#E7F6EC,stroke:#4D9B63,color:#204F2D,stroke-width:2px;
     classDef external fill:#FFFFFF,stroke:#64748B,color:#263849,stroke-width:1.5px;
     classDef result fill:#DDF7E7,stroke:#3D9158,color:#1F5A31,stroke-width:2px;
@@ -376,6 +385,29 @@ flowchart TB
     classDef shared fill:#E8F1F5,stroke:#5E879A,color:#173B57,stroke-width:1.5px;
     style FIVE fill:#FAF8FF,stroke:#8A74CA,stroke-width:1.5px
 ```
+
+#### Global Index & Routing Layer（Agent Runtime 子系统，不是第七个 Skill）
+
+这一层位于研究语义解析和各数据库 Source Runtime 2.0 之间。它不改变 Plan → Execute → Storage，也不保存观测数据或替代源快照。实际索引位于外部 `GRDR_STATE_ROOT/indexes/`；Core 只保存 SQLite Schema、构建／查询／审计程序和测试。索引删除后可从中央 Registry 与已物化的最新源快照重建。
+
+| 能力 | 实际实现 | 边界 |
+|---|---|---|
+| 全局轻量索引 | 把 Source、Dataset、DataStructure、DataElement、Variable、Construct、SemanticNode 的检索摘要和精确来源定位写入一个外部 SQLite；FTS5 可用时启用全文索引 | 完整知识仍保存在每个源快照；全局摘要不是规范记录 |
+| 全局路由表 | 保存 `Variable → Source → Snapshot → route IDs`，以及已测试路线的权威性、方法、新鲜度和状态 | 最终路线校验与执行仍由选中的 Source Runtime 2.0 完成 |
+| 两阶段检索 | 先在全局索引召回候选 Source／Variable，再只打开被选中的少量源级 Agent SQLite | 不再为普通查询逐个校验和打开全部数据库 |
+| 增量更新与重建 | 每次查询先比较中央文件状态指纹和 Source card fingerprint；只更新变化来源。显式审计可重新执行完整源快照 SHA-256 验证 | Storage 只写规范中央卡片；卡片变化自动使派生索引失效，不把全局查询并入 Storage |
+
+外部运行状态为：
+
+```text
+GRDR_STATE_ROOT/
+├── registry/source_archives.jsonl        # Storage 写入的规范入口卡片
+├── indexes/grdr-global-index.sqlite      # 派生全局发现与路由索引
+├── indexes/grdr-global-index-manifest.json
+└── cache/                                # 可选的 Release 展开缓存
+```
+
+`search-sources`、`search-datasets`、`search-variables` 和 `prepare-semantic-candidates` 优先使用全局索引；变量解析与调用先用全局路由锁定 Source，再由对应 Runtime 2.0 执行。如果派生索引不可用，Core 保留旧的中央／分布式扫描回退路径，不会把索引故障伪装成“没有数据”。
 
 Resources such as APIs, downloads, authentication, and licenses are access sidecars rather than content levels.
 
@@ -385,6 +417,7 @@ GRDR Core keeps only:
 
 - shared Skills, schemas, route contracts, programs, and documentation;
 - empty canonical Registry filename templates and the source-archive card schema;
+- global-index and routing code plus its manifest Schema, but never a populated global SQLite;
 - generic, synthetic tests that do not identify a real database.
 
 Each deeply processed database keeps its own configuration, adapters, Plan, Execute package, full knowledge snapshot, Agent index, source Runtime, online-access manifest and audit, observation-replication manifest, and Release history outside this repository. Every source must expose complete tested online coverage for its registered Variables; full, partitioned, or no-mirror replication independently controls which observation bytes are copied. Source repositories reference a Core version; they never copy the Core.
@@ -428,6 +461,11 @@ export GRDR_STATE_ROOT=/absolute/path/outside/grdr-core
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
 .venv/bin/python scripts/grdr.py publish-database-storage <project>
 .venv/bin/python scripts/grdr.py database-storage-status <project>
+.venv/bin/python scripts/grdr.py global-index-status
+.venv/bin/python scripts/grdr.py update-global-index
+.venv/bin/python scripts/grdr.py rebuild-global-index
+.venv/bin/python scripts/grdr.py audit-global-index
+.venv/bin/python scripts/grdr.py route-variable <variable-id> --route-policy latest
 .venv/bin/python scripts/grdr.py source-snapshot-status --source-id <source-id> --verify
 .venv/bin/python scripts/grdr.py prepare-semantic-candidates <research-project> --snapshot-policy latest_callable
 .venv/bin/python scripts/grdr.py prepare-semantic-candidates <research-project> --snapshot-policy history  # explicit longitudinal use only
@@ -454,4 +492,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.4.0` separates three concerns that must never be conflated: Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication. A new snapshot reaches `callable_complete` only when every registered Variable has an executable online route proven by Runtime 2.0; API, bulk-download, browser-automation, and verified GRDR Release routes are explicit. GitHub is the canonical publication plane; a local expanded snapshot is a disposable cache. Agent Runtime applies auditable `latest`, `reproducible`, or `offline` route policies with Variable-aware prefiltering, bounded transient retry, and explicit fallback, while full, partitioned, or no-mirror replication independently controls copied observation bytes. Knowledge remains complete within the locked Plan boundary, and raw observations remain forbidden from the knowledge package.
+Version `4.5.0` adds the external, rebuildable Global Index & Routing Layer to the Agent Runtime use plane. It incrementally indexes central records and latest callable source snapshots, recalls candidates globally, opens only selected source shards, and routes a Variable to its Source Runtime 2.0 before policy-ordered invocation. The layer is derived state rather than a seventh Skill or a fourth production step: source repositories, Releases, central cards, and source-level knowledge remain canonical, while an unavailable global index can be rebuilt or bypassed through the legacy scan fallback. Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.

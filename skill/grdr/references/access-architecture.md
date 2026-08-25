@@ -8,7 +8,7 @@ The registry records what a source is, who maintains it, what it contains, how a
 
 An adapter performs actual retrieval. Knowing a source exists and being authorized to retrieve its records are different capabilities.
 
-The three-step factory is the production plane. The independent GRDR Agent Runtime is the use plane. Storage packages source Runtime 2.0 and proves every registered Variable has a tested online route; Core Runtime performs unified search, snapshot materialization, variable resolution, policy-ordered invocation, and fallback.
+The three-step factory is the production plane. The independent GRDR Agent Runtime is the use plane. Storage packages source Runtime 2.0 and proves every registered Variable has a tested online route; Core Runtime maintains the external rebuildable Global Index & Routing Layer, performs two-stage cross-source search, snapshot materialization, variable resolution, policy-ordered invocation, and fallback. The global layer is execution code rather than a Skill or canonical knowledge store.
 
 ## Optional access modes
 

@@ -16,6 +16,7 @@ Treat GRDR as an immutable Core plus external mutable registry state:
 - a continuously expanding cross-disciplinary knowledge base.
 - a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, complete online-access audit, independent observation-replication policy, and source-specific Runtime; a local expanded snapshot is only an optional rebuildable cache.
 - an independent Agent Runtime that searches, resolves, and invokes those snapshots using explicit latest, reproducible, or offline route policies.
+- an external, rebuildable Global Index & Routing Layer inside Agent Runtime that incrementally indexes central records and latest source shards, performs two-stage retrieval, and dispatches selected Variables to source Runtime 2.0; it is execution code, not a seventh Skill or canonical database state.
 
 Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped knowledge and Agent snapshots. Require tested online callability for every registered Variable. Independently store observation bytes as a full mirror, partitioned mirror, or no mirror according to the snapshot's explicit capacity-aware replication policy.
 
@@ -58,11 +59,13 @@ Run the bundled wrapper:
 
 ```bash
 python3 "$GRDR_LAUNCHER" stats
+python3 "$GRDR_LAUNCHER" global-index-status
 python3 "$GRDR_LAUNCHER" list-source-archives
 python3 "$GRDR_LAUNCHER" search-sources --query climate
 python3 "$GRDR_LAUNCHER" search-datasets --topic population
 python3 "$GRDR_LAUNCHER" search-variables --construct population
 python3 "$GRDR_LAUNCHER" search-variables --construct population --snapshot-policy history
+python3 "$GRDR_LAUNCHER" route-variable grdr:variable:example-measure --route-policy latest
 python3 "$GRDR_LAUNCHER" source-snapshot-status --source-id grdr:source:example --verify
 python3 "$GRDR_LAUNCHER" resolve-variable-access grdr:variable:example-measure
 python3 "$GRDR_LAUNCHER" fetch-variable grdr:variable:example-measure --route-policy latest --dry-run
@@ -96,7 +99,7 @@ When one database must be understood beyond Source registration, dispatch three 
 
 Storage reads one adjustable total-observation threshold for GitHub Releases from external GRDR configuration and enforces GitHub's strict under-2-GiB per-asset boundary. These limits affect only observation replication. The snapshot records measured bytes, any upstream-size estimate, policy-relative size class, selected mode, and exact thresholds; it never uses size to weaken Plan-locked knowledge depth.
 
-Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies source Runtime 2.0 plus its online route graph; unified search, snapshot materialization, route-policy selection, variable access resolution, fallback, and retrieval are Core Runtime operations.
+Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies source Runtime 2.0 plus its online route graph and writes the canonical source card. A changed card invalidates the derived global index, which Agent Runtime incrementally refreshes on the next query. Unified search, two-stage source selection, global Variable routing, snapshot materialization, route-policy selection, variable access resolution, fallback, and retrieval are Core Runtime operations.
 
 The map preserves Institution and Source as provenance context; Dataset; recursive DataStructure; 5A DataElement and 5B Variable; and Construct. Resource is an access sidecar. It must also close a source-native structural spine, a multi-parent scientific-semantic spine, and the Variable-to-Construct bridge. Audit current depth first:
 
@@ -158,6 +161,8 @@ python3 "$GRDR_LAUNCHER" diagnose-coverage /absolute/path/to/request.json
 
 Matching is a core value of GRDR, but it depends on continued registry breadth and depth.
 Keep question-specific literature, indicators, and mappings under `research_projects/<project-id>/`; do not mix them into the canonical global source registry.
+
+Use the global Runtime index as the ordinary discovery entry point. It stores only search summaries, exact source/snapshot locators, Variable-to-Construct links, and Variable-to-route links under external `GRDR_STATE_ROOT/indexes/`. Do not edit it as knowledge. Use `update-global-index` for an explicit incremental refresh, `rebuild-global-index` after corruption or Schema change, and `audit-global-index --verify-sources` for a fresh source-level audit. If Runtime reports the legacy scan fallback, report that degraded execution state instead of treating an empty result as evidence of absence.
 
 For a persisted topic-scaffold project, use the executable lifecycle:
 

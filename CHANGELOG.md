@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.5.0] - 2026-08-25
+
+### Added
+
+- Add an external, rebuildable Global Index & Routing Layer inside Core Agent Runtime, without creating a seventh Skill or a fourth database-production step.
+- Add cross-source SQLite/FTS discovery records, exact entity locators, Variable-to-Construct links, tested Variable-to-route mappings, source-card fingerprints, and a machine-readable global-index manifest.
+- Add `global-index-status`, `update-global-index`, `rebuild-global-index`, `audit-global-index`, and `route-variable` commands.
+
+### Performance and routing
+
+- Replace ordinary all-source variable and semantic discovery with two-stage retrieval: global candidate recall followed by opening only selected source Agent indexes.
+- Route known Variables to candidate Sources before source Runtime 2.0 verification and invocation; preserve the legacy central/distributed scan as an explicit failure fallback.
+- Incrementally refresh only changed central records or source snapshots. An unchanged index performs no SQLite or manifest write; explicit audit can still force complete source verification.
+
+### Architecture and validation
+
+- Keep the populated global index under external `GRDR_STATE_ROOT/indexes/`; Core contains only generic code, Schema, documentation, and synthetic tests.
+- Add deterministic rebuild, incremental no-op, search, route, integrity-audit, and source-isolation tests; align the North Star, Agent protocol, access architecture, workflow, diagrams, and relevant Skills with the executable Runtime boundary.
+
 ## [4.4.0] - 2026-08-25
 
 ### Changed

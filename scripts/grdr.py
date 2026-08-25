@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Iterable
 
 import distributed_runtime as distributed
+import global_runtime_index as global_index
 from grdr_paths import CORE_ROOT, registry_root
 
 
@@ -294,7 +296,20 @@ def build_source_depth_profile(source: dict[str, Any]) -> dict[str, Any]:
 
 
 def search_sources(args: argparse.Namespace) -> None:
-    sources = load_jsonl("sources.jsonl")
+    cards = load_jsonl("source_archives.jsonl")
+    discovery_engine = "global_index"
+    try:
+        sources = global_index.search_records(
+            cards,
+            ("sources",),
+            query=args.query,
+            snapshot_policy="latest_callable",
+            limit=max(args.limit * 20, 200),
+        )
+        sources = global_index.hydrate_snapshot_records(cards, sources)
+    except (OSError, ValueError, sqlite3.Error):
+        discovery_engine = "legacy_central_scan"
+        sources = load_jsonl("sources.jsonl")
     matches: list[dict[str, Any]] = []
     for source in sources:
         if not contains(source, args.query):
@@ -317,8 +332,12 @@ def search_sources(args: argparse.Namespace) -> None:
         {
             "operation": "search_sources",
             "registry_version": REGISTRY_VERSION,
+            "discovery_engine": discovery_engine,
             "result_count": len(limited),
             "total_matches": len(matches),
+            "total_matches_relation": (
+                "window_lower_bound" if discovery_engine == "global_index" else "exact"
+            ),
             "results": [source_summary(source) for source in limited],
             "warnings": [
                 "Bootstrap nominations may contain unverified scope tags. Inspect each result's verification object and evidence before use."
@@ -328,7 +347,21 @@ def search_sources(args: argparse.Namespace) -> None:
 
 
 def search_datasets(args: argparse.Namespace) -> None:
-    datasets = load_jsonl("datasets.jsonl")
+    cards = load_jsonl("source_archives.jsonl")
+    discovery_engine = "global_index"
+    try:
+        datasets = global_index.search_records(
+            cards,
+            ("datasets",),
+            query=args.query,
+            verification=args.verification,
+            snapshot_policy="latest_callable",
+            limit=max(args.limit * 50, 1000),
+        )
+        datasets = global_index.hydrate_snapshot_records(cards, datasets)
+    except (OSError, ValueError, sqlite3.Error):
+        discovery_engine = "legacy_central_scan"
+        datasets = load_jsonl("datasets.jsonl")
     matches: list[dict[str, Any]] = []
     for dataset in datasets:
         if not contains(dataset, args.query):
@@ -349,8 +382,12 @@ def search_datasets(args: argparse.Namespace) -> None:
         {
             "operation": "search_datasets",
             "registry_version": REGISTRY_VERSION,
+            "discovery_engine": discovery_engine,
             "result_count": len(limited),
             "total_matches": len(matches),
+            "total_matches_relation": (
+                "window_lower_bound" if discovery_engine == "global_index" else "exact"
+            ),
             "results": [
                 {
                     "id": item["id"],
@@ -372,48 +409,12 @@ def search_datasets(args: argparse.Namespace) -> None:
 
 
 def search_variables(args: argparse.Namespace) -> None:
-    variables = load_jsonl("variables.jsonl")
-    constructs = {item["id"]: item for item in load_jsonl("constructs.jsonl")}
-    datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
     cards = load_jsonl("source_archives.jsonl")
-    callable_source_ids = {
-        card["source_id"]
-        for card, _snapshot in distributed.available_runtimes(cards, args.elements_root)
-    }
-    if args.snapshot_policy == "latest_callable" and callable_source_ids:
-        variables = [
-            variable
-            for variable in variables
-            if not callable_source_ids.intersection(
-                source_id
-                for dataset_id in variable.get("dataset_ids", [])
-                for source_id in datasets.get(dataset_id, {}).get("source_ids", [])
-            )
-        ]
-    matches: list[dict[str, Any]] = []
-    for variable in variables:
-        linked_constructs = [
-            constructs[item]
-            for item in variable["construct_ids"]
-            if item in constructs
-        ]
-        if not contains(variable, args.query):
-            continue
-        if not contains(linked_constructs, args.construct):
-            continue
-        if args.dataset_id and args.dataset_id not in variable["dataset_ids"]:
-            continue
-        if args.role and args.role not in variable["role_candidates"]:
-            continue
-        if args.measurement_type and args.measurement_type != variable["measurement"]["type"]:
-            continue
-        if args.verification and args.verification != variable["verification"]["status"]:
-            continue
-        matches.append(variable)
-
-    matches.extend(
-        distributed.distributed_variable_matches(
+    index_mode = "global_index"
+    try:
+        matches = global_index.search_records(
             cards,
+            ("variables",),
             args.elements_root,
             query=args.query,
             construct=args.construct,
@@ -421,10 +422,65 @@ def search_variables(args: argparse.Namespace) -> None:
             role=args.role,
             measurement_type=args.measurement_type,
             verification=args.verification,
+            snapshot_policy=args.snapshot_policy,
+            limit=args.limit,
         )
-    )
-
-    matches = list({item["id"]: item for item in matches}.values())
+        matches = global_index.hydrate_snapshot_records(
+            cards, matches, args.elements_root
+        )
+        callable_source_ids = global_index.callable_source_ids(
+            cards, args.elements_root
+        )
+    except (OSError, ValueError, sqlite3.Error):
+        index_mode = "legacy_distributed_scan"
+        variables = load_jsonl("variables.jsonl")
+        constructs = {item["id"]: item for item in load_jsonl("constructs.jsonl")}
+        datasets = {item["id"]: item for item in load_jsonl("datasets.jsonl")}
+        callable_source_ids = {
+            card["source_id"]
+            for card, _snapshot in distributed.available_runtimes(cards, args.elements_root)
+        }
+        if args.snapshot_policy == "latest_callable" and callable_source_ids:
+            variables = [
+                variable
+                for variable in variables
+                if not callable_source_ids.intersection(
+                    source_id
+                    for dataset_id in variable.get("dataset_ids", [])
+                    for source_id in datasets.get(dataset_id, {}).get("source_ids", [])
+                )
+            ]
+        matches = []
+        for variable in variables:
+            linked_constructs = [
+                constructs[item]
+                for item in variable["construct_ids"]
+                if item in constructs
+            ]
+            if not contains(variable, args.query) or not contains(linked_constructs, args.construct):
+                continue
+            if args.dataset_id and args.dataset_id not in variable["dataset_ids"]:
+                continue
+            if args.role and args.role not in variable["role_candidates"]:
+                continue
+            if args.measurement_type and args.measurement_type != variable["measurement"]["type"]:
+                continue
+            if args.verification and args.verification != variable["verification"]["status"]:
+                continue
+            matches.append(variable)
+        matches.extend(
+            distributed.distributed_variable_matches(
+                cards,
+                args.elements_root,
+                query=args.query,
+                construct=args.construct,
+                dataset_id=args.dataset_id,
+                role=args.role,
+                measurement_type=args.measurement_type,
+                verification=args.verification,
+            )
+        )
+        matches = list({item["id"]: item for item in matches}.values())
 
     matches.sort(
         key=lambda item: (
@@ -438,9 +494,13 @@ def search_variables(args: argparse.Namespace) -> None:
             "operation": "search_variables",
             "registry_version": REGISTRY_VERSION,
             "snapshot_policy": args.snapshot_policy,
+            "discovery_engine": index_mode,
             "callable_source_count": len(callable_source_ids),
             "result_count": len(limited),
             "total_matches": len(matches),
+            "total_matches_relation": (
+                "window_lower_bound" if index_mode == "global_index" else "exact"
+            ),
             "results": [
                 {
                     "id": item["id"],
@@ -468,13 +528,27 @@ def search_variables(args: argparse.Namespace) -> None:
 
 
 def search_semantic_nodes(args: argparse.Namespace) -> None:
-    records = load_jsonl("semantic_nodes.jsonl")
-    records.extend(
-        distributed.distributed_entity_records(
-            load_jsonl("source_archives.jsonl"), "semantic_nodes", args.elements_root
+    cards = load_jsonl("source_archives.jsonl")
+    discovery_engine = "global_index"
+    try:
+        records = global_index.search_records(
+            cards,
+            ("semantic_nodes",),
+            args.elements_root,
+            query=args.query,
+            snapshot_policy="latest_callable",
+            limit=max(args.limit * 20, 200),
         )
-    )
-    records = list({item["id"]: item for item in records}.values())
+        records = global_index.hydrate_snapshot_records(cards, records, args.elements_root)
+    except (OSError, ValueError, sqlite3.Error):
+        discovery_engine = "legacy_distributed_scan"
+        records = load_jsonl("semantic_nodes.jsonl")
+        records.extend(
+            distributed.distributed_entity_records(
+                cards, "semantic_nodes", args.elements_root
+            )
+        )
+        records = list({item["id"]: item for item in records}.values())
     results = [
         item for item in records
         if contains(item, args.query)
@@ -487,6 +561,7 @@ def search_semantic_nodes(args: argparse.Namespace) -> None:
     results = results[:args.limit]
     emit({
         "operation": "search_semantic_nodes", "registry_version": REGISTRY_VERSION,
+        "discovery_engine": discovery_engine,
         "result_count": len(results), "results": results,
     })
 
@@ -795,6 +870,55 @@ def list_source_archives(args: argparse.Namespace) -> None:
         if args.source_id is None or item["source_id"] == args.source_id
     ]
     emit({"operation": "list_source_archives", "registry_version": REGISTRY_VERSION, "result_count": len(records), "results": records})
+
+
+def global_index_status_command(args: argparse.Namespace) -> None:
+    result = global_index.global_index_status(
+        load_jsonl("source_archives.jsonl"),
+        args.elements_root,
+        refresh=not args.no_refresh,
+    )
+    emit({"registry_version": REGISTRY_VERSION, **result})
+
+
+def update_global_index_command(args: argparse.Namespace) -> None:
+    result = global_index.update_global_index(
+        load_jsonl("source_archives.jsonl"),
+        args.elements_root,
+    )
+    emit({"registry_version": REGISTRY_VERSION, **result})
+
+
+def rebuild_global_index_command(args: argparse.Namespace) -> None:
+    result = global_index.update_global_index(
+        load_jsonl("source_archives.jsonl"),
+        args.elements_root,
+        rebuild=True,
+    )
+    emit({"registry_version": REGISTRY_VERSION, **result})
+
+
+def audit_global_index_command(args: argparse.Namespace) -> None:
+    result = global_index.audit_global_index(
+        load_jsonl("source_archives.jsonl"),
+        args.elements_root,
+        verify_sources=args.verify_sources,
+    )
+    emit({"registry_version": REGISTRY_VERSION, **result})
+    if result["errors"]:
+        raise SystemExit(1)
+
+
+def route_variable_command(args: argparse.Namespace) -> None:
+    result = global_index.route_variable(
+        load_jsonl("source_archives.jsonl"),
+        args.variable_id,
+        args.elements_root,
+        route_policy=args.route_policy,
+    )
+    emit({"registry_version": REGISTRY_VERSION, **result})
+    if not result["candidates"]:
+        raise SystemExit(2)
 
 
 def source_snapshot_status(args: argparse.Namespace) -> None:
@@ -1888,6 +2012,53 @@ def parser() -> argparse.ArgumentParser:
     source_archives = commands.add_parser("list-source-archives", help="List completed distributed source snapshots and their repository and Release entry points")
     source_archives.add_argument("--source-id")
     source_archives.set_defaults(handler=list_source_archives)
+
+    global_status = commands.add_parser(
+        "global-index-status",
+        help="Report the external rebuildable cross-source discovery and routing index",
+    )
+    add_cache_root_argument(global_status)
+    global_status.add_argument(
+        "--no-refresh",
+        action="store_true",
+        help="Inspect the current index without synchronizing changed central cards",
+    )
+    global_status.set_defaults(handler=global_index_status_command)
+
+    update_index = commands.add_parser(
+        "update-global-index",
+        help="Incrementally synchronize changed central records and source snapshots",
+    )
+    add_cache_root_argument(update_index)
+    update_index.set_defaults(handler=update_global_index_command)
+
+    rebuild_index = commands.add_parser(
+        "rebuild-global-index",
+        help="Rebuild the derived global discovery and routing index from canonical state",
+    )
+    add_cache_root_argument(rebuild_index)
+    rebuild_index.set_defaults(handler=rebuild_global_index_command)
+
+    audit_index = commands.add_parser(
+        "audit-global-index",
+        help="Audit global-index integrity, freshness, and optional full source verification",
+    )
+    add_cache_root_argument(audit_index)
+    audit_index.add_argument("--verify-sources", action="store_true")
+    audit_index.set_defaults(handler=audit_global_index_command)
+
+    route_variable = commands.add_parser(
+        "route-variable",
+        help="Plan the cross-source route for one Variable without invoking its source Runtime",
+    )
+    route_variable.add_argument("variable_id")
+    add_cache_root_argument(route_variable)
+    route_variable.add_argument(
+        "--route-policy",
+        choices=["latest", "reproducible", "offline"],
+        default="latest",
+    )
+    route_variable.set_defaults(handler=route_variable_command)
 
     snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally run a fresh full-SHA audit")
     snapshot_status.add_argument("--source-id")

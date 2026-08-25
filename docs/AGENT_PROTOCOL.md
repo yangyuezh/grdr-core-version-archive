@@ -27,6 +27,10 @@ The registry must also support direct source discovery and curation without requ
 
 ### Registry discovery
 
+- `global_index_status`
+- `update_global_index`
+- `rebuild_global_index`
+- `audit_global_index`
 - `search_sources`
 - `get_source`
 - `search_datasets`
@@ -101,6 +105,7 @@ The registry must also support direct source discovery and curation without requ
 - `query_federated_source`
 - `resolve_variable_access`
 - `fetch_variable`
+- `route_variable`
 - `self_test_online`
 - `create_lawful_snapshot`
 - `monitor_upstream_change`
@@ -137,7 +142,7 @@ The six required unit stages are Dataset, DataStructure, DataElement, Variable, 
 
 `resume-database-deep-map` returns the next dependency-valid ordered unit stage, spine, bridge, or route check; an Agent may not silently substitute a convenient sample. Plan, scope, and unit-manifest fingerprints reject silent drift. Step 2 may write only project-local staging. Step 3 Storage alone may promote canonical collections and write the central source-archive card under external `GRDR_STATE_ROOT`; it must leave immutable Core byte-identical. The internal archive receipt proves external-state promotion; only a valid Storage receipt plus verified knowledge/Agent parity and verified declared observation locations declares factory completion. A 100% knowledge result is always limited to the project's explicit dated boundary; observation completeness is stated independently.
 
-The database lifecycle is the production plane. The separate Agent Runtime use plane searches variables across distributed indexes, resolves one Variable through source Runtime 2.0, and applies the requested `latest`, `reproducible`, or `offline` route policy. It tries only routes declared and tested in the snapshot, records every attempt and fallback, fully verifies any local or mounted inventory before use, and may seal an on-demand query result under the research project. Storage packages and self-tests the canonical source runtime and records the cache policy; it does not turn query caches into canonical observations.
+The database lifecycle is the production plane. The separate Agent Runtime use plane maintains an external, rebuildable global discovery and routing index. It incrementally consumes central records and latest source cards, recalls candidates across all indexed sources, selects a small candidate set, and only then opens the chosen source indexes. It resolves one Variable through source Runtime 2.0 and applies the requested `latest`, `reproducible`, or `offline` route policy. It tries only routes declared and tested in the snapshot, records every attempt and fallback, fully verifies any local or mounted inventory before use, and may seal an on-demand query result under the research project. The global index is derived execution state rather than a Skill or canonical registry. Storage packages and self-tests the canonical source runtime and records the cache policy; its central-card update invalidates the derived index, but Storage does not own global search and does not turn query caches into canonical observations.
 
 ## Executable research-project lifecycle
 

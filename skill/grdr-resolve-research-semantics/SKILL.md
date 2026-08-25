@@ -15,6 +15,7 @@ R: ResearchQuestion / ResearchIndicator
 B: stored SemanticNode / Construct spine
   -> stored B-to-A graph relationships
 A: Variable / DataElement / DataStructure / Dataset
+  -> Core Agent Runtime global locator and router
   -> verified source Runtime 2.0
 policy-selected observations
 ```
@@ -47,7 +48,7 @@ Run:
 python3 "$GRDR_LAUNCHER" prepare-semantic-candidates <project> --queries <queries.jsonl>
 ```
 
-Without `--queries`, Core derives terms from the indicators. Candidate recall searches Construct, SemanticNode, and Variable full text across central and callable distributed indexes; Variable hits resolve back to B targets.
+Without `--queries`, Core derives terms from the indicators. Candidate recall searches Construct, SemanticNode, and Variable full text through Core Agent Runtime's external global index; Variable hits resolve back to B targets. Runtime first recalls candidates globally, then opens only the selected source shards. If the global index cannot be refreshed, Core may explicitly report and use the legacy distributed-scan fallback; never interpret that infrastructure state as evidence that no variable exists.
 
 The default `--snapshot-policy latest_callable` suppresses historical canonical records for any Source that has a verified callable latest snapshot and binds returned candidates to that snapshot. Use history only when the research design explicitly requires longitudinal snapshot comparison:
 
@@ -115,6 +116,8 @@ Resolve a single-variable mapping through its verified source Runtime. Use `late
 python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --route-policy latest --dry-run
 python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --route-policy reproducible --seal-data-snapshot
 ```
+
+Core first resolves `Variable -> Source -> Snapshot -> route IDs` in the global routing layer, then delegates the exact access plan and execution to that Source Runtime 2.0. This deterministic routing layer is not another semantic decision and does not replace the persisted R-to-B or B-to-A evidence path.
 
 Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, requested route policy, attempted routes, selected route, upstream provenance, and snapshot manifest.
 
