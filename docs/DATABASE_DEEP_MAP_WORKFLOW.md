@@ -12,8 +12,8 @@ Step 2 Execute
 逐单元深读 → 恢复两根主干和一座桥 → 暂存规范记录 → 密封执行包
         ↓ sealed_deep_map_execution
 Step 3 Storage
-中央入库 → 独立源仓库 → 完整知识包 → Agent运行时/索引 → 观测数据
-→ GitHub Release → Elements展开镜像 → 一致性核验 → 中央卡片 → Storage回执
+中央入库 → 继承知识范围 → 选择观测复制模式与位置 → 独立源仓库
+→ 完整知识包 → Agent运行时/索引 → 位置清单 → 核验 → 中央卡片 → Storage回执
         ↓ versioned_database_snapshot
 ```
 
@@ -65,14 +65,26 @@ Execute只写工程内部`staging/`及账本。`execution_ready_for_storage: tru
 |---|---|---|
 | GRDR核心仓库 | Source卡片、独立仓库、最新快照、Release、清单、指纹和状态 | 否 |
 | 数据库独立私有Git仓库 | Core版本引用、配置、适配器、源运行时代码、Plan、快照清单、README、测试、中央入库回执 | 只保存小型可审查内容 |
-| 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent运行时与SQLite索引、全部观测数据和Storage回执 | 是 |
-| Elements磁盘 | 与Release相同逻辑快照的完整展开目录 | 是 |
+| 数据库GitHub Release | 完整知识快照、Execute工程、规范记录、证据、Agent运行时与SQLite索引、清单、回执；仅在策略指定时保存观测数据 | 知识与Agent完整 |
+| Elements磁盘 | 完整知识与Agent展开目录；仅在策略指定时保存观测数据 | 知识与Agent完整 |
+| 大型数据存储 | 完整或分区观测镜像及逐文件哈希 | 按完整性声明 |
+| 官方上游 | 联邦模式的权威观测数据 | 不复制 |
 
 一个Source对应一个独立仓库；一个快照对应一个Release和一个Elements快照目录。独立仓库引用GRDR Core版本，不复制Core Skill。
 
-### 逻辑快照
+### 三个快照核心属性
 
-Release是压缩分发形式，Elements是展开工作形式。两者物理形态不同，但必须覆盖完全相同的：
+Storage必须保存：
+
+1. `knowledge_scope`：直接继承Plan的范围、完成声明、边界和范围指纹，Storage不得修改；
+2. `observation_replication`：`full_mirror`、`partitioned_mirror`或`federated_on_demand`；
+3. `observation_placement`：GitHub Release、Elements、大型数据存储、官方上游和按需研究项目缓存的可组合位置。
+
+知识拆解是否完整与观测数据复制多少是两个独立结论。联邦模式仍必须完整保存锁定范围内的数据库结构、变量、语义、证据和调用能力。
+
+### 逻辑快照与去重
+
+Release是压缩分发形式，Elements是展开工作形式。两者始终共同覆盖：
 
 ```text
 knowledge/
@@ -80,14 +92,15 @@ agent/grdr-agent-index.sqlite
 agent/runtime.json
 agent/<source-runtime>.py
 agent/runtime_audit.json
-observations/
 ```
 
-清单逐文件保存逻辑路径、SHA-256与字节数，并保存每个Release资产的SHA-256与展开成员。任何缺失、额外文件或哈希差异均阻止完成。
+`observations/`只出现在策略指定的位置。清单逐文件保存逻辑路径、实际位置、SHA-256与字节数，并保存每个Release资产的SHA-256与展开成员。
+
+`knowledge/`不得包含任何原始观测文件。Storage会按输入路径排除工程内的原始观测目录，并检查knowledge与observations之间的内容哈希交集；发现重复即阻止完成。GitHub与Elements不再要求拥有相同的全部观测文件，只要求各自与位置清单完全一致。
 
 ### 执行命令
 
-先写Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、观测数据输入、适配器和源运行时：
+先写Schema 3.0 Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、Elements根目录、三属性快照、观测数据输入、适配器和源运行时：
 
 ```bash
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
@@ -102,7 +115,7 @@ observations/
 .venv/bin/python scripts/grdr.py store-database-deep-map <project> <storage-spec.json>
 ```
 
-Storage拒绝零观测文件、观测数据总字节数为零、运行时不能解析全部索引变量、运行时文件未进入Release与Elements共同逻辑清单、复用已有但内容不同的快照路径、非GRDR文件覆盖、Release与Elements不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；联邦模式要求零本地观测输入、官方上游位置和已验证Runtime。所有模式都拒绝运行时不能解析全部索引变量、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
 
 ## 独立Agent Runtime使用面
 
@@ -117,7 +130,7 @@ research question
 → 官方响应、原始字节、筛选结果与provenance
 ```
 
-GitHub Release是在线压缩分发版，Elements是同一逻辑快照的本地展开版。`materialize-source-snapshot`从Release下载全部资产、核验SHA-256、展开后再次核验逻辑指纹，因此两者不是两套数据库。
+GitHub Release是在线知识与Agent分发版。Elements是本地可调用展开版。`materialize-source-snapshot`下载并核验GitHub实际持有的资产；大型观测文件无需经过GitHub。研究调用可用`fetch-variable --research-project-dir`或`fetch-indicator-data --seal-data-snapshot`生成带查询参数、来源、快照、变量和逐文件哈希的项目级数据快照。
 
 ## 完成定义
 

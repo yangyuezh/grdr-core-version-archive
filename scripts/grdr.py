@@ -827,9 +827,23 @@ def fetch_variable(args: argparse.Namespace) -> None:
         if value is not None:
             extra_args.extend(["--" + option.replace("_", "-"), str(value)])
     try:
-        result = distributed.invoke_source_runtime(
-            load_jsonl("source_archives.jsonl"), args.variable_id, "fetch-variable", args.elements_root, extra_args
-        )
+        cards = load_jsonl("source_archives.jsonl")
+        if args.research_project_dir:
+            if args.output_dir:
+                raise distributed.DistributedRuntimeError(
+                    "--research-project-dir and --output-dir are mutually exclusive"
+                )
+            result = distributed.research_project_data_snapshot(
+                cards,
+                args.variable_id,
+                args.research_project_dir,
+                args.elements_root,
+                extra_args,
+            )
+        else:
+            result = distributed.invoke_source_runtime(
+                cards, args.variable_id, "fetch-variable", args.elements_root, extra_args
+            )
     except distributed.DistributedRuntimeError as exc:
         emit({"operation": "fetch_variable", "error": "runtime_fetch_failed", "message": str(exc)})
         raise SystemExit(1) from exc
@@ -1037,9 +1051,11 @@ def explain_indicator_match_command(args: argparse.Namespace) -> None:
 def fetch_indicator_data_command(args: argparse.Namespace) -> None:
     from semantic_resolver import fetch_indicator_data
 
+    if args.seal_data_snapshot and args.output_dir:
+        raise ValueError("--seal-data-snapshot and --output-dir are mutually exclusive")
     extra_args = []
     for option, value in (
-        ("--output-dir", args.output_dir),
+        ("--output-dir", None if args.seal_data_snapshot else args.output_dir),
         ("--country", args.country),
         ("--start-period", args.start_period),
         ("--end-period", args.end_period),
@@ -1057,6 +1073,7 @@ def fetch_indicator_data_command(args: argparse.Namespace) -> None:
             variable_id=args.variable_id,
             elements_root=args.elements_root,
             extra_args=extra_args,
+            seal_data_snapshot=args.seal_data_snapshot,
         ),
     )
 
@@ -1599,7 +1616,7 @@ def parser() -> argparse.ArgumentParser:
 
     prepare_storage = commands.add_parser(
         "prepare-database-storage",
-        help="Build the source repository, complete Release assets, Agent index, observations, and matching Elements snapshot",
+        help="Build a location-aware source snapshot with complete knowledge, Agent runtime, and the declared observation policy",
     )
     prepare_storage.add_argument("project_dir")
     prepare_storage.add_argument("spec_file")
@@ -1607,7 +1624,7 @@ def parser() -> argparse.ArgumentParser:
 
     audit_storage = commands.add_parser(
         "audit-database-storage",
-        help="Verify logical parity across the source repository, Release assets, and Elements snapshot",
+        help="Verify knowledge/Agent parity, observation completeness, deduplication, and every declared storage location",
     )
     audit_storage.add_argument("project_dir")
     audit_storage.set_defaults(handler=audit_database_storage_command)
@@ -1786,6 +1803,7 @@ def parser() -> argparse.ArgumentParser:
     fetch_indicator.add_argument("--elements-root")
     fetch_indicator.add_argument("--dry-run", action="store_true")
     fetch_indicator.add_argument("--output-dir")
+    fetch_indicator.add_argument("--seal-data-snapshot", action="store_true")
     fetch_indicator.add_argument("--country")
     fetch_indicator.add_argument("--start-period")
     fetch_indicator.add_argument("--end-period")
@@ -1807,13 +1825,13 @@ def parser() -> argparse.ArgumentParser:
     source_archives.add_argument("--source-id")
     source_archives.set_defaults(handler=list_source_archives)
 
-    snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally verify full logical parity")
+    snapshot_status = commands.add_parser("source-snapshot-status", help="Check whether indexed source snapshots are locally callable and optionally verify their local location inventory")
     snapshot_status.add_argument("--source-id")
     snapshot_status.add_argument("--elements-root")
     snapshot_status.add_argument("--verify", action="store_true")
     snapshot_status.set_defaults(handler=source_snapshot_status)
 
-    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download, verify, and expand one complete GitHub Release into Elements")
+    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download and verify the GitHub-hosted knowledge, Agent, and explicitly placed observation assets into Elements")
     materialize_snapshot.add_argument("source_id")
     materialize_snapshot.add_argument("--elements-root")
     materialize_snapshot.set_defaults(handler=materialize_source_snapshot)
@@ -1823,11 +1841,12 @@ def parser() -> argparse.ArgumentParser:
     resolve_access.add_argument("--elements-root")
     resolve_access.set_defaults(handler=resolve_variable_access)
 
-    fetch = commands.add_parser("fetch-variable", help="Fetch one distributed variable through its source-scoped official runtime")
+    fetch = commands.add_parser("fetch-variable", help="Fetch one distributed variable through its source-scoped official runtime, optionally sealing an on-demand research-project data snapshot")
     fetch.add_argument("variable_id")
     fetch.add_argument("--elements-root")
     fetch.add_argument("--dry-run", action="store_true")
     fetch.add_argument("--output-dir")
+    fetch.add_argument("--research-project-dir")
     fetch.add_argument("--country")
     fetch.add_argument("--start-period")
     fetch.add_argument("--end-period")

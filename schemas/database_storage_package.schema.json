@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "project_id", "source_id", "source_slug", "snapshot_id", "core_version", "core_repository", "source_repository", "source_repository_path", "release_tag", "release_title", "release_assets_path", "elements_snapshot_path", "canonical_archive_fingerprint", "knowledge_file_count", "observation_file_count", "logical_file_count", "logical_size_bytes", "logical_files", "release_assets", "runtime", "runtime_audit", "logical_content_fingerprint", "prepared_at", "package_fingerprint"],
   "properties": {
-    "schema_version": {"const": "2.0.0"},
+    "schema_version": {"enum": ["2.0.0", "3.0.0"]},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "source_slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -20,12 +20,15 @@
     "release_assets_path": {"type": "string", "minLength": 1},
     "elements_snapshot_path": {"type": "string", "minLength": 1},
     "canonical_archive_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "project_scope_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "snapshot_profile": {"$ref": "#/$defs/snapshot_profile"},
     "knowledge_file_count": {"type": "integer", "minimum": 1},
-    "observation_file_count": {"type": "integer", "minimum": 1},
-    "logical_file_count": {"type": "integer", "minimum": 3},
+    "observation_file_count": {"type": "integer", "minimum": 0},
+    "logical_file_count": {"type": "integer", "minimum": 2},
     "logical_size_bytes": {"type": "integer", "minimum": 1},
-    "logical_files": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/file"}},
-    "release_assets": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/asset"}},
+    "logical_files": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/file"}},
+    "release_assets": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/asset"}},
+    "external_observation_locations": {"type": "array", "items": {"$ref": "#/$defs/external_location"}},
     "runtime": {"$ref": "#/$defs/runtime"},
     "runtime_audit": {
       "type": "object",
@@ -39,11 +42,92 @@
         "unresolved_variable_count": {"const": 0}
       }
     },
+    "knowledge_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "observation_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "duplicate_content_hash_count": {"const": 0},
     "logical_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "prepared_at": {"type": "string", "format": "date-time"},
     "package_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": "2.0.0"}}},
+      "then": {
+        "properties": {
+          "observation_file_count": {"minimum": 1},
+          "logical_file_count": {"minimum": 3},
+          "logical_files": {"minItems": 3},
+          "release_assets": {"minItems": 3}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "3.0.0"}}},
+      "then": {
+        "required": ["project_scope_fingerprint", "snapshot_profile", "external_observation_locations", "knowledge_content_fingerprint", "observation_content_fingerprint", "duplicate_content_hash_count"]
+      }
+    }
+  ],
   "$defs": {
+    "snapshot_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["knowledge_scope", "observation_replication", "observation_placement"],
+      "properties": {
+        "knowledge_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "completion_claim", "boundary_type", "boundary_statement", "snapshot_at", "scope_fingerprint", "inherited_from_plan"],
+          "properties": {
+            "mode": {"type": "string", "minLength": 1},
+            "completion_claim": {"type": "string", "minLength": 1},
+            "boundary_type": {"type": "string", "minLength": 1},
+            "boundary_statement": {"type": "string", "minLength": 1},
+            "snapshot_at": {"type": "string", "format": "date-time"},
+            "scope_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "inherited_from_plan": {"const": true}
+          }
+        },
+        "observation_replication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "completeness_claim", "completeness_basis", "expected_file_count", "actual_file_count", "expected_partition_count", "actual_partition_count", "partition_manifest"],
+          "properties": {
+            "mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand"]},
+            "completeness_claim": {"enum": ["complete_within_knowledge_scope", "complete_declared_partition_set", "knowledge_complete_observations_federated"]},
+            "completeness_basis": {"type": "string", "minLength": 1},
+            "expected_file_count": {"type": ["integer", "null"], "minimum": 1},
+            "actual_file_count": {"type": "integer", "minimum": 0},
+            "expected_partition_count": {"type": ["integer", "null"], "minimum": 1},
+            "actual_partition_count": {"type": "integer", "minimum": 0},
+            "partition_manifest": {"type": ["object", "null"]}
+          }
+        },
+        "observation_placement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["locations", "cache"],
+          "properties": {
+            "locations": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"enum": ["github_release", "elements", "object_store", "official_upstream", "research_project_cache"]}
+            },
+            "cache": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "research_project_snapshots", "root"],
+              "properties": {
+                "mode": {"enum": ["disabled", "on_demand"]},
+                "research_project_snapshots": {"type": "boolean"},
+                "root": {"enum": [null, "research_project"]}
+              }
+            }
+          }
+        }
+      }
+    },
     "runtime": {
       "type": "object",
       "additionalProperties": false,
@@ -78,7 +162,13 @@
         "path": {"type": "string", "minLength": 1},
         "component": {"enum": ["knowledge", "agent", "observations"]},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "size_bytes": {"type": "integer", "minimum": 0}
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["github_release", "elements", "object_store"]}
+        }
       }
     },
     "asset": {
@@ -91,6 +181,19 @@
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "size_bytes": {"type": "integer", "minimum": 0},
         "logical_paths": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "external_location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "uri", "local_path", "verification", "logical_paths", "content_fingerprint"],
+      "properties": {
+        "type": {"enum": ["object_store", "official_upstream"]},
+        "uri": {"type": "string", "format": "uri"},
+        "local_path": {"type": ["string", "null"]},
+        "verification": {"enum": ["copied_and_hashed", "official_runtime_verified"]},
+        "logical_paths": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     }
   }

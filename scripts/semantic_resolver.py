@@ -1012,6 +1012,7 @@ def fetch_indicator_data(
     variable_id: str | None = None,
     elements_root: str | Path | None = None,
     extra_args: Iterable[str] = (),
+    seal_data_snapshot: bool = False,
 ) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     require_project(target)
@@ -1030,7 +1031,14 @@ def fetch_indicator_data(
         selected = mapping["variable_ids"][0]
     if selected not in mapping["variable_ids"]:
         raise ValueError(f"variable is not part of the indicator mapping: {selected}")
-    result = distributed.invoke_source_runtime(source_cards(), selected, "fetch-variable", elements_root, extra_args)
+    if seal_data_snapshot:
+        result = distributed.research_project_data_snapshot(
+            source_cards(), selected, target, elements_root, extra_args
+        )
+    else:
+        result = distributed.invoke_source_runtime(
+            source_cards(), selected, "fetch-variable", elements_root, extra_args
+        )
     return {
         "operation": "fetch_indicator_data",
         "project_id": read_json(target / "project.json")["id"],

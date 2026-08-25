@@ -111,9 +111,10 @@ Resolve a single-variable mapping through its verified source runtime:
 
 ```bash
 python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --dry-run
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --seal-data-snapshot
 ```
 
-Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, and upstream provenance.
+Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, upstream provenance, and snapshot manifest.
 
 ## Recover and expand
 

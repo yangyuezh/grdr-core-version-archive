@@ -162,7 +162,7 @@ def fingerprint(value: Any) -> str:
 
 def pipeline_contract() -> dict[str, Any]:
     return {
-        "contract_version": "4.0.0",
+        "contract_version": "4.1.0",
         "steps": [
             {
                 "step": "plan",
@@ -185,7 +185,8 @@ def pipeline_contract() -> dict[str, Any]:
         "canonical_writes_storage_only": True,
         "one_repository_per_source": True,
         "one_release_per_snapshot": True,
-        "release_elements_logical_parity": True,
+        "knowledge_agent_release_elements_parity": True,
+        "observation_location_manifest": True,
         "immutable_core": True,
         "external_state_required": True,
         "fingerprinted_handoffs": True,
@@ -1304,7 +1305,7 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     if plan_expected is not None and spec["scope"]["expected_work_unit_count"] != plan_expected:
         raise ValueError("start expected work-unit count does not match the diagnostic plan")
     project = {
-        "schema_version": "4.0.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
+        "schema_version": "4.1.0", "id": project_id, "source_id": spec["source_id"], "title": spec["title"],
         "database_profile": {**spec["database_profile"], "route_modules": diagnostic_plan["selected_route_modules"]},
         "diagnostic_plan": diagnostic_plan, "scope": spec["scope"],
         "pipeline_contract": pipeline_contract(),
@@ -1380,7 +1381,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     ):
         original_project = json.loads(json.dumps(project))
         timestamp = now()
-        project["schema_version"] = "4.0.0"
+        project["schema_version"] = "4.1.0"
         project["pipeline_contract"] = pipeline_contract()
         project["execution_contract"] = execution_contract()
         normalize_pipeline_workflow(project)
@@ -1395,12 +1396,12 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         sync_report(target, project, audit)
         return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_three_step_pipeline", "audit": audit}
     if (
-        project.get("schema_version") in {"3.0.0", "3.2.0", "4.0.0"}
+        project.get("schema_version") in {"3.0.0", "3.2.0", "4.0.0", "4.1.0"}
         and project.get("diagnostic_plan", {}).get("route_contract_version") == current_contract_version
         and (target / CHECK_FILE).is_file()
     ):
-        if project.get("schema_version") != "4.0.0" or project.get("pipeline_contract") != pipeline_contract():
-            project["schema_version"] = "4.0.0"
+        if project.get("schema_version") != "4.1.0" or project.get("pipeline_contract") != pipeline_contract():
+            project["schema_version"] = "4.1.0"
             project["pipeline_contract"] = pipeline_contract()
             project["execution_contract"] = execution_contract()
             normalize_pipeline_workflow(project)
@@ -1441,7 +1442,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         project["diagnostic_plan"]["required_facets"] = merge_facets(selected, routes)
         project["diagnostic_plan"]["generated_at"] = timestamp
         project["database_profile"]["route_modules"] = selected
-        project["schema_version"] = "4.0.0"
+        project["schema_version"] = "4.1.0"
         project["pipeline_contract"] = pipeline_contract()
         project["execution_contract"] = execution_contract()
         normalize_pipeline_workflow(project)
@@ -1514,7 +1515,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         "evidence": plan_evidence,
     }
     diagnostic_plan = build_database_deep_map_plan_from_intake(intake)
-    project["schema_version"] = "4.0.0"
+    project["schema_version"] = "4.1.0"
     project["diagnostic_plan"] = diagnostic_plan
     project["database_profile"]["route_modules"] = diagnostic_plan["selected_route_modules"]
     project["pipeline_contract"] = pipeline_contract()

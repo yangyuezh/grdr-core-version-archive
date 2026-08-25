@@ -10,7 +10,7 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 
 1. `grdr-plan-database-deep-map` diagnoses an unknown database, defines its bounded work-unit universe, composes route obligations, and fingerprint-locks the Plan.
 2. `grdr-execute-database-deep-map` follows the deterministic queue, reconstructs native structure and disciplinary semantics, builds the DataElement → Variable → Construct bridge, and seals the execution without canonical writes.
-3. `grdr-store-database-deep-map` transactionally promotes sealed records, creates the source-specific private repository, publishes one complete callable Release per snapshot, materializes the matching Elements copy, verifies SHA-256 parity and the source runtime, writes the central source card, and issues the final Storage receipt.
+3. `grdr-store-database-deep-map` transactionally promotes sealed records, inherits the locked knowledge scope, selects full-mirror, partitioned-mirror, or federated observation handling, publishes the callable knowledge and Runtime artifacts, verifies every declared location, writes the central source card, and issues the final Storage receipt.
 
 These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, mounts a verified snapshot, resolves a variable to its source-native access plan, and invokes the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
 
@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.0.2<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.1.0<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -38,7 +38,7 @@ flowchart TB
         PLAN_OV -->|"locked project"| EXEC_OV -->|"sealed execution"| STORE_OV
     end
 
-    SNAP["One Source → one private repository<br/>One snapshot → one GitHub Release + one Elements copy<br/>external source card · exact fingerprint · callable runtime"]:::artifact
+    SNAP["One Source → one private repository<br/>One snapshot → knowledge scope + observation replication + placement<br/>location manifest · exact fingerprints · callable runtime"]:::artifact
 
     subgraph USE["RESEARCH USE PLANE"]
         direction LR
@@ -161,7 +161,7 @@ flowchart TB
     style B_SPINE fill:#FCFAFF,stroke:#9C85D6,stroke-width:1px
 ```
 
-#### 2C. Storage — 四个存储位置、双表示一致性和最终回执
+#### 2C. Storage — 三属性快照、三种观测模式、位置清单和最终回执
 
 ```mermaid
 flowchart TB
@@ -170,24 +170,36 @@ flowchart TB
         subgraph STORAGE["Skill 4 · grdr-store-database-deep-map — STORAGE"]
             direction TB
             S_PROMOTE["Transactional external-state promotion<br/>audit sealed execution · Core remains byte-identical"]:::storage
-            S_PACKAGE["Build one source-scoped snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source runtime + observations"]:::storageStrong
+            S_PROFILE["Three immutable snapshot properties<br/><b>knowledge scope</b> inherited from Plan<br/><b>observation replication</b> + <b>observation placement</b> decided by Storage"]:::storageStrong
+            S_PACKAGE["Build one source-scoped callable snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source runtime"]:::storageStrong
+            S_MODES["Observation replication modes<br/><b>full mirror</b> · <b>partitioned mirror</b> · <b>federated on demand</b><br/>each with an explicit completeness claim"]:::storage
 
             S_REPO["Private source Git repository<br/>Core version reference · config · adapters · runtime code<br/>Plan · manifests · README · tests · archive receipts"]:::artifact
-            S_RELEASE["GitHub Release · compressed distribution<br/><b>knowledge/ + agent/ + observations/</b><br/>manifest + Storage receipt"]:::artifactStrong
-            S_ELEMENTS["Elements · expanded working copy<br/><b>the same knowledge/ + agent/ + observations/</b><br/>receipts/Storage receipt"]:::artifactStrong
-            S_PARITY["Release ↔ Elements parity<br/>same ordered logical inventory + SHA-256"]:::verify
+            S_RELEASE["GitHub Release · compressed distribution<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
+            S_ELEMENTS["Elements · expanded callable copy<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
+            S_LARGE["Large-data placement<br/>mounted object store / large disk<br/>partition inventory + SHA-256"]:::artifact
+            S_UPSTREAM["Official upstream<br/>federated observations remain authoritative<br/>verified source runtime + access routes"]:::external
+            S_CACHE["On-demand research-project cache<br/>query-scoped data snapshot + manifest<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
+            S_MANIFEST["Location-aware manifest<br/>every logical file → exact locations + SHA-256<br/><b>knowledge never contains raw observations</b><br/>no logical file appears in two packages accidentally"]:::verify
             S_VERIFY["Read-back publication verification<br/>source runtime resolves every indexed Variable"]:::verify
             S_RECEIPT["Valid Storage receipt<br/><b>versioned_database_snapshot</b>"]:::handoff
             S_CARD["External GRDR state source-archive card<br/>Source ID · repository · snapshot · Release<br/>fingerprint · completion status"]:::shared
 
-            SEALED --> S_PROMOTE --> S_PACKAGE
+            SEALED --> S_PROMOTE --> S_PROFILE --> S_PACKAGE
+            S_PROFILE --> S_MODES
             S_PACKAGE --> S_REPO
             S_PACKAGE --> S_RELEASE
             S_PACKAGE --> S_ELEMENTS
-            S_RELEASE --> S_PARITY
-            S_ELEMENTS --> S_PARITY
+            S_MODES --> S_LARGE
+            S_MODES --> S_UPSTREAM
+            S_MODES --> S_CACHE
+            S_RELEASE --> S_MANIFEST
+            S_ELEMENTS --> S_MANIFEST
+            S_LARGE --> S_MANIFEST
+            S_UPSTREAM --> S_MANIFEST
+            S_CACHE -. "query-scoped derivative; not canonical snapshot bytes" .-> S_MANIFEST
             S_REPO --> S_VERIFY
-            S_PARITY --> S_VERIFY
+            S_MANIFEST --> S_VERIFY
             S_VERIFY --> S_RECEIPT --> S_CARD
         end
 
@@ -197,6 +209,7 @@ flowchart TB
     classDef storageStrong fill:#FFE0BF,stroke:#C56A1B,color:#69370F,stroke-width:2px;
     classDef artifact fill:#FFF7ED,stroke:#D48638,color:#69370F,stroke-width:1.5px;
     classDef artifactStrong fill:#FFEAD4,stroke:#C56A1B,color:#69370F,stroke-width:2px;
+    classDef external fill:#FFFFFF,stroke:#64748B,color:#263849,stroke-width:1.5px;
     classDef verify fill:#E7F6EC,stroke:#4D9B63,color:#204F2D,stroke-width:2px;
     style STORAGE fill:#FFFAF3,stroke:#D99A5D,stroke-width:1.5px
 ```
@@ -266,7 +279,7 @@ GRDR Core keeps only:
 - empty canonical Registry filename templates and the source-archive card schema;
 - generic, synthetic tests that do not identify a real database.
 
-Each deeply processed database keeps its own configuration, adapters, Plan, Execute package, full knowledge snapshot, Agent index, captured observations, Release history, and expanded Elements copy outside this repository. Source repositories reference a Core version; they never copy the Core.
+Each deeply processed database keeps its own configuration, adapters, Plan, Execute package, full knowledge snapshot, Agent index, source runtime, observation-location manifest, and Release history outside this repository. Full and partitioned mirrors keep the declared observation bytes only at their selected locations; federated snapshots keep official routes and create query-scoped research-project data snapshots on demand. Source repositories reference a Core version; they never copy the Core.
 
 ## Central source index
 
@@ -309,9 +322,11 @@ export GRDR_STATE_ROOT=/absolute/path/outside/grdr-core
 .venv/bin/python scripts/grdr.py match-indicators <research-project>
 .venv/bin/python scripts/grdr.py explain-indicator-match <research-project> <indicator-id>
 .venv/bin/python scripts/grdr.py fetch-indicator-data <research-project> <indicator-id> --dry-run
+.venv/bin/python scripts/grdr.py fetch-indicator-data <research-project> <indicator-id> --seal-data-snapshot
 .venv/bin/python scripts/grdr.py search-variables --construct <construct>
 .venv/bin/python scripts/grdr.py resolve-variable-access <variable-id>
 .venv/bin/python scripts/grdr.py fetch-variable <variable-id> --dry-run
+.venv/bin/python scripts/grdr.py fetch-variable <variable-id> --research-project-dir <research-project>
 ```
 
 See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the North Star](docs/NORTH_STAR.md).
@@ -325,4 +340,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.0.2` preserves the immutable-Core boundary when a new Dataset is first created during Execute: the Dataset stage records its canonical ID without rewriting the fingerprint-locked Plan work unit. It retains v4.0.1's current-snapshot-first semantic retrieval, explicit history mode, location-independent Skills, and database-independent Core.
+Version `4.1.0` makes Storage scale-independent: knowledge scope remains locked to Plan, while observation replication and placement are explicit; full, partitioned, and federated modes share one manifest; GitHub is decoupled from large observation bytes; research queries can seal on-demand project snapshots; and raw observations are forbidden from the knowledge package.

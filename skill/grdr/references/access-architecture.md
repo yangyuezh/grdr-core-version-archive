@@ -16,7 +16,7 @@ The three-step factory is the production plane. The independent GRDR Agent Runti
 - `local_snapshot`: keep a versioned copy only when licensing, privacy, cost, and scale permit.
 - `controlled_access_pointer`: retain metadata and application instructions for restricted, commercial, sensitive, secure, or physical collections.
 
-Do not equate “not copied locally” with “not registered in GRDR.” Also do not equate registration with completed Storage: a three-step database project requires a complete snapshot, GitHub Release, matching Elements copy, central card, and Storage receipt.
+Do not equate “not copied locally” with “not registered in GRDR.” Also do not equate registration with completed Storage: a three-step database project requires complete knowledge within its locked Plan scope, a verified callable Release and Elements representation, an explicit full/partitioned/federated observation policy, verified declared locations, a central card, and a Storage receipt.
 
 ## Adapter requirements
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import datetime as dt
 from pathlib import Path
 import re
 import shutil
@@ -31,6 +32,23 @@ def read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DistributedRuntimeError(f"expected a JSON object: {path}")
     return value
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def load_cards(path: Path) -> list[dict[str, Any]]:
@@ -79,6 +97,39 @@ def fingerprint(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def snapshot_inventory(snapshot: Path) -> list[dict[str, Any]]:
+    records = []
+    for component in sorted(LOGICAL_COMPONENTS):
+        base = snapshot / component
+        for path in sorted(base.rglob("*")):
+            relative = path.relative_to(snapshot)
+            if not path.is_file() or any(
+                part.startswith("._") or part == ".DS_Store"
+                for part in relative.parts
+            ):
+                continue
+            records.append({
+                "path": relative.as_posix(),
+                "component": component,
+                "sha256": sha256_file(path),
+                "size_bytes": path.stat().st_size,
+            })
+    return records
+
+
+def manifest_records_for_location(
+    manifest: dict[str, Any],
+    location: str,
+) -> list[dict[str, Any]]:
+    if manifest.get("schema_version") == "2.0.0":
+        return manifest["logical_files"]
+    return [
+        {key: value for key, value in item.items() if key != "locations"}
+        for item in manifest["logical_files"]
+        if location in item.get("locations", [])
+    ]
+
+
 def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, verify: bool = False) -> dict[str, Any]:
     snapshot = snapshot_path(card, root)
     status: dict[str, Any] = {
@@ -89,7 +140,10 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         "available_local": snapshot.is_dir(),
         "runtime_ready": False,
         "logical_parity_verified": False,
+        "location_inventory_verified": False,
+        "observation_location_verified": False,
         "errors": [],
+        "warnings": [],
     }
     if not snapshot.is_dir():
         status["errors"].append("local Elements snapshot is not materialized")
@@ -116,27 +170,57 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         status["errors"].append("runtime descriptor source_id differs from the central source card")
     if audit.get("status") != "ready" or audit.get("unresolved_variable_count") != 0:
         status["errors"].append("runtime audit does not prove complete variable resolution")
+    manifest_path = snapshot / "receipts" / "manifest.json"
+    manifest = read_json(manifest_path) if manifest_path.is_file() else None
+    if manifest is not None:
+        if manifest.get("source_id") != card["source_id"] or manifest.get("snapshot_id") != card["latest_snapshot"]:
+            status["errors"].append("Elements manifest identity differs from the central source card")
+        if manifest.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
+            status["errors"].append("Elements manifest fingerprint differs from the central source card")
+        profile = manifest.get("snapshot_profile")
+        if isinstance(profile, dict):
+            status["snapshot_profile"] = profile
+            status["observation_replication_mode"] = profile["observation_replication"]["mode"]
+            status["observation_placements"] = profile["observation_placement"]["locations"]
     status["runtime_ready"] = not status["errors"]
     status["runtime_audit"] = audit
     if verify:
-        records = []
-        for component in sorted(LOGICAL_COMPONENTS):
-            base = snapshot / component
-            for path in sorted(base.rglob("*")):
-                relative = path.relative_to(snapshot)
-                if not path.is_file() or any(part.startswith("._") or part == ".DS_Store" for part in relative.parts):
-                    continue
-                records.append({
-                    "path": relative.as_posix(),
-                    "component": component,
-                    "sha256": sha256_file(path),
-                    "size_bytes": path.stat().st_size,
-                })
-        actual = fingerprint(records)
-        status["computed_logical_fingerprint"] = actual
-        status["logical_parity_verified"] = actual == card.get("archive_fingerprint")
-        if not status["logical_parity_verified"]:
-            status["errors"].append("computed Elements logical fingerprint differs from the central source card")
+        records = snapshot_inventory(snapshot)
+        if manifest is None:
+            actual = fingerprint(records)
+            status["computed_logical_fingerprint"] = actual
+            status["logical_parity_verified"] = actual == card.get("archive_fingerprint")
+            status["location_inventory_verified"] = status["logical_parity_verified"]
+            status["observation_location_verified"] = status["logical_parity_verified"]
+            if not status["logical_parity_verified"]:
+                status["errors"].append("computed Elements logical fingerprint differs from the central source card")
+        else:
+            expected = manifest_records_for_location(manifest, "elements")
+            actual_knowledge_agent = [
+                item for item in records if item["component"] in {"knowledge", "agent"}
+            ]
+            expected_knowledge_agent = [
+                item for item in expected if item["component"] in {"knowledge", "agent"}
+            ]
+            if actual_knowledge_agent != expected_knowledge_agent:
+                status["errors"].append("Elements knowledge or Agent inventory differs from the snapshot manifest")
+            actual_observations = [
+                item for item in records if item["component"] == "observations"
+            ]
+            expected_observations = [
+                item for item in expected if item["component"] == "observations"
+            ]
+            status["observation_location_verified"] = actual_observations == expected_observations
+            if not status["observation_location_verified"]:
+                status["warnings"].append(
+                    "The callable snapshot is mounted, but the complete Elements observation placement is not materialized."
+                )
+            status["location_inventory_verified"] = (
+                actual_knowledge_agent == expected_knowledge_agent
+                and status["observation_location_verified"]
+            )
+            status["logical_parity_verified"] = status["location_inventory_verified"]
+            status["computed_elements_inventory_fingerprint"] = fingerprint(records)
         status["runtime_ready"] = not status["errors"]
     return status
 
@@ -691,6 +775,136 @@ def invoke_source_runtime(
     raise DistributedRuntimeError(f"variable is absent from every locally available source runtime: {variable_id}")
 
 
+def callable_card_for_variable(
+    cards: Iterable[dict[str, Any]],
+    variable_id: str,
+    root: str | Path | None = None,
+) -> dict[str, Any] | None:
+    for card, snapshot in available_runtimes(cards, root):
+        index = snapshot / card["runtime"]["agent_index"]
+        connection = sqlite3.connect(index)
+        try:
+            if record_by_id(connection, variable_id) is not None:
+                return card
+        finally:
+            connection.close()
+    return None
+
+
+def research_project_data_snapshot(
+    cards: Iterable[dict[str, Any]],
+    variable_id: str,
+    project_dir: str | Path,
+    root: str | Path | None = None,
+    extra_args: Iterable[str] = (),
+) -> dict[str, Any]:
+    cards = list(cards)
+    project = Path(project_dir).expanduser().resolve()
+    if not (project / "workflow.json").is_file():
+        raise DistributedRuntimeError(
+            f"research-project cache target has no workflow.json: {project}"
+        )
+    arguments = list(extra_args)
+    if "--dry-run" in arguments:
+        raise DistributedRuntimeError("a dry run cannot be sealed as a research-project data snapshot")
+    if "--output-dir" in arguments:
+        raise DistributedRuntimeError(
+            "research-project data snapshots own --output-dir; do not provide both"
+        )
+    selected_card = callable_card_for_variable(cards, variable_id, root)
+    if selected_card is None:
+        raise DistributedRuntimeError(
+            f"variable is absent from every locally available source runtime: {variable_id}"
+        )
+    profile = selected_card.get("snapshot_profile")
+    if isinstance(profile, dict):
+        placement = profile["observation_placement"]
+        if (
+            "research_project_cache" not in placement["locations"]
+            or placement["cache"]["mode"] != "on_demand"
+            or not placement["cache"]["research_project_snapshots"]
+        ):
+            raise DistributedRuntimeError(
+                "source snapshot policy does not permit research-project caching"
+            )
+    timestamp = dt.datetime.now(dt.timezone.utc)
+    fetched_at = timestamp.isoformat()
+    query_fingerprint = fingerprint({
+        "variable_id": variable_id,
+        "arguments": arguments,
+        "fetched_at": fetched_at,
+    })
+    capture_id = timestamp.strftime("%Y%m%dT%H%M%SZ") + "-" + query_fingerprint[:12]
+    variable_slug = re.sub(r"[^a-z0-9]+", "-", variable_id.casefold()).strip("-")
+    capture = project / "data_snapshots" / variable_slug / capture_id
+    if capture.exists():
+        raise DistributedRuntimeError(f"research data snapshot already exists: {capture}")
+    data_dir = capture / "data"
+    data_dir.mkdir(parents=True)
+    try:
+        invocation = invoke_source_runtime(
+            [selected_card],
+            variable_id,
+            "fetch-variable",
+            root,
+            [*arguments, "--output-dir", str(data_dir)],
+        )
+        result_path = data_dir / "runtime_result.json"
+        atomic_write_text(
+            result_path,
+            json.dumps(invocation["result"], ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        )
+        files = []
+        for path in sorted(data_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            files.append({
+                "path": path.relative_to(capture).as_posix(),
+                "sha256": sha256_file(path),
+                "size_bytes": path.stat().st_size,
+            })
+        manifest = {
+            "schema_version": "1.0.0",
+            "capture_id": capture_id,
+            "research_project_path": str(project),
+            "source_id": invocation["source_id"],
+            "source_snapshot_id": invocation["snapshot_id"],
+            "variable_id": variable_id,
+            "runtime_protocol": invocation["runtime_protocol"],
+            "query_arguments": arguments,
+            "fetched_at": fetched_at,
+            "files": files,
+            "data_content_fingerprint": fingerprint(files),
+        }
+        manifest["manifest_fingerprint"] = fingerprint(manifest)
+        manifest_path = capture / "manifest.json"
+        atomic_write_text(
+            manifest_path,
+            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        )
+        index_path = project / "data_snapshot_index.jsonl"
+        existing_index = index_path.read_text(encoding="utf-8") if index_path.is_file() else ""
+        atomic_write_text(
+            index_path,
+            existing_index
+            + json.dumps(manifest, ensure_ascii=False, separators=(",", ":"))
+            + "\n",
+        )
+        return {
+            **invocation,
+            "research_data_snapshot": {
+                "capture_id": capture_id,
+                "path": str(capture),
+                "file_count": len(files),
+                "data_content_fingerprint": manifest["data_content_fingerprint"],
+                "manifest_fingerprint": manifest["manifest_fingerprint"],
+            },
+        }
+    except Exception:
+        shutil.rmtree(capture, ignore_errors=True)
+        raise
+
+
 def safe_extract(archive_path: Path, destination: Path) -> None:
     with tarfile.open(archive_path, "r:gz") as archive:
         root = destination.resolve()
@@ -709,8 +923,8 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
     destination = snapshot_path(card, root)
     if destination.exists():
         status = local_snapshot_status(card, root, verify=True)
-        if not status["runtime_ready"] or not status["logical_parity_verified"]:
-            raise DistributedRuntimeError("existing Elements snapshot is incomplete or differs from the central card")
+        if not status["runtime_ready"]:
+            raise DistributedRuntimeError("existing Elements callable snapshot differs from the central card")
         return {"status": "already_materialized", **status}
     repository = card["repository"].removeprefix("https://github.com/").rstrip("/")
     release_tag = card["release"].rsplit("/tag/", 1)[-1]
@@ -734,41 +948,45 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
             raise DistributedRuntimeError("GitHub Release manifest identity differs from the central card")
         if manifest.get("logical_content_fingerprint") != card["archive_fingerprint"]:
             raise DistributedRuntimeError("GitHub Release manifest fingerprint differs from the central card")
-        logical = workspace / "logical"
-        logical.mkdir()
+        expanded_release = workspace / "expanded-release"
+        expanded_release.mkdir()
         for asset in manifest["release_assets"]:
             path = downloads / asset["name"]
             if not path.is_file() or sha256_file(path) != asset["sha256"] or path.stat().st_size != asset["size_bytes"]:
                 raise DistributedRuntimeError(f"GitHub Release asset failed SHA-256 verification: {asset['name']}")
             if path.name.endswith(".tar.gz"):
-                safe_extract(path, logical)
+                safe_extract(path, expanded_release)
             elif asset["component"] == "agent" and len(asset["logical_paths"]) == 1:
-                target = logical / asset["logical_paths"][0]
+                target = expanded_release / asset["logical_paths"][0]
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
             else:
                 raise DistributedRuntimeError(f"unsupported Release asset representation: {asset['name']}")
-        actual = []
-        for path in sorted(logical.rglob("*")):
-            if not path.is_file():
+        actual_release = snapshot_inventory(expanded_release)
+        expected_release = manifest_records_for_location(manifest, "github_release")
+        if actual_release != expected_release:
+            raise DistributedRuntimeError("expanded GitHub Release differs from its declared location inventory")
+        logical = workspace / "logical"
+        logical.mkdir()
+        expected_elements = {
+            item["path"]: item for item in manifest_records_for_location(manifest, "elements")
+        }
+        for record in actual_release:
+            if record["path"] not in expected_elements:
                 continue
-            relative = path.relative_to(logical).as_posix()
-            actual.append({
-                "path": relative,
-                "component": relative.split("/", 1)[0],
-                "sha256": sha256_file(path),
-                "size_bytes": path.stat().st_size,
-            })
-        if actual != manifest["logical_files"]:
-            raise DistributedRuntimeError("expanded GitHub Release differs from the manifest logical inventory")
+            source = expanded_release / record["path"]
+            target = logical / record["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
         receipt = downloads / "storage_receipt.json"
         if not receipt.is_file():
             raise DistributedRuntimeError("GitHub Release has no final Storage receipt")
         receipts = logical / "receipts"
         receipts.mkdir()
         shutil.copy2(receipt, receipts / receipt.name)
+        shutil.copy2(manifest_path, receipts / "manifest.json")
         shutil.move(str(logical), str(destination))
     status = local_snapshot_status(card, root, verify=True)
-    if not status["runtime_ready"] or not status["logical_parity_verified"]:
-        raise DistributedRuntimeError("materialized Elements snapshot failed final verification")
+    if not status["runtime_ready"]:
+        raise DistributedRuntimeError("materialized callable snapshot failed final verification")
     return {"status": "materialized", **status}

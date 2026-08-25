@@ -215,6 +215,27 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         invoked = runtime.invoke_source_runtime([self.card], matches[0]["id"], "resolve-variable", self.root)
         self.assertEqual(invoked["result"]["status"], "ok")
 
+    def test_on_demand_fetch_seals_research_project_snapshot(self) -> None:
+        project = self.root / "research-project"
+        project.mkdir()
+        (project / "workflow.json").write_text("{}", encoding="utf-8")
+        result = runtime.research_project_data_snapshot(
+            [self.card],
+            "grdr:variable:synthetic-population",
+            project,
+            self.root,
+            ["--country", "840"],
+        )
+        snapshot = result["research_data_snapshot"]
+        capture = Path(snapshot["path"])
+        self.assertTrue((capture / "manifest.json").is_file())
+        self.assertTrue((capture / "data" / "runtime_result.json").is_file())
+        self.assertTrue((project / "data_snapshot_index.jsonl").is_file())
+        manifest = json.loads((capture / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_id"], "grdr:source:synthetic")
+        self.assertEqual(manifest["source_snapshot_id"], "r1")
+        self.assertEqual(manifest["variable_id"], "grdr:variable:synthetic-population")
+
     def test_semantic_candidate_recall_and_graph_traversal(self) -> None:
         candidates = runtime.distributed_semantic_candidates(
             [self.card], ["resident population"], self.root, limit=5

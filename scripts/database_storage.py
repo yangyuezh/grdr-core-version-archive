@@ -50,6 +50,8 @@ HUMAN_READABLE_MARKER = "<!-- Human-readable sections are maintained in this sou
 IGNORED_FILESYSTEM_METADATA = {".DS_Store"}
 RUNTIME_DESCRIPTOR_FILE = "runtime.json"
 RUNTIME_AUDIT_FILE = "runtime_audit.json"
+OBSERVATION_MANIFEST_FILE = "observation_manifest.json"
+SNAPSHOT_MANIFEST_FILE = "manifest.json"
 
 
 def is_ignored_filesystem_metadata(path: Path) -> bool:
@@ -65,13 +67,21 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def file_record(path: Path, relative: str, component: str) -> dict[str, Any]:
-    return {
+def file_record(
+    path: Path,
+    relative: str,
+    component: str,
+    locations: list[str] | None = None,
+) -> dict[str, Any]:
+    record = {
         "path": relative,
         "component": component,
         "sha256": sha256_file(path),
         "size_bytes": path.stat().st_size,
     }
+    if locations is not None:
+        record["locations"] = sorted(locations)
+    return record
 
 
 def asset_record(path: Path, component: str, logical_paths: list[str]) -> dict[str, Any]:
@@ -121,7 +131,20 @@ def copy_input(source: Path, destination: Path) -> list[Path]:
     return [destination / (Path(item.name) if source.is_file() else item.relative_to(source)) for item in files]
 
 
-def copy_project_knowledge(project_dir: Path, destination: Path) -> None:
+def path_is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def copy_project_knowledge(
+    project_dir: Path,
+    destination: Path,
+    observation_roots: list[Path] | None = None,
+) -> None:
+    observation_roots = [item.resolve() for item in (observation_roots or [])]
     excluded = {STORAGE_PACKAGE_FILE, STORAGE_PUBLICATION_FILE, STORAGE_RECEIPT_FILE}
     for source in sorted(project_dir.rglob("*")):
         if is_ignored_filesystem_metadata(source.relative_to(project_dir)):
@@ -129,6 +152,9 @@ def copy_project_knowledge(project_dir: Path, destination: Path) -> None:
         if source.is_symlink():
             raise ValueError(f"deep-map project contains an unsupported symbolic link: {source}")
         if not source.is_file() or source.name in excluded or "__pycache__" in source.parts:
+            continue
+        resolved = source.resolve()
+        if any(resolved == root or path_is_within(resolved, root) for root in observation_roots):
             continue
         relative = source.relative_to(project_dir)
         target = destination / "project" / relative
@@ -300,7 +326,10 @@ def create_deterministic_tar_gz(source: Path, output: Path, archive_root: str) -
                         archive.addfile(info, handle)
 
 
-def inventory(logical_root: Path) -> list[dict[str, Any]]:
+def inventory(
+    logical_root: Path,
+    component_locations: dict[str, list[str]] | None = None,
+) -> list[dict[str, Any]]:
     records = []
     for path in sorted(logical_root.rglob("*")):
         if is_ignored_filesystem_metadata(path.relative_to(logical_root)):
@@ -311,8 +340,155 @@ def inventory(logical_root: Path) -> list[dict[str, Any]]:
         if relative.startswith("receipts/"):
             continue
         component = relative.split("/", 1)[0]
-        records.append(file_record(path, relative, component))
+        locations = component_locations.get(component) if component_locations is not None else None
+        records.append(file_record(path, relative, component, locations))
     return records
+
+
+def record_without_locations(record: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in record.items() if key != "locations"}
+
+
+def records_for_location(logical_files: list[dict[str, Any]], location: str) -> list[dict[str, Any]]:
+    return [
+        record_without_locations(item)
+        for item in logical_files
+        if location in item.get("locations", [])
+    ]
+
+
+def content_records(logical_files: list[dict[str, Any]], component: str) -> list[dict[str, Any]]:
+    return [
+        record_without_locations(item)
+        for item in logical_files
+        if item["component"] == component
+    ]
+
+
+def component_location_map(spec: dict[str, Any]) -> dict[str, list[str]]:
+    placements = spec["observation_policy"]["placements"]
+    observation_locations = [
+        item for item in ("github_release", "elements", "object_store")
+        if item in placements
+    ]
+    return {
+        "knowledge": ["elements", "github_release"],
+        "agent": ["elements", "github_release"],
+        "observations": observation_locations,
+    }
+
+
+def snapshot_profile(
+    project: dict[str, Any],
+    spec: dict[str, Any],
+    observation_file_count: int,
+    partition_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    completeness = spec["observation_policy"]["completeness"]
+    scope = project["scope"]
+    goal = project["diagnostic_plan"]["goal"]
+    return {
+        "knowledge_scope": {
+            "mode": scope["mode"],
+            "completion_claim": goal["completion_claim"],
+            "boundary_type": scope["boundary_type"],
+            "boundary_statement": scope["boundary_statement"],
+            "snapshot_at": scope["snapshot_at"],
+            "scope_fingerprint": project["locks"]["scope_fingerprint"],
+            "inherited_from_plan": True,
+        },
+        "observation_replication": {
+            "mode": spec["observation_policy"]["replication_mode"],
+            "completeness_claim": completeness["claim"],
+            "completeness_basis": completeness["basis"],
+            "expected_file_count": completeness["expected_file_count"],
+            "actual_file_count": observation_file_count,
+            "expected_partition_count": completeness["expected_partition_count"],
+            "actual_partition_count": len(spec["observation_inputs"]),
+            "partition_manifest": partition_manifest,
+        },
+        "observation_placement": {
+            "locations": sorted(spec["observation_policy"]["placements"]),
+            "cache": spec["observation_policy"]["cache"],
+        },
+    }
+
+
+def validate_observation_policy(
+    spec: dict[str, Any],
+    spec_path: Path,
+    observation_files: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    policy = spec["observation_policy"]
+    mode = policy["replication_mode"]
+    completeness = policy["completeness"]
+    actual_files = len(observation_files)
+    actual_partitions = len(spec["observation_inputs"])
+    if mode in {"full_mirror", "partitioned_mirror"}:
+        if actual_files == 0:
+            raise ValueError(f"{mode} requires at least one actual observation-data file")
+        if sum(item["size_bytes"] for item in observation_files) == 0:
+            raise ValueError("observation-data inputs contain zero total bytes")
+    if completeness["expected_file_count"] is not None and completeness["expected_file_count"] != actual_files:
+        raise ValueError(
+            f"observation completeness expected_file_count={completeness['expected_file_count']} "
+            f"but captured {actual_files}"
+        )
+    if completeness["expected_partition_count"] is not None and completeness["expected_partition_count"] != actual_partitions:
+        raise ValueError(
+            f"observation completeness expected_partition_count={completeness['expected_partition_count']} "
+            f"but captured {actual_partitions}"
+        )
+    partition_record = None
+    if mode == "partitioned_mirror":
+        path = resolve_input(policy["partition_manifest"], spec_path.parent)
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"partition manifest must be a regular file: {path}")
+        partition_record = {
+            "source_path": str(path),
+            "sha256": sha256_file(path),
+            "size_bytes": path.stat().st_size,
+        }
+    external_types = [item["type"] for item in policy["external_locations"]]
+    if len(external_types) != len(set(external_types)):
+        raise ValueError("observation external locations must have unique types")
+    placements = set(policy["placements"])
+    for external in policy["external_locations"]:
+        if external["type"] not in placements:
+            raise ValueError(f"external location {external['type']} is absent from observation placements")
+        if external["type"] == "object_store":
+            if external["verification"] != "copied_and_hashed" or not external["local_path"]:
+                raise ValueError("object_store requires copied_and_hashed verification and a mounted local_path")
+        elif external["local_path"] is not None or external["verification"] != "official_runtime_verified":
+            raise ValueError("official_upstream requires official_runtime_verified and local_path=null")
+    for location in ("object_store", "official_upstream"):
+        if location in placements and location not in external_types:
+            raise ValueError(f"observation placement {location} requires one external_locations record")
+    cache = policy["cache"]
+    if "research_project_cache" in placements:
+        if (
+            cache["mode"] != "on_demand"
+            or not cache["research_project_snapshots"]
+            or cache["root"] != "research_project"
+        ):
+            raise ValueError("research_project_cache placement requires on-demand research-project snapshots")
+    elif (
+        cache["mode"] != "disabled"
+        or cache["research_project_snapshots"]
+        or cache["root"] is not None
+    ):
+        raise ValueError("enabled cache policy requires research_project_cache placement")
+    return partition_record
+
+
+def duplicate_cross_component_hashes(logical_files: list[dict[str, Any]]) -> set[str]:
+    knowledge_hashes = {
+        item["sha256"] for item in logical_files if item["component"] == "knowledge"
+    }
+    observation_hashes = {
+        item["sha256"] for item in logical_files if item["component"] == "observations"
+    }
+    return knowledge_hashes & observation_hashes
 
 
 def package_payload(
@@ -325,10 +501,14 @@ def package_payload(
     release_assets: list[dict[str, Any]],
     runtime: dict[str, Any],
     runtime_audit: dict[str, Any],
+    profile: dict[str, Any],
+    external_locations: list[dict[str, Any]],
     prepared_at: str,
 ) -> dict[str, Any]:
+    knowledge_files = content_records(logical_files, "knowledge")
+    observation_files = content_records(logical_files, "observations")
     payload = {
-        "schema_version": "2.0.0",
+        "schema_version": "3.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "source_slug": spec["source_slug"],
@@ -342,14 +522,20 @@ def package_payload(
         "release_assets_path": str(release_assets_path),
         "elements_snapshot_path": str(elements_path),
         "canonical_archive_fingerprint": archive_receipt["receipt_fingerprint"],
+        "project_scope_fingerprint": project["locks"]["scope_fingerprint"],
+        "snapshot_profile": profile,
         "knowledge_file_count": sum(item["component"] == "knowledge" for item in logical_files),
         "observation_file_count": sum(item["component"] == "observations" for item in logical_files),
         "logical_file_count": len(logical_files),
         "logical_size_bytes": sum(item["size_bytes"] for item in logical_files),
         "logical_files": logical_files,
         "release_assets": release_assets,
+        "external_observation_locations": external_locations,
         "runtime": runtime,
         "runtime_audit": runtime_audit,
+        "knowledge_content_fingerprint": fingerprint(knowledge_files),
+        "observation_content_fingerprint": fingerprint(observation_files),
+        "duplicate_content_hash_count": len(duplicate_cross_component_hashes(logical_files)),
         "logical_content_fingerprint": fingerprint(logical_files),
         "prepared_at": prepared_at,
     }
@@ -370,12 +556,16 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 - Release: `{package['release_tag']}`
 - Complete knowledge files: {package['knowledge_file_count']}
 - Complete observation files: {package['observation_file_count']}
+- Knowledge scope: `{package['snapshot_profile']['knowledge_scope']['completion_claim']}`
+- Observation replication: `{package['snapshot_profile']['observation_replication']['mode']}`
+- Observation placement: {', '.join(package['snapshot_profile']['observation_placement']['locations'])}
 - Agent runtime: `{package['runtime']['protocol_version']}` via `agent/{package['runtime']['entrypoint']}`
 - Runtime variable coverage: {package['runtime_audit']['resolvable_variable_count']}/{package['runtime_audit']['variable_count']}
 - Logical content fingerprint: `{package['logical_content_fingerprint']}`
 
-The GitHub Release is the compressed distribution copy. The Elements directory is the expanded
-working copy. `snapshots/{package['snapshot_id']}/manifest.json` binds both representations.
+The GitHub Release always carries the knowledge and Agent artifacts. Observation bytes exist only
+at the locations named by the snapshot manifest. The Elements directory is the expanded callable
+working representation. `snapshots/{package['snapshot_id']}/manifest.json` binds every location.
 """
 
 
@@ -413,12 +603,13 @@ def materialize_source_repository(
         atomic_write_text(ignore_path, (ignore.rstrip() + "\n" + line + "\n").lstrip("\n"))
     write_source_readme(repository / "README.md", generated_readme(project, package))
     source_config = {
-        "schema_version": "2.0.0",
+        "schema_version": "3.0.0",
         "source_id": project["source_id"],
         "core_repository": package["core_repository"],
         "core_version": package["core_version"],
         "latest_snapshot": package["snapshot_id"],
         "release_tag": package["release_tag"],
+        "snapshot_profile": package["snapshot_profile"],
         "runtime": package["runtime"],
     }
     write_json(repository / "grdr-source.json", source_config)
@@ -512,6 +703,18 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         raise ValueError(f"Elements snapshot path already exists: {elements_path}")
     if release_assets_path.exists():
         raise ValueError(f"release asset path already exists: {release_assets_path}")
+    for external in spec["observation_policy"]["external_locations"]:
+        if external["type"] != "object_store" or external["local_path"] is None:
+            continue
+        external_path = (
+            resolve_input(external["local_path"], spec_path.parent)
+            / "sources"
+            / spec["source_slug"]
+            / "snapshots"
+            / spec["snapshot_id"]
+        )
+        if external_path.exists():
+            raise ValueError(f"object-store snapshot path already exists: {external_path}")
 
     temporary_parent = elements_path.parent
     temporary_parent.mkdir(parents=True, exist_ok=True)
@@ -519,7 +722,26 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         workspace = Path(temporary)
         logical_root = workspace / "logical"
         knowledge = logical_root / "knowledge"
-        copy_project_knowledge(target, knowledge)
+        observation_names: set[str] = set()
+        observation_roots: list[Path] = []
+        for item in spec["observation_inputs"]:
+            if item["name"] in observation_names:
+                raise ValueError(f"duplicate observation input name: {item['name']}")
+            observation_names.add(item["name"])
+            observation_root = resolve_input(item["path"], spec_path.parent)
+            if observation_root in observation_roots:
+                raise ValueError(f"duplicate observation input path: {observation_root}")
+            observation_roots.append(observation_root)
+        for value in spec["raw_observation_exclusions"]:
+            excluded_root = resolve_input(value, spec_path.parent)
+            checked_files(excluded_root)
+            if excluded_root == target or path_is_within(target, excluded_root):
+                raise ValueError(
+                    "raw_observation_exclusions cannot contain the deep-map project root"
+                )
+            if excluded_root not in observation_roots:
+                observation_roots.append(excluded_root)
+        copy_project_knowledge(target, knowledge, observation_roots)
         for value in spec["adapter_inputs"]:
             source = resolve_input(value, ROOT)
             if not source.is_file() or source.is_symlink():
@@ -531,17 +753,79 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         runtime = stage_source_runtime(spec, project, agent_dir)
         runtime_audit = run_source_runtime_self_test(agent_dir, runtime)
         write_json(agent_dir / RUNTIME_AUDIT_FILE, runtime_audit)
-        observation_names = set()
-        for item in spec["observation_inputs"]:
-            if item["name"] in observation_names:
-                raise ValueError(f"duplicate observation input name: {item['name']}")
-            observation_names.add(item["name"])
-            copy_input(resolve_input(item["path"], spec_path.parent), logical_root / "observations" / item["name"])
-        logical_files = inventory(logical_root)
-        if not any(item["component"] == "observations" for item in logical_files):
-            raise ValueError("Storage requires at least one actual observation-data file")
-        if sum(item["size_bytes"] for item in logical_files if item["component"] == "observations") == 0:
-            raise ValueError("observation-data inputs contain zero total bytes")
+        for item, observation_root in zip(spec["observation_inputs"], observation_roots):
+            copy_input(observation_root, logical_root / "observations" / item["name"])
+        preliminary_files = inventory(logical_root)
+        preliminary_observations = [
+            item for item in preliminary_files if item["component"] == "observations"
+        ]
+        partition_record = validate_observation_policy(
+            spec, spec_path, preliminary_observations
+        )
+        if partition_record is not None:
+            source_partition_manifest = Path(partition_record.pop("source_path"))
+            suffix = "".join(source_partition_manifest.suffixes) or ".json"
+            stored_partition_manifest = (
+                knowledge / "storage" / f"partition_manifest{suffix}"
+            )
+            stored_partition_manifest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_partition_manifest, stored_partition_manifest)
+            partition_record["path"] = (
+                stored_partition_manifest.relative_to(logical_root).as_posix()
+            )
+        profile = snapshot_profile(
+            project, spec, len(preliminary_observations), partition_record
+        )
+        observation_paths = [item["path"] for item in preliminary_observations]
+        observation_content_fingerprint = fingerprint(preliminary_observations)
+        external_locations = []
+        for external in spec["observation_policy"]["external_locations"]:
+            local_path = None
+            logical_paths = observation_paths if external["type"] == "object_store" else []
+            content_fingerprint = (
+                observation_content_fingerprint
+                if external["type"] == "object_store"
+                else fingerprint({
+                    "uri": external["uri"],
+                    "source_id": project["source_id"],
+                    "official_domains": runtime["official_domains"],
+                })
+            )
+            if external["local_path"] is not None:
+                external_root = resolve_input(external["local_path"], spec_path.parent)
+                local_path = str(
+                    external_root
+                    / "sources"
+                    / spec["source_slug"]
+                    / "snapshots"
+                    / spec["snapshot_id"]
+                )
+            external_locations.append({
+                "type": external["type"],
+                "uri": external["uri"],
+                "local_path": local_path,
+                "verification": external["verification"],
+                "logical_paths": logical_paths,
+                "content_fingerprint": content_fingerprint,
+            })
+        observation_manifest = {
+            "schema_version": "1.0.0",
+            "source_id": project["source_id"],
+            "snapshot_id": spec["snapshot_id"],
+            "snapshot_profile": profile,
+            "observation_files": preliminary_observations,
+            "external_locations": external_locations,
+        }
+        write_json(knowledge / "storage" / OBSERVATION_MANIFEST_FILE, observation_manifest)
+        locations = component_location_map(spec)
+        logical_files = inventory(logical_root, locations)
+        duplicates = duplicate_cross_component_hashes(logical_files)
+        if duplicates:
+            raise ValueError(
+                "knowledge and observations contain duplicate file content; "
+                "raw observation files must exist only under observations: "
+                + ", ".join(sorted(duplicates))
+            )
 
         assets = workspace / "assets"
         knowledge_asset = assets / f"{spec['source_slug']}-{spec['snapshot_id']}-knowledge.tar.gz"
@@ -552,24 +836,54 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
             asset_record(knowledge_asset, "knowledge", [item["path"] for item in logical_files if item["component"] == "knowledge"]),
             asset_record(agent_asset, "agent", [item["path"] for item in logical_files if item["component"] == "agent"]),
         ]
-        for name in sorted(observation_names):
-            source = logical_root / "observations" / name
-            output = assets / f"{spec['source_slug']}-{spec['snapshot_id']}-observations-{name}.tar.gz"
-            create_deterministic_tar_gz(source, output, f"observations/{name}")
-            prefix = f"observations/{name}/"
-            release_assets.append(asset_record(output, "observations", [item["path"] for item in logical_files if item["path"].startswith(prefix)]))
+        if "github_release" in spec["observation_policy"]["placements"]:
+            for name in sorted(observation_names):
+                source = logical_root / "observations" / name
+                output = assets / f"{spec['source_slug']}-{spec['snapshot_id']}-observations-{name}.tar.gz"
+                create_deterministic_tar_gz(source, output, f"observations/{name}")
+                prefix = f"observations/{name}/"
+                release_assets.append(asset_record(output, "observations", [item["path"] for item in logical_files if item["path"].startswith(prefix)]))
         prepared_at = now()
         package = package_payload(
             project, spec, archive_receipt, elements_path, release_assets_path,
-            logical_files, release_assets, runtime, runtime_audit, prepared_at,
+            logical_files, release_assets, runtime, runtime_audit, profile,
+            external_locations, prepared_at,
         )
         validation_errors = validate_schema(package, "database_storage_package.schema.json", STORAGE_PACKAGE_FILE)
         if validation_errors:
             raise ValueError("generated storage package failed Schema validation: " + "; ".join(validation_errors))
         write_json(assets / "manifest.json", package)
-        shutil.move(str(logical_root), str(elements_path))
-        release_assets_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(assets), str(release_assets_path))
+        elements_build = workspace / "elements"
+        for component in ("knowledge", "agent"):
+            shutil.copytree(logical_root / component, elements_build / component)
+        if "elements" in spec["observation_policy"]["placements"]:
+            shutil.copytree(logical_root / "observations", elements_build / "observations")
+        write_json(elements_build / "receipts" / SNAPSHOT_MANIFEST_FILE, package)
+        prepared_object_locations: list[tuple[Path, Path]] = []
+        for external in external_locations:
+            if external["type"] != "object_store":
+                continue
+            external_path = Path(external["local_path"])
+            if external_path.exists():
+                raise ValueError(f"object-store snapshot path already exists: {external_path}")
+            external_build = workspace / "object-store" / external_path.name
+            shutil.copytree(logical_root / "observations", external_build / "observations")
+            prepared_object_locations.append((external_build, external_path))
+        created_locations: list[Path] = []
+        try:
+            for external_build, external_path in prepared_object_locations:
+                external_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(external_build), str(external_path))
+                created_locations.append(external_path)
+            shutil.move(str(elements_build), str(elements_path))
+            created_locations.append(elements_path)
+            release_assets_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(assets), str(release_assets_path))
+            created_locations.append(release_assets_path)
+        except Exception:
+            for created in reversed(created_locations):
+                shutil.rmtree(created, ignore_errors=True)
+            raise
 
     write_json(target / STORAGE_PACKAGE_FILE, package)
     materialize_source_repository(target, project, spec, package)
@@ -580,7 +894,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
     project["workflow_status"] = "ready_for_storage"
     project["current_phase"] = "storage"
     project["next_actions"] = ["publish-database-storage", "database-storage-status"]
-    append_history(project, "prepare-database-storage", "Materialized the source repository, complete knowledge artifact, executable Agent runtime and index, observation artifacts, and matching Elements snapshot.")
+    append_history(project, "prepare-database-storage", "Materialized the complete knowledge and Agent artifacts, applied the declared observation replication and placement policy without cross-component duplication, and sealed the location-aware snapshot manifest.")
     write_json(target / PROJECT_FILE, project)
     return {"operation": "prepare_database_storage", "status": "ready_for_publish", "package": package, "audit": audit_database_storage(target)}
 
@@ -608,6 +922,48 @@ def publication_asset_records(package: dict[str, Any]) -> list[dict[str, Any]]:
     manifest = Path(package["release_assets_path"]) / "manifest.json"
     assets.append(asset_record(manifest, "manifest", []))
     return sorted(assets, key=lambda item: item["name"])
+
+
+def agent_asset_name(package: dict[str, Any]) -> str:
+    return next(
+        item["name"] for item in package["release_assets"]
+        if item["component"] == "agent"
+    )
+
+
+def source_archive_card(
+    project: dict[str, Any],
+    package: dict[str, Any],
+    publication: dict[str, Any],
+    stored_at: str,
+) -> dict[str, Any]:
+    card = {
+        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
+        "id": f"grdr:source-archive:{package['source_slug']}",
+        "source_id": project["source_id"],
+        "repository": publication["repository_url"],
+        "latest_snapshot": package["snapshot_id"],
+        "release": publication["release_url"],
+        "manifest": f"{publication['repository_url']}/releases/download/{package['release_tag']}/manifest.json",
+        "archive_fingerprint": package["logical_content_fingerprint"],
+        "core_version": package["core_version"],
+        "status": "complete",
+        "updated_at": stored_at,
+        "runtime": {
+            "protocol_version": package["runtime"]["protocol_version"],
+            "asset": agent_asset_name(package),
+            "entrypoint": f"agent/{package['runtime']['entrypoint']}",
+            "agent_index": f"agent/{package['runtime']['agent_index']}",
+            "operations": package["runtime"]["operations"],
+        },
+    }
+    if package["schema_version"] == "3.0.0":
+        card.update({
+            "knowledge_fingerprint": package["knowledge_content_fingerprint"],
+            "observation_fingerprint": package["observation_content_fingerprint"],
+            "snapshot_profile": package["snapshot_profile"],
+        })
+    return card
 
 
 def storage_receipt_is_valid(project_dir: str | Path, project: dict[str, Any] | None = None) -> bool:
@@ -658,16 +1014,67 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         errors.append("storage package fingerprint is stale")
     if package.get("project_id") != project["id"] or package.get("source_id") != project["source_id"]:
         errors.append("storage package identity does not match the deep-map project")
+    legacy_package = package.get("schema_version") == "2.0.0"
+    if not legacy_package:
+        if package.get("project_scope_fingerprint") != project["locks"]["scope_fingerprint"]:
+            errors.append("Storage knowledge scope fingerprint differs from the locked Plan")
+        profile = package.get("snapshot_profile", {})
+        knowledge_scope = profile.get("knowledge_scope", {})
+        if knowledge_scope.get("scope_fingerprint") != project["locks"]["scope_fingerprint"]:
+            errors.append("snapshot knowledge scope was not inherited from the locked Plan")
+        if package.get("duplicate_content_hash_count") != 0 or duplicate_cross_component_hashes(package.get("logical_files", [])):
+            errors.append("knowledge and observations contain duplicate content hashes")
+        expected_knowledge_fingerprint = fingerprint(content_records(package["logical_files"], "knowledge"))
+        expected_observation_fingerprint = fingerprint(content_records(package["logical_files"], "observations"))
+        if package.get("knowledge_content_fingerprint") != expected_knowledge_fingerprint:
+            errors.append("knowledge content fingerprint is stale")
+        if package.get("observation_content_fingerprint") != expected_observation_fingerprint:
+            errors.append("observation content fingerprint is stale")
+        replication = profile.get("observation_replication", {})
+        observation_count = len(content_records(package["logical_files"], "observations"))
+        if replication.get("actual_file_count") != observation_count:
+            errors.append("observation completeness actual_file_count differs from the manifest")
+        expected_files = replication.get("expected_file_count")
+        if expected_files is not None and expected_files != observation_count:
+            errors.append("observation completeness expected_file_count differs from the manifest")
+        for item in package["logical_files"]:
+            expected_locations = (
+                ["elements", "github_release"]
+                if item["component"] in {"knowledge", "agent"}
+                else sorted(
+                    location for location in profile["observation_placement"]["locations"]
+                    if location in {"github_release", "elements", "object_store"}
+                )
+            )
+            if item.get("locations") != expected_locations:
+                errors.append(f"logical file locations differ from the snapshot policy: {item['path']}")
     elements = Path(package["elements_snapshot_path"])
     if not elements.is_dir():
         errors.append(f"Elements snapshot is missing: {elements}")
         actual_files = []
     else:
         actual_files = inventory(elements)
-        if actual_files != package["logical_files"]:
-            errors.append("Elements logical file inventory or SHA-256 values differ from the storage package")
+        expected_elements = (
+            package["logical_files"]
+            if legacy_package
+            else records_for_location(package["logical_files"], "elements")
+        )
+        if actual_files != expected_elements:
+            errors.append("Elements location inventory or SHA-256 values differ from the storage package")
+        if not legacy_package:
+            elements_manifest = elements / "receipts" / SNAPSHOT_MANIFEST_FILE
+            if not elements_manifest.is_file() or read_json(elements_manifest) != package:
+                errors.append("Elements location manifest is missing or differs from the storage package")
     assets_path = Path(package["release_assets_path"])
-    expected_logical = {item["path"]: {"sha256": item["sha256"], "size_bytes": item["size_bytes"]} for item in package["logical_files"]}
+    expected_release_files = (
+        package["logical_files"]
+        if legacy_package
+        else records_for_location(package["logical_files"], "github_release")
+    )
+    expected_logical = {
+        item["path"]: {"sha256": item["sha256"], "size_bytes": item["size_bytes"]}
+        for item in expected_release_files
+    }
     covered: dict[str, dict[str, Any]] = {}
     for asset in package["release_assets"]:
         path = assets_path / asset["name"]
@@ -681,9 +1088,14 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             members = archive_members(path)
             if sorted(members) != sorted(asset["logical_paths"]):
                 errors.append(f"release asset logical members differ from manifest: {asset['name']}")
+            overlap = set(covered) & set(members)
+            if overlap:
+                errors.append(
+                    f"Release assets duplicate logical files: {', '.join(sorted(overlap))}"
+                )
             covered.update(members)
     if covered != expected_logical:
-        errors.append("GitHub Release assets and Elements do not represent the same logical snapshot")
+        errors.append("GitHub Release assets differ from their declared location inventory")
     manifest_path = assets_path / "manifest.json"
     if not manifest_path.is_file() or read_json(manifest_path) != package:
         errors.append("release manifest is missing or differs from storage_package.json")
@@ -699,6 +1111,18 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                     errors.append("Elements source runtime audit differs from the sealed runtime audit")
             except ValueError as exc:
                 errors.append(str(exc))
+    if not legacy_package:
+        for external in package["external_observation_locations"]:
+            if external["type"] != "object_store":
+                continue
+            path = Path(external["local_path"])
+            if not path.is_dir():
+                errors.append(f"object-store observation snapshot is missing: {path}")
+                continue
+            actual_external = inventory(path)
+            expected_external = records_for_location(package["logical_files"], "object_store")
+            if actual_external != expected_external:
+                errors.append("object-store observation inventory or SHA-256 values differ from the manifest")
     repository = Path(package["source_repository_path"])
     required_repo_files = [
         repository / "README.md", repository / "grdr-source.json",
@@ -733,26 +1157,9 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         receipt = read_json(target / STORAGE_RECEIPT_FILE)
         cards = read_jsonl(SOURCE_ARCHIVE_FILE) if SOURCE_ARCHIVE_FILE.exists() else []
         card = next((item for item in cards if item.get("id") == f"grdr:source-archive:{package['source_slug']}"), None)
-        expected_card = {
-            "schema_version": "2.0.0",
-            "id": f"grdr:source-archive:{package['source_slug']}",
-            "source_id": project["source_id"],
-            "repository": publication["repository_url"],
-            "latest_snapshot": package["snapshot_id"],
-            "release": publication["release_url"],
-            "manifest": f"{publication['repository_url']}/releases/download/{package['release_tag']}/manifest.json",
-            "archive_fingerprint": package["logical_content_fingerprint"],
-            "core_version": package["core_version"],
-            "status": "complete",
-            "updated_at": receipt["stored_at"],
-            "runtime": {
-                "protocol_version": package["runtime"]["protocol_version"],
-                "asset": next(item["name"] for item in package["release_assets"] if item["component"] == "agent"),
-                "entrypoint": f"agent/{package['runtime']['entrypoint']}",
-                "agent_index": f"agent/{package['runtime']['agent_index']}",
-                "operations": package["runtime"]["operations"],
-            },
-        }
+        expected_card = source_archive_card(
+            project, package, publication, receipt["stored_at"]
+        )
         central_card_valid = card == expected_card
         if not central_card_valid:
             errors.append("GRDR central source-archive card is missing or differs from the completed snapshot")
@@ -769,6 +1176,9 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         "observation_file_count": package["observation_file_count"],
         "logical_size_bytes": package["logical_size_bytes"],
         "logical_content_fingerprint": package["logical_content_fingerprint"],
+        "knowledge_content_fingerprint": package.get("knowledge_content_fingerprint"),
+        "observation_content_fingerprint": package.get("observation_content_fingerprint"),
+        "snapshot_profile": package.get("snapshot_profile"),
         "release_asset_count": len(package["release_assets"]) + 1,
         "elements_snapshot_path": package["elements_snapshot_path"],
         "source_repository_path": package["source_repository_path"],
@@ -816,7 +1226,7 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
         raise ValueError("storage publication asset inventory does not match the prepared files")
     timestamp = now()
     receipt = {
-        "schema_version": "2.0.0",
+        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
         "project_id": project["id"],
         "source_id": project["source_id"],
         "snapshot_id": package["snapshot_id"],
@@ -828,10 +1238,16 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
         "logical_content_fingerprint": package["logical_content_fingerprint"],
         "canonical_archive_fingerprint": package["canonical_archive_fingerprint"],
         "runtime_protocol_version": package["runtime"]["protocol_version"],
-        "runtime_asset": next(item["name"] for item in package["release_assets"] if item["component"] == "agent"),
+        "runtime_asset": agent_asset_name(package),
         "status": "complete",
         "stored_at": timestamp,
     }
+    if package["schema_version"] == "3.0.0":
+        receipt.update({
+            "knowledge_content_fingerprint": package["knowledge_content_fingerprint"],
+            "observation_content_fingerprint": package["observation_content_fingerprint"],
+            "snapshot_profile": package["snapshot_profile"],
+        })
     receipt["receipt_fingerprint"] = fingerprint(receipt)
     receipt_errors = validate_schema(receipt, "database_storage_receipt.schema.json", STORAGE_RECEIPT_FILE)
     if receipt_errors:
@@ -839,26 +1255,7 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
     elements_receipt = Path(package["elements_snapshot_path"]) / "receipts" / STORAGE_RECEIPT_FILE
     release_receipt = Path(package["release_assets_path"]) / STORAGE_RECEIPT_FILE
     cards = read_jsonl(SOURCE_ARCHIVE_FILE) if SOURCE_ARCHIVE_FILE.exists() else []
-    card = {
-        "schema_version": "2.0.0",
-        "id": f"grdr:source-archive:{package['source_slug']}",
-        "source_id": project["source_id"],
-        "repository": publication["repository_url"],
-        "latest_snapshot": package["snapshot_id"],
-        "release": publication["release_url"],
-        "manifest": f"{publication['repository_url']}/releases/download/{package['release_tag']}/manifest.json",
-        "archive_fingerprint": package["logical_content_fingerprint"],
-        "core_version": package["core_version"],
-        "status": "complete",
-        "updated_at": timestamp,
-        "runtime": {
-            "protocol_version": package["runtime"]["protocol_version"],
-            "asset": next(item["name"] for item in package["release_assets"] if item["component"] == "agent"),
-            "entrypoint": f"agent/{package['runtime']['entrypoint']}",
-            "agent_index": f"agent/{package['runtime']['agent_index']}",
-            "operations": package["runtime"]["operations"],
-        },
-    }
+    card = source_archive_card(project, package, publication, timestamp)
     card_errors = validate_schema(card, "source_archive.schema.json", "source_archive")
     if card_errors:
         raise ValueError("generated central index card is invalid: " + "; ".join(card_errors))
@@ -868,7 +1265,7 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
     updated_project = json.loads(json.dumps(project))
     updated_project["phase_states"]["completion_audit"] = {
         "state": "verified_complete",
-        "completion_basis": "Step 3 stored one complete callable semantic snapshot in a verified GitHub Release and matching expanded Elements directory, verified full runtime variable resolution, then wrote the central source index card.",
+        "completion_basis": "Step 3 stored one complete callable semantic snapshot, verified the declared observation replication and placement policy, verified full runtime variable resolution, then wrote the central source index card.",
         "evidence": project["phase_states"]["boundary"]["evidence"],
         "blockers": [],
         "updated_at": timestamp,
@@ -876,7 +1273,7 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
     updated_project["workflow_status"] = "complete"
     updated_project["current_phase"] = "complete"
     updated_project["next_actions"] = ["database-storage-status"]
-    append_history(updated_project, "record-database-storage-publication", "Verified GitHub publication, sealed the Storage receipt, and updated the GRDR central source snapshot card.")
+    append_history(updated_project, "record-database-storage-publication", "Verified the GitHub knowledge and Agent publication plus every declared observation location, sealed the Storage receipt, and updated the GRDR central source snapshot card.")
     paths = [
         target / STORAGE_PUBLICATION_FILE,
         target / STORAGE_RECEIPT_FILE,
@@ -967,7 +1364,7 @@ def publish_database_storage(project_dir: str | Path) -> dict[str, Any]:
             raise ValueError(f"GitHub Release did not verify the expected SHA-256 digest for {name}")
     commit = run_checked(["git", "rev-parse", "HEAD"], repository).stdout.strip()
     publication = {
-        "schema_version": "1.0.0",
+        "schema_version": "2.0.0",
         "project_id": package["project_id"],
         "source_id": package["source_id"],
         "snapshot_id": package["snapshot_id"],

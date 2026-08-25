@@ -25,25 +25,53 @@ grdr-source-<slug>/
 ```text
 <slug>-<snapshot>-knowledge.tar.gz
 <slug>-<snapshot>-agent-runtime.tar.gz
-<slug>-<snapshot>-observations-<partition>.tar.gz
+<slug>-<snapshot>-observations-<partition>.tar.gz  # only when placed on GitHub
 manifest.json
 storage_receipt.json
 ```
 
-Observation assets may be partitioned, but their union must equal the complete observation inventory declared by the snapshot.
+Knowledge and Agent assets are mandatory. Observation assets are mode- and placement-dependent. Asset logical memberships must be disjoint.
 
 ## Elements
 
 ```text
 <elements-root>/sources/<slug>/snapshots/<snapshot-id>/
 ├── knowledge/
+│   └── storage/observation_manifest.json
 ├── agent/
 │   ├── grdr-agent-index.sqlite
 │   ├── runtime.json
 │   ├── <source-runtime>.py
 │   └── runtime_audit.json
-├── observations/<partition>/...
-└── receipts/storage_receipt.json
+├── observations/<partition>/...       # only when placed on Elements
+└── receipts/
+    ├── manifest.json
+    └── storage_receipt.json
 ```
 
-Elements adds the final receipt after publication. The receipt is a provenance sidecar; logical parity is computed across `knowledge/`, `agent/`, and `observations/`.
+The receipt and manifest are provenance sidecars and are excluded from the logical inventory.
+
+## Mounted large-data store
+
+```text
+<object-store-root>/sources/<slug>/snapshots/<snapshot-id>/
+└── observations/<partition>/...
+```
+
+Storage copies and hashes this representation before completion. The GitHub manifest records its URI, mounted path, logical paths, and observation fingerprint.
+
+## Federated and research-project data
+
+Federated snapshots hold no canonical observation files. Their manifest records the official upstream URI and verified Runtime.
+
+An on-demand research fetch may create:
+
+```text
+<research-project>/data_snapshots/<variable>/<capture-id>/
+├── data/
+│   ├── runtime_result.json
+│   └── <returned files>
+└── manifest.json
+```
+
+`data_snapshot_index.jsonl` indexes those query-scoped captures. They are derived research artifacts, not additions to the source snapshot.

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/research_data_snapshot.schema.json",
+  "title": "GRDR on-demand research-project data snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "capture_id", "research_project_path", "source_id", "source_snapshot_id", "variable_id", "runtime_protocol", "query_arguments", "fetched_at", "files", "data_content_fingerprint", "manifest_fingerprint"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "capture_id": {"type": "string", "pattern": "^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{12}$"},
+    "research_project_path": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "source_snapshot_id": {"type": "string", "minLength": 1},
+    "variable_id": {"type": "string", "pattern": "^grdr:variable:[a-z0-9][a-z0-9-]*$"},
+    "runtime_protocol": {"const": "grdr-source-runtime/1.0"},
+    "query_arguments": {"type": "array", "items": {"type": "string"}},
+    "fetched_at": {"type": "string", "format": "date-time"},
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "size_bytes"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^data/.+"},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "size_bytes": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "data_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "manifest_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

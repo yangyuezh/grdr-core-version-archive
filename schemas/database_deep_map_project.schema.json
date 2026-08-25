@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "id", "source_id", "title", "database_profile", "diagnostic_plan", "scope", "pipeline_contract", "execution_contract", "locks", "phase_states", "workflow_status", "current_phase", "next_actions", "history", "created_at", "updated_at"],
   "properties": {
-    "schema_version": {"const": "4.0.0"},
+    "schema_version": {"const": "4.1.0"},
     "id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "title": {"type": "string", "minLength": 1},
@@ -42,9 +42,9 @@
     "pipeline_contract": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["contract_version", "steps", "step_isolation", "staged_before_storage", "canonical_writes_storage_only", "one_repository_per_source", "one_release_per_snapshot", "release_elements_logical_parity", "immutable_core", "external_state_required", "fingerprinted_handoffs"],
+      "required": ["contract_version", "steps", "step_isolation", "staged_before_storage", "canonical_writes_storage_only", "one_repository_per_source", "one_release_per_snapshot", "knowledge_agent_release_elements_parity", "observation_location_manifest", "immutable_core", "external_state_required", "fingerprinted_handoffs"],
       "properties": {
-        "contract_version": {"const": "4.0.0"},
+        "contract_version": {"const": "4.1.0"},
         "steps": {
           "const": [
             {"step": "plan", "skill": "grdr-plan-database-deep-map", "output": "locked_deep_map_project"},
@@ -57,7 +57,8 @@
         "canonical_writes_storage_only": {"const": true},
         "one_repository_per_source": {"const": true},
         "one_release_per_snapshot": {"const": true},
-        "release_elements_logical_parity": {"const": true},
+        "knowledge_agent_release_elements_parity": {"const": true},
+        "observation_location_manifest": {"const": true},
         "immutable_core": {"const": true},
         "external_state_required": {"const": true},
         "fingerprinted_handoffs": {"const": true}

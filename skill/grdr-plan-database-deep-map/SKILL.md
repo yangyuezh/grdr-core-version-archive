@@ -76,7 +76,7 @@ python3 "$GRDR_LAUNCHER" database-deep-map-status <project>
 
 A valid Step 1 handoff contains:
 
-- `project.json` at schema `4.0.0`, including the immutable-Core Plan → Execute → Storage contract;
+- `project.json` at schema `4.1.0`, including the immutable-Core Plan → Execute → location-aware Storage contract;
 - audited plan, explicit boundary, selected route modules, typed risks, human gates, and SHA-256 plan/scope/unit locks;
 - `units.jsonl` with deterministic order and stable upstream identities;
 - `checks.jsonl` with every applicable route obligation;

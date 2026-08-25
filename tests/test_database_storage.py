@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import sqlite3
 import sys
 import tempfile
@@ -277,7 +278,8 @@ class DatabaseStorageTests(unittest.TestCase):
             prepare_database_deep_map_storage(project_dir)
             archive_database_deep_map(project_dir)
 
-            observation = root / "observations.csv"
+            observation = project_dir / "raw_observations" / "observations.csv"
+            observation.parent.mkdir()
             observation.write_text("unit,time,value\nexample,2026,1\n", encoding="utf-8")
             runtime_script = root / "synthetic_runtime.py"
             runtime_script.write_text(
@@ -304,8 +306,10 @@ print(json.dumps({
                 "official_domains": ["example.org"],
                 "notes": "Synthetic test runtime.",
             }), encoding="utf-8")
+            sealed_template = root / "sealed-template"
+            shutil.copytree(project_dir, sealed_template)
             spec = {
-                "schema_version": "2.0.0",
+                "schema_version": "3.0.0",
                 "source_id": "grdr:source:synthetic-example",
                 "source_slug": "synthetic-example-test",
                 "snapshot_id": "2026-08-22-r1",
@@ -323,7 +327,25 @@ print(json.dumps({
                     "title": "Synthetic Core test snapshot",
                 },
                 "elements_root": str(root / "Elements"),
+                "observation_policy": {
+                    "replication_mode": "full_mirror",
+                    "placements": ["github_release", "elements"],
+                    "completeness": {
+                        "claim": "complete_within_knowledge_scope",
+                        "basis": "The one declared synthetic observation file exhausts the locked fixture scope.",
+                        "expected_file_count": 1,
+                        "expected_partition_count": None,
+                    },
+                    "partition_manifest": None,
+                    "external_locations": [],
+                    "cache": {
+                        "mode": "disabled",
+                        "research_project_snapshots": False,
+                        "root": None,
+                    },
+                },
                 "observation_inputs": [{"name": "main", "path": str(observation)}],
+                "raw_observation_exclusions": [],
                 "adapter_inputs": [],
                 "runtime": {
                     "descriptor": str(runtime_descriptor),
@@ -342,8 +364,17 @@ print(json.dumps({
             self.assertGreaterEqual(audit["release_asset_count"], 4)
 
             package = json.loads((project_dir / "storage_package.json").read_text(encoding="utf-8"))
+            self.assertEqual(package["schema_version"], "3.0.0")
+            self.assertEqual(package["snapshot_profile"]["observation_replication"]["mode"], "full_mirror")
+            self.assertEqual(package["snapshot_profile"]["knowledge_scope"]["scope_fingerprint"], locks_after["scope_fingerprint"])
+            self.assertEqual(package["duplicate_content_hash_count"], 0)
+            self.assertFalse(any(
+                item["path"].endswith("raw_observations/observations.csv")
+                for item in package["logical_files"]
+                if item["component"] == "knowledge"
+            ))
             publication = {
-                "schema_version": "1.0.0",
+                "schema_version": "2.0.0",
                 "project_id": package["project_id"],
                 "source_id": package["source_id"],
                 "snapshot_id": package["snapshot_id"],
@@ -365,15 +396,125 @@ print(json.dumps({
                 {path.name: path.read_bytes() for path in sorted((ROOT / "registry").glob("*.jsonl"))},
             )
 
+            partition_project = root / "project-partitioned"
+            shutil.copytree(sealed_template, partition_project)
+            partition_manifest = root / "partition-manifest.json"
+            partition_manifest.write_text(
+                json.dumps({"partitions": [{"name": "main", "path": "raw_observations/observations.csv"}]}),
+                encoding="utf-8",
+            )
+            partition_spec = json.loads(json.dumps(spec))
+            partition_spec.update({
+                "snapshot_id": "2026-08-22-r2",
+                "source_slug": "synthetic-example-partitioned",
+            })
+            partition_spec["source_repository"].update({
+                "github": "example/grdr-source-synthetic-example-partitioned",
+                "local_path": str(root / "source-repo-partitioned"),
+            })
+            partition_spec["release"].update({
+                "tag": "synthetic-example-test-2026-08-22-r2",
+                "title": "Synthetic partitioned snapshot",
+            })
+            partition_spec["observation_policy"] = {
+                "replication_mode": "partitioned_mirror",
+                "placements": ["elements", "research_project_cache"],
+                "completeness": {
+                    "claim": "complete_declared_partition_set",
+                    "basis": "The partition manifest declares the one locally mirrored test partition.",
+                    "expected_file_count": 1,
+                    "expected_partition_count": 1,
+                },
+                "partition_manifest": str(partition_manifest),
+                "external_locations": [],
+                "cache": {
+                    "mode": "on_demand",
+                    "research_project_snapshots": True,
+                    "root": "research_project",
+                },
+            }
+            partition_spec["observation_inputs"] = [{
+                "name": "main",
+                "path": str(partition_project / "raw_observations" / "observations.csv"),
+            }]
+            partition_spec_path = root / "partition-storage-spec.json"
+            partition_spec_path.write_text(json.dumps(partition_spec), encoding="utf-8")
+            partitioned = prepare_database_storage(partition_project, partition_spec_path)
+            self.assertEqual(partitioned["audit"]["errors"], [])
+            partition_package = partitioned["package"]
+            self.assertEqual(partition_package["observation_file_count"], 1)
+            self.assertEqual(
+                [item["component"] for item in partition_package["release_assets"]],
+                ["knowledge", "agent"],
+            )
+            self.assertTrue(
+                Path(partition_package["elements_snapshot_path"], "observations").is_dir()
+            )
+
+            federated_project = root / "project-federated"
+            shutil.copytree(sealed_template, federated_project)
+            shutil.rmtree(federated_project / "raw_observations")
+            federated_spec = json.loads(json.dumps(spec))
+            federated_spec.update({
+                "snapshot_id": "2026-08-22-r3",
+                "source_slug": "synthetic-example-federated",
+            })
+            federated_spec["source_repository"].update({
+                "github": "example/grdr-source-synthetic-example-federated",
+                "local_path": str(root / "source-repo-federated"),
+            })
+            federated_spec["release"].update({
+                "tag": "synthetic-example-test-2026-08-22-r3",
+                "title": "Synthetic federated snapshot",
+            })
+            federated_spec["observation_policy"] = {
+                "replication_mode": "federated_on_demand",
+                "placements": ["official_upstream", "research_project_cache"],
+                "completeness": {
+                    "claim": "knowledge_complete_observations_federated",
+                    "basis": "The locked knowledge graph is complete while observations remain at the official API.",
+                    "expected_file_count": None,
+                    "expected_partition_count": None,
+                },
+                "partition_manifest": None,
+                "external_locations": [{
+                    "type": "official_upstream",
+                    "uri": "https://example.org/synthetic-database/api",
+                    "local_path": None,
+                    "verification": "official_runtime_verified",
+                }],
+                "cache": {
+                    "mode": "on_demand",
+                    "research_project_snapshots": True,
+                    "root": "research_project",
+                },
+            }
+            federated_spec["observation_inputs"] = []
+            federated_spec_path = root / "federated-storage-spec.json"
+            federated_spec_path.write_text(json.dumps(federated_spec), encoding="utf-8")
+            federated = prepare_database_storage(federated_project, federated_spec_path)
+            self.assertEqual(federated["audit"]["errors"], [])
+            federated_package = federated["package"]
+            self.assertEqual(federated_package["observation_file_count"], 0)
+            self.assertEqual(
+                federated_package["snapshot_profile"]["observation_replication"]["mode"],
+                "federated_on_demand",
+            )
+            self.assertFalse(
+                Path(federated_package["elements_snapshot_path"], "observations").exists()
+            )
+
             elements = Path(audit["elements_snapshot_path"])
             stored_observation = elements / "observations" / "main" / observation.name
             stored_observation.write_text("tampered\n", encoding="utf-8")
             tampered = audit_database_storage(project_dir)
-            self.assertTrue(any("Elements logical file inventory" in item for item in tampered["errors"]))
+            self.assertTrue(any("Elements location inventory" in item for item in tampered["errors"]))
 
-    def test_storage_spec_requires_actual_observation_input(self) -> None:
+    def test_storage_spec_exposes_three_observation_modes(self) -> None:
         schema = json.loads((ROOT / "schemas" / "database_storage_spec.schema.json").read_text(encoding="utf-8"))
-        self.assertEqual(schema["properties"]["observation_inputs"]["minItems"], 1)
+        modes = schema["properties"]["observation_policy"]["properties"]["replication_mode"]["enum"]
+        self.assertEqual(modes, ["full_mirror", "partitioned_mirror", "federated_on_demand"])
+        self.assertNotIn("minItems", schema["properties"]["observation_inputs"])
 
     def test_macos_filesystem_sidecars_are_not_storage_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

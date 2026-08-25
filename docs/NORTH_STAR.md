@@ -13,7 +13,7 @@ It combines:
 - literature-grounded, multi-level research-indicator construction;
 - continuous, evidence-backed snowball expansion.
 
-GRDR is not primarily a website and never combines every upstream source into one monolithic warehouse. It keeps a broad global registry and knowledge graph, while every database selected for full deep reading is stored as its own distributed, versioned snapshot: one source repository, one Release per snapshot, and one matching expanded Elements copy containing knowledge, Agent index, and captured observations.
+GRDR is not primarily a website and never combines every upstream source into one monolithic warehouse. It keeps a broad global registry and knowledge graph, while every database selected for full deep reading is stored as its own distributed, versioned snapshot. Every snapshot preserves complete knowledge within its locked Plan boundary and separately declares whether observations are a full mirror, a partitioned mirror, or federated on demand, plus the exact locations that hold any copied bytes.
 
 ## Core capabilities
 
@@ -71,10 +71,10 @@ Never collapse source authority and task-specific fitness into one opaque score.
 
 ## Long-term evolution
 
-As the registry expands, GRDR adds more independently versioned source snapshots without copying the shared Core into those repositories. The central registry remains the unified Agent entry point; source repositories and snapshot artifacts provide the durable database-specific storage layer.
+As the registry expands, GRDR adds more independently versioned source snapshots without copying the shared Core into those repositories. The central registry remains the unified Agent entry point; source repositories and snapshot artifacts provide the durable database-specific storage layer. Knowledge depth must never be weakened merely because observations are large, and raw observations must never be duplicated inside the knowledge artifact.
 
 ## Production and use planes
 
 Plan → Execute → Storage is the three-step database production factory. It ends with a verified, callable source snapshot; it does not itself answer research queries.
 
-The independent GRDR Agent Runtime is the use plane. The `grdr-resolve-research-semantics` Skill connects research-side indicators to the same persisted B spine, traverses B→A relationships, evaluates variable fit, and supplies an auditable selected path. Runtime then searches central and distributed indexes, materializes the same Release snapshot into Elements when needed, resolves the selected Variable through the source-specific runtime, invokes the authoritative upstream route, and returns data with provenance. Storage is responsible only for packaging and validating those runtime ingredients as part of the snapshot.
+The independent GRDR Agent Runtime is the use plane. The `grdr-resolve-research-semantics` Skill connects research-side indicators to the same persisted B spine, traverses B→A relationships, evaluates variable fit, and supplies an auditable selected path. Runtime then searches central and distributed indexes, materializes the callable knowledge and Agent artifacts into Elements when needed, resolves the selected Variable through the source-specific runtime, invokes the authoritative upstream route, and can seal query-scoped data under the research project. Storage is responsible for packaging and validating the canonical snapshot ingredients and their location manifest; research-project caches are derived use-plane artifacts.

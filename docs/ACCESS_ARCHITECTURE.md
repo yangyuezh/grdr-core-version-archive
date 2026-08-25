@@ -35,9 +35,24 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 ## Distributed snapshot topology
 
 - One deeply stored Source owns one private source repository.
-- One snapshot owns one GitHub Release containing complete knowledge, Agent Runtime, observations, manifest, and receipt.
-- The same snapshot owns one expanded Elements directory with identical logical files and SHA-256 values.
+- One snapshot owns one GitHub Release containing complete knowledge, Agent Runtime, manifest, receipt, and only those observations explicitly assigned to GitHub.
+- The same snapshot owns one expanded Elements directory containing complete knowledge and Agent Runtime plus only those observations explicitly assigned to Elements.
+- Large observation bytes may instead live on a mounted object store or remain at the official upstream under federated access.
+- A location-aware manifest maps every logical file to its actual locations and SHA-256. Knowledge and Agent files must match across Release and Elements; observation parity is checked only across locations that claim a copy.
+- Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
 - Source repositories reference a Core version; they never copy Core Skills.
 
 Storage may promote sealed records into external state after validation. It must never promote them into the immutable Core checkout.
+
+## Observation replication modes
+
+- `full_mirror`: capture every declared observation file within the locked knowledge scope and verify the declared file denominator.
+- `partitioned_mirror`: capture the complete declared partition set, preserve its partition manifest, and state explicitly that completeness applies to that set.
+- `federated_on_demand`: preserve complete structure, variables, semantics, evidence, official routes, and a fully resolvable source runtime while keeping observation bytes at the official upstream.
+
+Every mode records a separate knowledge-scope claim, observation-completeness claim, and placement list. These claims are not interchangeable.
+
+## On-demand research data
+
+`fetch-variable --research-project-dir` and `fetch-indicator-data --seal-data-snapshot` create query-scoped snapshots under a research project. Each capture records Source, source snapshot, Variable, arguments, returned files, result, timestamps, SHA-256 values, and a fingerprinted manifest. These captures do not mutate the canonical source snapshot.

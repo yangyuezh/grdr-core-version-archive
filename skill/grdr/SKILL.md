@@ -14,10 +14,10 @@ Treat GRDR as an immutable Core plus external mutable registry state:
 - Agent Research Data Infrastructure;
 - a source-matching and data-gap reasoning system;
 - a continuously expanding cross-disciplinary knowledge base.
-- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, matching Elements copy, and source-specific callable runtime.
+- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, callable Elements copy, location-aware observation policy, and source-specific runtime.
 - an independent Agent Runtime that searches, mounts, resolves, and calls those stored snapshots.
 
-Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped snapshots with knowledge, Agent index, and captured observations.
+Do not build one monolithic warehouse or copy every registered upstream source. Keep Core database-independent and immutable. Store global cards and canonical records under `GRDR_STATE_ROOT` (default `~/.grdr`), while databases selected for the three-step factory finish as complete, source-scoped knowledge and Agent snapshots. Store observation bytes as a full mirror, partitioned mirror, or federated-on-demand source according to the snapshot's explicit policy.
 
 ## Follow the current phase
 
@@ -85,7 +85,7 @@ When one database must be understood beyond Source registration, dispatch three 
 
 1. `$grdr-plan-database-deep-map` diagnoses the database, fixes the boundary and work-unit universe, composes route obligations, and creates the locked project;
 2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
-3. `$grdr-store-database-deep-map` alone promotes the sealed records, builds the source repository and full callable snapshot artifacts, publishes one private GitHub Release, materializes the matching Elements directory, verifies the source runtime, writes the central card, and issues the Storage receipt.
+3. `$grdr-store-database-deep-map` alone promotes the sealed records, inherits the locked knowledge scope, selects observation replication and placement, excludes raw observations from knowledge, builds the callable snapshot artifacts, verifies every declared location and the source runtime, writes the central card, and issues the Storage receipt.
 
 Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies the source runtime; unified search, online snapshot materialization, variable access resolution, and official retrieval are Core runtime operations.
 
@@ -162,6 +162,7 @@ python3 "$GRDR_LAUNCHER" traverse-semantic-paths <project-id>
 python3 "$GRDR_LAUNCHER" match-indicators <project-id>
 python3 "$GRDR_LAUNCHER" explain-indicator-match <project-id> <indicator-id>
 python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --dry-run
+python3 "$GRDR_LAUNCHER" fetch-indicator-data <project-id> <indicator-id> --seal-data-snapshot
 python3 "$GRDR_LAUNCHER" expand-from-data-gaps <project-id>
 # After candidate sources have been deepened or new sources registered:
 python3 "$GRDR_LAUNCHER" resume-research-project <project-id>

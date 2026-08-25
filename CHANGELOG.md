@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.1.0] - 2026-08-24
+
+### Added
+
+- Add three independent snapshot properties: Plan-inherited knowledge scope, Storage-selected observation replication, and multi-location observation placement.
+- Add executable `full_mirror`, `partitioned_mirror`, and `federated_on_demand` observation modes with explicit file or partition denominators and completeness claims.
+- Decouple GitHub Release assets from large observation storage while keeping complete knowledge and Agent artifacts available in both Release and Elements.
+- Add location-aware per-file manifests for GitHub, Elements, mounted object storage, official upstream access, and on-demand research-project caching.
+- Add `fetch-variable --research-project-dir` and `fetch-indicator-data --seal-data-snapshot` to preserve query-scoped data, arguments, Runtime results, provenance, and SHA-256 manifests under a research project.
+
+### Fixed
+
+- Exclude declared raw-observation roots from the knowledge archive, reject knowledge/observation content-hash overlap, and reject duplicated logical membership across Release assets.
+- Replace the obsolete all-content Release-to-Elements parity assumption with mandatory knowledge/Agent parity and location-specific observation verification.
+- Preserve runtime callability when a large database's observations remain on Elements, mounted large storage, or the official upstream.
+
+### Validation
+
+- Add end-to-end Storage coverage for a full mirror on GitHub and Elements, an Elements-only partitioned mirror, and a zero-local-observation federated snapshot.
+- Add regression coverage proving project-local raw observations are absent from knowledge and that on-demand research calls seal fingerprinted project snapshots.
+- Retain schema compatibility for existing Storage 2.0 packages, receipts, publications, and source-archive cards.
+
 ## [4.0.2] - 2026-08-24
 
 ### Fixed

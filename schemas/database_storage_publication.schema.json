@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "project_id", "source_id", "snapshot_id", "repository_url", "release_url", "release_tag", "source_repository_commit", "assets", "verified_at", "publication_fingerprint"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"enum": ["1.0.0", "2.0.0"]},
     "project_id": {"type": "string", "pattern": "^grdr:deep-map-project:[a-z0-9][a-z0-9-]*$"},
     "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
     "snapshot_id": {"type": "string", "minLength": 1},
@@ -14,7 +14,7 @@
     "release_url": {"type": "string", "format": "uri"},
     "release_tag": {"type": "string", "minLength": 1},
     "source_repository_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
-    "assets": {"type": "array", "minItems": 4, "items": {"$ref": "#/$defs/asset"}},
+    "assets": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/asset"}},
     "verified_at": {"type": "string", "format": "date-time"},
     "publication_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   },
