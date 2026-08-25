@@ -94,6 +94,8 @@ When one database must be understood beyond Source registration, dispatch three 
 2. `$grdr-execute-database-deep-map` follows the deterministic queue, deeply maps every work unit, stages candidate records, and seals a fingerprinted handoff without canonical writes;
 3. `$grdr-store-database-deep-map` alone promotes the sealed records, inherits the locked knowledge scope, selects observation replication and placement, excludes raw observations from knowledge, builds the callable snapshot artifacts, verifies every declared location and the source runtime, writes the central card, and issues the Storage receipt.
 
+Storage reads adjustable deployment-local capacity thresholds from external GRDR configuration. These thresholds affect only observation replication and placement. The snapshot records the measured bytes, optional upstream-size estimate, policy-relative size class, selected mode, and exact thresholds; it never uses size to weaken Plan-locked knowledge depth.
+
 Keep this production factory separate from the Agent Runtime use plane. Storage delivers and verifies the source runtime; unified search, online snapshot materialization, variable access resolution, and official retrieval are Core runtime operations.
 
 The map preserves Institution and Source as provenance context; Dataset; recursive DataStructure; 5A DataElement and 5B Variable; and Construct. Resource is an access sidecar. It must also close a source-native structural spine, a multi-parent scientific-semantic spine, and the Variable-to-Construct bridge. Audit current depth first:

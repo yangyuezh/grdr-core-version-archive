@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.2.0] - 2026-08-25
+
+### Added
+
+- Add deployment-local, adjustable GitHub-observation and Elements-full-mirror capacity thresholds, with 5 GiB and 10 GiB defaults, pre-copy enforcement, optional upstream-size estimates, and a sealed policy-relative size assessment in every new snapshot.
+- Add a strict observation partition-manifest schema that binds Source, snapshot, partition boundaries, input names, every relative member path, byte size, SHA-256 value, and both denominators.
+- Pass a location-aware `elements_mirror`, `mounted_object_store`, or `official_upstream` context to every invoked source runtime.
+
+### Fixed
+
+- Require full manifest and SHA-256 verification before ordinary distributed search, resolution, traversal, or invocation treats a local snapshot as callable; invalidate the process-local verification cache on any file metadata change.
+- Treat a missing declared Elements observation placement as a hard error and remove a failed online materialization instead of returning a partially callable snapshot.
+- Upload and read back the final Storage receipt before writing local completion state or the external central card; bind the verification evidence to repository, tag, exact commit, all Release assets, receipt size, and receipt SHA-256.
+- Require partitioned mirrors to match the complete partition manifest instead of merely hashing an unchecked file.
+- Align the README architecture and decision tables with actual local-mirror, mounted-mirror, federated, capacity, and post-Storage research-cache behavior.
+
+### Validation
+
+- Add regression coverage for capacity thresholds, strict partition members, failed remote receipt verification, complete-state transaction ordering, full Runtime verification, verification-cache invalidation, and route selection.
+- Retain compatibility with existing two-argument publication recording by downloading and verifying the already-uploaded Release receipt.
+
 ## [4.1.1] - 2026-08-25
 
 ### Fixed

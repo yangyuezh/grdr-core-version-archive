@@ -8,13 +8,13 @@ Step 3 is complete only when all of the following hold:
 4. the snapshot manifest inherits the exact Plan knowledge scope and states observation replication, completeness, and placement separately;
 5. the complete knowledge artifact exists and contains no declared raw-observation path;
 6. knowledge and observations share zero content hashes, and Release assets have disjoint logical memberships;
-7. full mirrors contain nonzero files and match the declared file denominator; partitioned mirrors additionally preserve and match the partition manifest; federated snapshots contain zero local observation inputs and identify the official upstream;
+7. full mirrors contain nonzero files and match the declared file denominator; partitioned mirrors additionally match every partition boundary, member path, size, SHA-256, and denominator in the Schema-valid partition manifest; federated snapshots contain zero local observation inputs and identify the official upstream;
 8. the Agent SQLite index and source runtime exist in the Release and Elements, and the sealed runtime audit proves every indexed Variable resolves with zero unresolved Variables;
 9. every copied logical file has an exact SHA-256, size, and location list;
 10. every declared Release, Elements, and mounted object-store inventory matches the manifest exactly;
 11. the private source Git repository contains its config, adapters, Plan, manifest, README, tests, and canonical archive receipt;
-12. the GitHub Release repository, tag, commit, URL, asset names, sizes, and hashes have been verified;
-13. `storage_receipt.json` is valid and stored with the Release and Elements snapshot;
+12. the GitHub Release repository, tag, exact commit, URL, asset names, sizes, and hashes have been verified;
+13. `storage_receipt.json` is valid, uploaded to the Release, read back with the exact hash, and only then stored with Elements and local project state;
 14. the GRDR central `source_archives.jsonl` card identifies the same repository, latest snapshot, Release, Core version, knowledge fingerprint, observation fingerprint, snapshot profile, and logical fingerprint.
 
 The following are explicitly incomplete:

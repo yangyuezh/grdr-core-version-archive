@@ -80,6 +80,8 @@ Storage必须保存：
 2. `observation_replication`：`full_mirror`、`partitioned_mirror`或`federated_on_demand`；
 3. `observation_placement`：GitHub Release、Elements、大型数据存储、官方上游和按需研究项目缓存的可组合位置。
 
+快照还必须保存`capacity_assessment`：实际捕获字节数、可选的上游总体量估计、当时启用的外部容量阈值、策略相对的规模分类和最终模式。默认GitHub观测总量阈值为5 GiB、Elements完整镜像阈值为10 GiB；两者都可随硬件调整。GitHub每个Release文件必须严格小于2 GiB。
+
 知识拆解是否完整与观测数据复制多少是两个独立结论。联邦模式仍必须完整保存锁定范围内的数据库结构、变量、语义、证据和调用能力。
 
 ### 逻辑快照与去重
@@ -115,7 +117,9 @@ agent/runtime_audit.json
 .venv/bin/python scripts/grdr.py store-database-deep-map <project> <storage-spec.json>
 ```
 
-完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；联邦模式要求零本地观测输入、官方上游位置和已验证Runtime。所有模式都拒绝运行时不能解析全部索引变量、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；分区镜像还要求Schema有效的分区清单逐项匹配分区边界、名称、成员路径、大小和SHA-256；联邦模式要求零本地观测输入、官方上游位置和已验证Runtime。所有模式都拒绝超出所选位置容量阈值、运行时不能解析全部索引变量、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+
+发布顺序是硬约束：先上传并核验知识、Agent和可选观测资产，再生成并上传最终Storage回执；只有从GitHub重新读取并核验回执、Release标签、精确提交和所有资产哈希以后，才能写本地／Elements回执、中央卡片和`complete`状态。
 
 ## 独立Agent Runtime使用面
 
@@ -127,7 +131,8 @@ research question
 → source-snapshot-status / materialize-source-snapshot
 → resolve-variable-access
 → fetch-variable
-→ 官方响应、原始字节、筛选结果与provenance
+→ 已核验的Elements镜像／挂载镜像／官方上游
+→ 原始字节、筛选结果与provenance
 ```
 
 GitHub Release是在线知识与Agent分发版。Elements是本地可调用展开版。`materialize-source-snapshot`下载并核验GitHub实际持有的资产；大型观测文件无需经过GitHub。研究调用可用`fetch-variable --research-project-dir`或`fetch-indicator-data --seal-data-snapshot`生成带查询参数、来源、快照、变量和逐文件哈希的项目级数据快照。

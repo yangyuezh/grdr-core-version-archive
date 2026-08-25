@@ -37,7 +37,7 @@ from database_deep_map import (
     write_json,
     write_jsonl,
 )
-from grdr_paths import source_archive_file
+from grdr_paths import source_archive_file, storage_capacity_policy
 
 
 STORAGE_PACKAGE_FILE = "storage_package.json"
@@ -52,6 +52,7 @@ RUNTIME_DESCRIPTOR_FILE = "runtime.json"
 RUNTIME_AUDIT_FILE = "runtime_audit.json"
 OBSERVATION_MANIFEST_FILE = "observation_manifest.json"
 SNAPSHOT_MANIFEST_FILE = "manifest.json"
+PUBLICATION_VERIFICATION_FILE = "storage_publication_verification.json"
 
 
 def is_ignored_filesystem_metadata(path: Path) -> bool:
@@ -383,6 +384,7 @@ def snapshot_profile(
     spec: dict[str, Any],
     observation_file_count: int,
     partition_manifest: dict[str, Any] | None,
+    capacity: dict[str, Any],
 ) -> dict[str, Any]:
     completeness = spec["observation_policy"]["completeness"]
     scope = project["scope"]
@@ -411,7 +413,139 @@ def snapshot_profile(
             "locations": sorted(spec["observation_policy"]["placements"]),
             "cache": spec["observation_policy"]["cache"],
         },
+        "capacity_assessment": capacity,
     }
+
+
+def classify_observation_size(total_bytes: int | None, policy: dict[str, Any]) -> str:
+    if total_bytes is None:
+        return "unknown"
+    lower_limit = min(
+        policy["github_release_observation_max_bytes"],
+        policy["elements_full_mirror_max_bytes"],
+    )
+    upper_limit = max(
+        policy["github_release_observation_max_bytes"],
+        policy["elements_full_mirror_max_bytes"],
+    )
+    if total_bytes <= lower_limit:
+        return "small"
+    if total_bytes <= upper_limit:
+        return "medium"
+    return "large"
+
+
+def assess_storage_capacity(
+    spec: dict[str, Any],
+    observation_files: list[dict[str, Any]],
+) -> dict[str, Any]:
+    policy = storage_capacity_policy()
+    captured_bytes = sum(item["size_bytes"] for item in observation_files)
+    mode = spec["observation_policy"]["replication_mode"]
+    estimate = spec["observation_policy"].get("capacity_estimate")
+    if estimate is not None:
+        estimated_total = estimate["estimated_total_bytes"]
+        estimate_basis = estimate["basis"]
+    elif mode == "full_mirror":
+        estimated_total = captured_bytes
+        estimate_basis = "Full mirror: captured bytes equal the declared observation denominator."
+    else:
+        estimated_total = None
+        estimate_basis = "No total upstream byte estimate was supplied; size class is unknown."
+    size_class = classify_observation_size(estimated_total, policy)
+    placements = set(spec["observation_policy"]["placements"])
+    errors = []
+    if "github_release" in placements and captured_bytes > policy["github_release_observation_max_bytes"]:
+        errors.append(
+            "captured observations exceed the configured GitHub Release observation limit; "
+            "remove github_release from placements or raise the external deployment policy"
+        )
+    if (
+        mode == "full_mirror"
+        and "elements" in placements
+        and captured_bytes > policy["elements_full_mirror_max_bytes"]
+    ):
+        errors.append(
+            "full-mirror observations exceed the configured Elements full-mirror limit; "
+            "choose partitioned_mirror/federated_on_demand or raise the external deployment policy"
+        )
+    if errors:
+        raise ValueError("; ".join(errors))
+    if size_class == "small":
+        recommendation = "full_mirror may use github_release plus elements"
+    elif size_class == "medium":
+        eligible = []
+        if estimated_total is not None and estimated_total <= policy["github_release_observation_max_bytes"]:
+            eligible.append("github_release")
+        if estimated_total is not None and estimated_total <= policy["elements_full_mirror_max_bytes"]:
+            eligible.append("elements")
+        recommendation = "full_mirror may use only capacity-eligible placements: " + ", ".join(eligible)
+    elif size_class == "large":
+        recommendation = "prefer partitioned_mirror or federated_on_demand"
+    else:
+        recommendation = "supply capacity_estimate before using a size-class recommendation"
+    return {
+        "policy_source": policy["source"],
+        "estimated_total_bytes": estimated_total,
+        "estimate_basis": estimate_basis,
+        "captured_bytes": captured_bytes,
+        "size_class": size_class,
+        "github_release_observation_max_bytes": policy["github_release_observation_max_bytes"],
+        "elements_full_mirror_max_bytes": policy["elements_full_mirror_max_bytes"],
+        "github_release_asset_max_bytes": policy["github_release_asset_max_bytes"],
+        "selected_mode": mode,
+        "selected_placements": sorted(placements),
+        "recommendation": recommendation,
+        "policy_compliant": True,
+    }
+
+
+def partition_file_records(observation_files: list[dict[str, Any]], name: str) -> list[dict[str, Any]]:
+    prefix = f"observations/{name}/"
+    return sorted(
+        [
+            {
+                "relative_path": item["path"].removeprefix(prefix),
+                "sha256": item["sha256"],
+                "size_bytes": item["size_bytes"],
+            }
+            for item in observation_files
+            if item["path"].startswith(prefix)
+        ],
+        key=lambda item: item["relative_path"],
+    )
+
+
+def validate_partition_manifest_document(
+    manifest: dict[str, Any],
+    spec: dict[str, Any],
+    observation_files: list[dict[str, Any]],
+) -> None:
+    errors = validate_schema(manifest, "observation_partition_manifest.schema.json", "partition_manifest")
+    if errors:
+        raise ValueError("invalid partition manifest: " + "; ".join(errors))
+    if manifest["source_id"] != spec["source_id"] or manifest["snapshot_id"] != spec["snapshot_id"]:
+        raise ValueError("partition manifest Source or snapshot identity differs from the Storage specification")
+    partition_names = [item["name"] for item in manifest["partitions"]]
+    expected_names = [item["name"] for item in spec["observation_inputs"]]
+    if len(partition_names) != len(set(partition_names)):
+        raise ValueError("partition manifest contains duplicate partition names")
+    if sorted(partition_names) != sorted(expected_names):
+        raise ValueError("partition manifest names differ from observation_inputs")
+    if manifest["partition_count"] != len(manifest["partitions"]):
+        raise ValueError("partition manifest partition_count is stale")
+    manifest_file_count = sum(len(item["files"]) for item in manifest["partitions"])
+    if manifest["file_count"] != manifest_file_count:
+        raise ValueError("partition manifest file_count is stale")
+    if manifest_file_count != len(observation_files):
+        raise ValueError("partition manifest does not enumerate every captured observation file")
+    for partition in manifest["partitions"]:
+        expected_files = partition_file_records(observation_files, partition["name"])
+        actual_files = sorted(partition["files"], key=lambda item: item["relative_path"])
+        if actual_files != expected_files:
+            raise ValueError(
+                f"partition manifest files or hashes differ for partition {partition['name']}"
+            )
 
 
 def validate_observation_policy(
@@ -444,10 +578,17 @@ def validate_observation_policy(
         path = resolve_input(policy["partition_manifest"], spec_path.parent)
         if not path.is_file() or path.is_symlink():
             raise ValueError(f"partition manifest must be a regular file: {path}")
+        try:
+            manifest = read_json(path)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"partition manifest is not valid JSON: {path}") from exc
+        validate_partition_manifest_document(manifest, spec, observation_files)
         partition_record = {
             "source_path": str(path),
             "sha256": sha256_file(path),
             "size_bytes": path.stat().st_size,
+            "partition_count": manifest["partition_count"],
+            "file_count": manifest["file_count"],
         }
     external_types = [item["type"] for item in policy["external_locations"]]
     if len(external_types) != len(set(external_types)):
@@ -554,8 +695,8 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 
 - Snapshot: `{package['snapshot_id']}`
 - Release: `{package['release_tag']}`
-- Complete knowledge files: {package['knowledge_file_count']}
-- Complete observation files: {package['observation_file_count']}
+- Knowledge files inside the locked scope: {package['knowledge_file_count']}
+- Captured observation files: {package['observation_file_count']}
 - Knowledge scope: `{package['snapshot_profile']['knowledge_scope']['completion_claim']}`
 - Observation replication: `{package['snapshot_profile']['observation_replication']['mode']}`
 - Observation placement: {', '.join(package['snapshot_profile']['observation_placement']['locations'])}
@@ -724,6 +865,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         knowledge = logical_root / "knowledge"
         observation_names: set[str] = set()
         observation_roots: list[Path] = []
+        observation_input_files: list[dict[str, Any]] = []
         for item in spec["observation_inputs"]:
             if item["name"] in observation_names:
                 raise ValueError(f"duplicate observation input name: {item['name']}")
@@ -732,6 +874,10 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
             if observation_root in observation_roots:
                 raise ValueError(f"duplicate observation input path: {observation_root}")
             observation_roots.append(observation_root)
+            observation_input_files.extend(
+                {"size_bytes": path.stat().st_size} for path in checked_files(observation_root)
+            )
+        assess_storage_capacity(spec, observation_input_files)
         for value in spec["raw_observation_exclusions"]:
             excluded_root = resolve_input(value, spec_path.parent)
             checked_files(excluded_root)
@@ -759,6 +905,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         preliminary_observations = [
             item for item in preliminary_files if item["component"] == "observations"
         ]
+        capacity = assess_storage_capacity(spec, preliminary_observations)
         partition_record = validate_observation_policy(
             spec, spec_path, preliminary_observations
         )
@@ -774,7 +921,7 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
                 stored_partition_manifest.relative_to(logical_root).as_posix()
             )
         profile = snapshot_profile(
-            project, spec, len(preliminary_observations), partition_record
+            project, spec, len(preliminary_observations), partition_record, capacity
         )
         observation_paths = [item["path"] for item in preliminary_observations]
         observation_content_fingerprint = fingerprint(preliminary_observations)
@@ -843,6 +990,13 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
                 create_deterministic_tar_gz(source, output, f"observations/{name}")
                 prefix = f"observations/{name}/"
                 release_assets.append(asset_record(output, "observations", [item["path"] for item in logical_files if item["path"].startswith(prefix)]))
+        asset_limit = capacity["github_release_asset_max_bytes"]
+        oversized_assets = [item["name"] for item in release_assets if item["size_bytes"] > asset_limit]
+        if oversized_assets:
+            raise ValueError(
+                "GitHub Release assets must remain below the configured under-2-GiB per-file limit: "
+                + ", ".join(oversized_assets)
+            )
         prepared_at = now()
         package = package_payload(
             project, spec, archive_receipt, elements_path, release_assets_path,
@@ -966,30 +1120,187 @@ def source_archive_card(
     return card
 
 
+def build_storage_receipt(
+    project: dict[str, Any],
+    package: dict[str, Any],
+    publication: dict[str, Any],
+    stored_at: str,
+) -> dict[str, Any]:
+    receipt = {
+        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
+        "project_id": project["id"],
+        "source_id": project["source_id"],
+        "snapshot_id": package["snapshot_id"],
+        "package_fingerprint": package["package_fingerprint"],
+        "publication_fingerprint": publication["publication_fingerprint"],
+        "repository_url": publication["repository_url"],
+        "release_url": publication["release_url"],
+        "elements_snapshot_path": package["elements_snapshot_path"],
+        "logical_content_fingerprint": package["logical_content_fingerprint"],
+        "canonical_archive_fingerprint": package["canonical_archive_fingerprint"],
+        "runtime_protocol_version": package["runtime"]["protocol_version"],
+        "runtime_asset": agent_asset_name(package),
+        "status": "complete",
+        "stored_at": stored_at,
+    }
+    if package["schema_version"] == "3.0.0":
+        receipt.update({
+            "knowledge_content_fingerprint": package["knowledge_content_fingerprint"],
+            "observation_content_fingerprint": package["observation_content_fingerprint"],
+            "snapshot_profile": package["snapshot_profile"],
+        })
+    receipt["receipt_fingerprint"] = fingerprint(receipt)
+    errors = validate_schema(receipt, "database_storage_receipt.schema.json", STORAGE_RECEIPT_FILE)
+    if errors:
+        raise ValueError("generated storage receipt is invalid: " + "; ".join(errors))
+    return receipt
+
+
+def validate_storage_receipt_candidate(
+    receipt: dict[str, Any],
+    project: dict[str, Any],
+    package: dict[str, Any],
+    publication: dict[str, Any],
+) -> None:
+    errors = validate_schema(receipt, "database_storage_receipt.schema.json", STORAGE_RECEIPT_FILE)
+    if errors:
+        raise ValueError("invalid Storage receipt candidate: " + "; ".join(errors))
+    expected = build_storage_receipt(project, package, publication, receipt["stored_at"])
+    if receipt != expected:
+        raise ValueError("Storage receipt candidate is not exactly bound to the package and publication")
+
+
+def verify_github_publication(
+    package: dict[str, Any],
+    publication: dict[str, Any],
+    receipt_path: Path,
+) -> dict[str, Any]:
+    repository = package["source_repository"]
+    expected_repository_url = f"https://github.com/{repository}"
+    repository_state = json.loads(run_checked(
+        ["gh", "repo", "view", repository, "--json", "nameWithOwner,url,visibility"],
+        ROOT,
+    ).stdout)
+    if repository_state.get("nameWithOwner", "").casefold() != repository.casefold():
+        raise ValueError("GitHub repository identity differs from the Storage package")
+    if repository_state.get("url", "").rstrip("/") != expected_repository_url:
+        raise ValueError("GitHub repository URL differs from the Storage package")
+    if repository_state.get("visibility") != "PRIVATE":
+        raise ValueError("database source repositories must remain private")
+    run_checked(
+        ["gh", "api", f"repos/{repository}/commits/{publication['source_repository_commit']}"],
+        ROOT,
+    )
+    tag_commit = json.loads(run_checked(
+        ["gh", "api", f"repos/{repository}/commits/{package['release_tag']}"],
+        ROOT,
+    ).stdout)
+    if tag_commit.get("sha") != publication["source_repository_commit"]:
+        raise ValueError("GitHub Release tag does not resolve to the recorded source-repository commit")
+    release_state = json.loads(run_checked(
+        ["gh", "api", f"repos/{repository}/releases/tags/{package['release_tag']}"],
+        ROOT,
+    ).stdout)
+    if release_state.get("html_url") != publication["release_url"]:
+        raise ValueError("GitHub Release URL differs from the publication record")
+    if publication["repository_url"].rstrip("/") != expected_repository_url:
+        raise ValueError("publication repository_url differs from the Storage package")
+    expected_assets = {item["name"]: item for item in publication["assets"]}
+    remote_assets = {item["name"]: item for item in release_state.get("assets", [])}
+    for name, expected in expected_assets.items():
+        remote = remote_assets.get(name)
+        if remote is None:
+            raise ValueError(f"GitHub Release is missing uploaded asset {name}")
+        if remote.get("size") != expected["size_bytes"]:
+            raise ValueError(f"GitHub Release asset size differs for {name}")
+        if remote.get("digest") != f"sha256:{expected['sha256']}":
+            raise ValueError(f"GitHub Release asset SHA-256 differs for {name}")
+    receipt_asset = {
+        "name": STORAGE_RECEIPT_FILE,
+        "sha256": sha256_file(receipt_path),
+        "size_bytes": receipt_path.stat().st_size,
+    }
+    remote_receipt = remote_assets.get(STORAGE_RECEIPT_FILE)
+    if remote_receipt is None:
+        raise ValueError("GitHub Release is missing the final Storage receipt")
+    if remote_receipt.get("size") != receipt_asset["size_bytes"]:
+        raise ValueError("GitHub Release Storage receipt size differs")
+    if remote_receipt.get("digest") != f"sha256:{receipt_asset['sha256']}":
+        raise ValueError("GitHub Release Storage receipt SHA-256 differs")
+    verification = {
+        "schema_version": "1.0.0",
+        "project_id": package["project_id"],
+        "source_id": package["source_id"],
+        "snapshot_id": package["snapshot_id"],
+        "repository_url": expected_repository_url,
+        "release_url": publication["release_url"],
+        "release_tag": package["release_tag"],
+        "source_repository_commit": publication["source_repository_commit"],
+        "assets": publication["assets"],
+        "receipt_asset": receipt_asset,
+        "verified_at": now(),
+    }
+    verification["verification_fingerprint"] = fingerprint(verification)
+    errors = validate_schema(
+        verification,
+        "database_storage_publication_verification.schema.json",
+        PUBLICATION_VERIFICATION_FILE,
+    )
+    if errors:
+        raise ValueError("generated publication verification is invalid: " + "; ".join(errors))
+    return verification
+
+
 def storage_receipt_is_valid(project_dir: str | Path, project: dict[str, Any] | None = None) -> bool:
     target = resolve_project_dir(project_dir)
     package_path = target / STORAGE_PACKAGE_FILE
     publication_path = target / STORAGE_PUBLICATION_FILE
     receipt_path = target / STORAGE_RECEIPT_FILE
-    if not all(path.is_file() for path in (package_path, publication_path, receipt_path)):
+    verification_path = target / PUBLICATION_VERIFICATION_FILE
+    if not all(path.is_file() for path in (package_path, publication_path, receipt_path, verification_path)):
         return False
     package = read_json(package_path)
     publication = read_json(publication_path)
     receipt = read_json(receipt_path)
+    verification = read_json(verification_path)
     if validate_schema(package, "database_storage_package.schema.json", STORAGE_PACKAGE_FILE):
         return False
     if validate_schema(publication, "database_storage_publication.schema.json", STORAGE_PUBLICATION_FILE):
         return False
     if validate_schema(receipt, "database_storage_receipt.schema.json", STORAGE_RECEIPT_FILE):
         return False
+    if validate_schema(
+        verification,
+        "database_storage_publication_verification.schema.json",
+        PUBLICATION_VERIFICATION_FILE,
+    ):
+        return False
     receipt_payload = {key: value for key, value in receipt.items() if key != "receipt_fingerprint"}
+    verification_payload = {
+        key: value for key, value in verification.items()
+        if key != "verification_fingerprint"
+    }
     return (
         fingerprint({key: value for key, value in package.items() if key != "package_fingerprint"}) == package["package_fingerprint"]
         and fingerprint({key: value for key, value in publication.items() if key != "publication_fingerprint"}) == publication["publication_fingerprint"]
         and fingerprint(receipt_payload) == receipt["receipt_fingerprint"]
+        and fingerprint(verification_payload) == verification["verification_fingerprint"]
         and receipt["package_fingerprint"] == package["package_fingerprint"]
         and receipt["publication_fingerprint"] == publication["publication_fingerprint"]
         and receipt["source_id"] == package["source_id"]
+        and verification["project_id"] == package["project_id"]
+        and verification["source_id"] == package["source_id"]
+        and verification["snapshot_id"] == package["snapshot_id"]
+        and verification["repository_url"] == publication["repository_url"]
+        and verification["release_url"] == publication["release_url"]
+        and verification["release_tag"] == publication["release_tag"]
+        and verification["source_repository_commit"] == publication["source_repository_commit"]
+        and verification["assets"] == publication["assets"]
+        and verification["receipt_asset"] == {
+            "name": STORAGE_RECEIPT_FILE,
+            "sha256": sha256_file(receipt_path),
+            "size_bytes": receipt_path.stat().st_size,
+        }
         and (project is None or receipt["project_id"] == project["id"])
     )
 
@@ -1031,12 +1342,33 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         if package.get("observation_content_fingerprint") != expected_observation_fingerprint:
             errors.append("observation content fingerprint is stale")
         replication = profile.get("observation_replication", {})
-        observation_count = len(content_records(package["logical_files"], "observations"))
+        observation_records = content_records(package["logical_files"], "observations")
+        observation_count = len(observation_records)
         if replication.get("actual_file_count") != observation_count:
             errors.append("observation completeness actual_file_count differs from the manifest")
         expected_files = replication.get("expected_file_count")
         if expected_files is not None and expected_files != observation_count:
             errors.append("observation completeness expected_file_count differs from the manifest")
+        capacity = profile.get("capacity_assessment", {})
+        captured_bytes = sum(item["size_bytes"] for item in observation_records)
+        if capacity:
+            if capacity.get("captured_bytes") != captured_bytes:
+                errors.append("capacity assessment captured_bytes differs from the observation inventory")
+            embedded_policy = {
+                "github_release_observation_max_bytes": capacity.get("github_release_observation_max_bytes"),
+                "elements_full_mirror_max_bytes": capacity.get("elements_full_mirror_max_bytes"),
+            }
+            if all(isinstance(value, int) and not isinstance(value, bool) for value in embedded_policy.values()):
+                if classify_observation_size(capacity.get("estimated_total_bytes"), embedded_policy) != capacity.get("size_class"):
+                    errors.append("capacity assessment size_class is stale")
+                if "github_release" in profile.get("observation_placement", {}).get("locations", []) and captured_bytes > embedded_policy["github_release_observation_max_bytes"]:
+                    errors.append("GitHub observation placement exceeds its sealed capacity limit")
+                if (
+                    replication.get("mode") == "full_mirror"
+                    and "elements" in profile.get("observation_placement", {}).get("locations", [])
+                    and captured_bytes > embedded_policy["elements_full_mirror_max_bytes"]
+                ):
+                    errors.append("Elements full mirror exceeds its sealed capacity limit")
         for item in package["logical_files"]:
             expected_locations = (
                 ["elements", "github_release"]
@@ -1065,6 +1397,42 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             elements_manifest = elements / "receipts" / SNAPSHOT_MANIFEST_FILE
             if not elements_manifest.is_file() or read_json(elements_manifest) != package:
                 errors.append("Elements location manifest is missing or differs from the storage package")
+            replication = package["snapshot_profile"]["observation_replication"]
+            if replication["mode"] == "partitioned_mirror":
+                partition_record = replication.get("partition_manifest")
+                if not isinstance(partition_record, dict) or not partition_record.get("path"):
+                    errors.append("partitioned mirror has no sealed partition-manifest record")
+                else:
+                    stored_partition = elements / partition_record["path"]
+                    if not stored_partition.is_file():
+                        errors.append("partitioned mirror manifest is missing from Elements knowledge")
+                    elif (
+                        sha256_file(stored_partition) != partition_record.get("sha256")
+                        or stored_partition.stat().st_size != partition_record.get("size_bytes")
+                    ):
+                        errors.append("partitioned mirror manifest hash or size differs from the snapshot profile")
+                    else:
+                        try:
+                            document = read_json(stored_partition)
+                            names = sorted({
+                                item["path"].split("/", 2)[1]
+                                for item in package["logical_files"]
+                                if item["component"] == "observations"
+                            })
+                            validation_spec = {
+                                "source_id": package["source_id"],
+                                "snapshot_id": package["snapshot_id"],
+                                "observation_inputs": [{"name": name} for name in names],
+                            }
+                            validate_partition_manifest_document(
+                                document,
+                                validation_spec,
+                                content_records(package["logical_files"], "observations"),
+                            )
+                            if partition_record.get("partition_count") != document["partition_count"] or partition_record.get("file_count") != document["file_count"]:
+                                errors.append("partition-manifest counts differ from the snapshot profile")
+                        except (ValueError, OSError, json.JSONDecodeError) as exc:
+                            errors.append(str(exc))
     assets_path = Path(package["release_assets_path"])
     expected_release_files = (
         package["logical_files"]
@@ -1148,6 +1516,21 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             errors.append("published GitHub asset inventory differs from the prepared Release assets")
         if publication.get("release_tag") != package["release_tag"]:
             errors.append("published release tag differs from the storage package")
+        verification_path = target / PUBLICATION_VERIFICATION_FILE
+        if not verification_path.is_file():
+            errors.append("verified publication evidence is missing")
+        else:
+            verification = read_json(verification_path)
+            errors.extend(validate_schema(
+                verification,
+                "database_storage_publication_verification.schema.json",
+                PUBLICATION_VERIFICATION_FILE,
+            ))
+            if fingerprint({key: value for key, value in verification.items() if key != "verification_fingerprint"}) != verification.get("verification_fingerprint"):
+                errors.append("publication verification fingerprint is stale")
+            elements_verification = elements / "receipts" / PUBLICATION_VERIFICATION_FILE
+            if not elements_verification.is_file() or read_json(elements_verification) != verification:
+                errors.append("Elements publication verification evidence is missing or differs")
     else:
         warnings.append("The complete local snapshot is prepared but has not yet been verified as a GitHub Release.")
     receipt_valid = storage_receipt_is_valid(target, project) if publication_present else False
@@ -1190,14 +1573,34 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
     }
 
 
-def record_database_storage_publication(project_dir: str | Path, publication_file: str | Path) -> dict[str, Any]:
+def record_database_storage_publication(
+    project_dir: str | Path,
+    publication_file: str | Path,
+    receipt_file: str | Path | None = None,
+) -> dict[str, Any]:
     target = resolve_project_dir(project_dir)
     project = read_json(target / PROJECT_FILE)
     package = read_json(target / STORAGE_PACKAGE_FILE)
     publication = read_json(Path(publication_file).expanduser().resolve())
+    if receipt_file is None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run_checked([
+                "gh", "release", "download", package["release_tag"],
+                "--repo", package["source_repository"],
+                "--pattern", STORAGE_RECEIPT_FILE,
+                "--dir", temporary,
+            ], ROOT)
+            return record_database_storage_publication(
+                target,
+                publication_file,
+                Path(temporary) / STORAGE_RECEIPT_FILE,
+            )
+    receipt_path = Path(receipt_file).expanduser().resolve()
+    receipt = read_json(receipt_path)
     if storage_receipt_is_valid(target, project) and (target / STORAGE_PUBLICATION_FILE).is_file():
         existing = read_json(target / STORAGE_PUBLICATION_FILE)
-        if existing == publication:
+        existing_receipt = read_json(target / STORAGE_RECEIPT_FILE)
+        if existing == publication and existing_receipt == receipt:
             return {
                 "operation": "record_database_storage_publication",
                 "status": "already_recorded",
@@ -1224,35 +1627,11 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
         raise ValueError("storage publication release_url is outside the configured source repository")
     if publication["assets"] != publication_asset_records(package):
         raise ValueError("storage publication asset inventory does not match the prepared files")
-    timestamp = now()
-    receipt = {
-        "schema_version": "3.0.0" if package["schema_version"] == "3.0.0" else "2.0.0",
-        "project_id": project["id"],
-        "source_id": project["source_id"],
-        "snapshot_id": package["snapshot_id"],
-        "package_fingerprint": package["package_fingerprint"],
-        "publication_fingerprint": publication["publication_fingerprint"],
-        "repository_url": publication["repository_url"],
-        "release_url": publication["release_url"],
-        "elements_snapshot_path": package["elements_snapshot_path"],
-        "logical_content_fingerprint": package["logical_content_fingerprint"],
-        "canonical_archive_fingerprint": package["canonical_archive_fingerprint"],
-        "runtime_protocol_version": package["runtime"]["protocol_version"],
-        "runtime_asset": agent_asset_name(package),
-        "status": "complete",
-        "stored_at": timestamp,
-    }
-    if package["schema_version"] == "3.0.0":
-        receipt.update({
-            "knowledge_content_fingerprint": package["knowledge_content_fingerprint"],
-            "observation_content_fingerprint": package["observation_content_fingerprint"],
-            "snapshot_profile": package["snapshot_profile"],
-        })
-    receipt["receipt_fingerprint"] = fingerprint(receipt)
-    receipt_errors = validate_schema(receipt, "database_storage_receipt.schema.json", STORAGE_RECEIPT_FILE)
-    if receipt_errors:
-        raise ValueError("generated storage receipt is invalid: " + "; ".join(receipt_errors))
+    validate_storage_receipt_candidate(receipt, project, package, publication)
+    verification = verify_github_publication(package, publication, receipt_path)
+    timestamp = receipt["stored_at"]
     elements_receipt = Path(package["elements_snapshot_path"]) / "receipts" / STORAGE_RECEIPT_FILE
+    elements_verification = Path(package["elements_snapshot_path"]) / "receipts" / PUBLICATION_VERIFICATION_FILE
     release_receipt = Path(package["release_assets_path"]) / STORAGE_RECEIPT_FILE
     cards = read_jsonl(SOURCE_ARCHIVE_FILE) if SOURCE_ARCHIVE_FILE.exists() else []
     card = source_archive_card(project, package, publication, timestamp)
@@ -1276,7 +1655,9 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
     append_history(updated_project, "record-database-storage-publication", "Verified the GitHub knowledge and Agent publication plus every declared observation location, sealed the Storage receipt, and updated the GRDR central source snapshot card.")
     paths = [
         target / STORAGE_PUBLICATION_FILE,
+        target / PUBLICATION_VERIFICATION_FILE,
         target / STORAGE_RECEIPT_FILE,
+        elements_verification,
         elements_receipt,
         release_receipt,
         SOURCE_ARCHIVE_FILE,
@@ -1285,7 +1666,9 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
     originals = {path: path.read_text(encoding="utf-8") if path.is_file() else None for path in paths}
     try:
         write_json(target / STORAGE_PUBLICATION_FILE, publication)
+        write_json(target / PUBLICATION_VERIFICATION_FILE, verification)
         write_json(target / STORAGE_RECEIPT_FILE, receipt)
+        write_json(elements_verification, verification)
         write_json(elements_receipt, receipt)
         write_json(release_receipt, receipt)
         write_jsonl(SOURCE_ARCHIVE_FILE, updated_cards)
@@ -1300,7 +1683,13 @@ def record_database_storage_publication(project_dir: str | Path, publication_fil
             else:
                 atomic_write_text(path, content)
         raise
-    return {"operation": "record_database_storage_publication", "receipt": receipt, "source_archive": card, "audit": audit}
+    return {
+        "operation": "record_database_storage_publication",
+        "publication_verification": verification,
+        "receipt": receipt,
+        "source_archive": card,
+        "audit": audit,
+    }
 
 
 def run_checked(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -1376,20 +1765,18 @@ def publish_database_storage(project_dir: str | Path) -> dict[str, Any]:
         "verified_at": now(),
     }
     publication["publication_fingerprint"] = fingerprint(publication)
+    project = read_json(target / PROJECT_FILE)
+    receipt = build_storage_receipt(project, package, publication, now())
     with tempfile.TemporaryDirectory() as temporary:
         publication_path = Path(temporary) / STORAGE_PUBLICATION_FILE
+        receipt_path = Path(temporary) / STORAGE_RECEIPT_FILE
         write_json(publication_path, publication)
-        result = record_database_storage_publication(target, publication_path)
-    run_checked(["gh", "release", "upload", package["release_tag"], str(target / STORAGE_RECEIPT_FILE), "--clobber", "--repo", package["source_repository"]], repository)
-    receipt_state = json.loads(run_checked(
-        ["gh", "api", f"repos/{package['source_repository']}/releases/tags/{package['release_tag']}"],
-        repository,
-    ).stdout)
-    remote_receipt = next((item for item in receipt_state.get("assets", []) if item.get("name") == STORAGE_RECEIPT_FILE), None)
-    if remote_receipt is None or remote_receipt.get("size") != (target / STORAGE_RECEIPT_FILE).stat().st_size:
-        raise ValueError("GitHub Release Storage receipt upload could not be verified")
-    if remote_receipt.get("digest") != f"sha256:{sha256_file(target / STORAGE_RECEIPT_FILE)}":
-        raise ValueError("GitHub Release Storage receipt SHA-256 could not be verified")
+        write_json(receipt_path, receipt)
+        run_checked([
+            "gh", "release", "upload", package["release_tag"], str(receipt_path),
+            "--clobber", "--repo", package["source_repository"],
+        ], repository)
+        result = record_database_storage_publication(target, publication_path, receipt_path)
     return {"operation": "publish_database_storage", "repository_url": publication["repository_url"], "release_url": release_url, **result}
 
 

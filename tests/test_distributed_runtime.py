@@ -132,9 +132,40 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
 """,
             encoding="utf-8",
         )
-        (receipts / "storage_receipt.json").write_text(json.dumps({
-            "logical_content_fingerprint": "a" * 64,
-        }), encoding="utf-8")
+        logical_files = []
+        for item in runtime.snapshot_inventory(self.snapshot):
+            logical_files.append({**item, "locations": ["elements"]})
+        logical_fingerprint = runtime.fingerprint(logical_files)
+        manifest = {
+            "schema_version": "3.0.0",
+            "source_id": "grdr:source:synthetic",
+            "snapshot_id": "r1",
+            "logical_files": logical_files,
+            "logical_content_fingerprint": logical_fingerprint,
+            "snapshot_profile": {
+                "observation_replication": {"mode": "federated_on_demand"},
+                "observation_placement": {
+                    "locations": ["official_upstream"],
+                    "cache": {
+                        "mode": "on_demand",
+                        "research_project_snapshots": True,
+                        "root": "research_project",
+                    },
+                },
+            },
+            "external_observation_locations": [{
+                "type": "official_upstream",
+                "uri": "https://example.org/api",
+                "local_path": None,
+                "verification": "official_runtime_verified",
+                "logical_paths": [],
+                "content_fingerprint": "b" * 64,
+            }],
+        }
+        (receipts / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        receipt = {"logical_content_fingerprint": logical_fingerprint}
+        receipt["receipt_fingerprint"] = runtime.fingerprint(receipt)
+        (receipts / "storage_receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         self.card = {
             "schema_version": "2.0.0",
             "id": "grdr:source-archive:synthetic",
@@ -143,7 +174,7 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
             "latest_snapshot": "r1",
             "release": "https://github.com/example/synthetic/releases/tag/r1",
             "manifest": "https://github.com/example/synthetic/releases/download/r1/manifest.json",
-            "archive_fingerprint": "a" * 64,
+            "archive_fingerprint": logical_fingerprint,
             "core_version": "3.3.0",
             "status": "complete",
             "updated_at": "2026-08-23T00:00:00Z",
@@ -232,6 +263,18 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         self.assertEqual(resolved["datasets"][0]["id"], "grdr:dataset:synthetic-main")
         invoked = runtime.invoke_source_runtime([self.card], matches[0]["id"], "resolve-variable", self.root)
         self.assertEqual(invoked["result"]["status"], "ok")
+        self.assertEqual(invoked["observation_route"]["selected_route"], "official_upstream")
+
+    def test_verified_runtime_cache_invalidates_after_file_mutation(self) -> None:
+        first = runtime.local_snapshot_status(self.card, self.root, verify=True)
+        self.assertTrue(first["runtime_ready"])
+        second = runtime.local_snapshot_status(self.card, self.root, verify=True)
+        self.assertTrue(second["verification_cache_hit"])
+        entrypoint = self.snapshot / "agent" / "synthetic_runtime.py"
+        entrypoint.write_text(entrypoint.read_text(encoding="utf-8") + "# tampered\n", encoding="utf-8")
+        invalid = runtime.local_snapshot_status(self.card, self.root, verify=True)
+        self.assertFalse(invalid["runtime_ready"])
+        self.assertTrue(any("inventory differs" in item for item in invalid["errors"]))
 
     def test_persisted_elements_root_and_environment_override(self) -> None:
         state = self.root / "state"

@@ -86,6 +86,15 @@
             "research_project_snapshots": {"type": "boolean"},
             "root": {"enum": [null, "research_project"]}
           }
+        },
+        "capacity_estimate": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["estimated_total_bytes", "basis"],
+          "properties": {
+            "estimated_total_bytes": {"type": "integer", "minimum": 1},
+            "basis": {"type": "string", "minLength": 1}
+          }
         }
       }
     },
@@ -159,7 +168,7 @@
               "completeness": {
                 "properties": {
                   "claim": {"const": "complete_declared_partition_set"},
-                  "expected_file_count": {"type": ["integer", "null"], "minimum": 1},
+                  "expected_file_count": {"type": "integer", "minimum": 1},
                   "expected_partition_count": {"type": "integer", "minimum": 1}
                 }
               },

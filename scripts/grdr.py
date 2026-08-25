@@ -1284,7 +1284,9 @@ def record_database_storage_publication_command(args: argparse.Namespace) -> Non
 
     run_research_operation(
         "record_database_storage_publication",
-        lambda: record_database_storage_publication(args.project_dir, args.publication_file),
+        lambda: record_database_storage_publication(
+            args.project_dir, args.publication_file, args.receipt_file
+        ),
     )
 
 
@@ -1670,6 +1672,7 @@ def parser() -> argparse.ArgumentParser:
     )
     record_storage_publication.add_argument("project_dir")
     record_storage_publication.add_argument("publication_file")
+    record_storage_publication.add_argument("receipt_file", nargs="?")
     record_storage_publication.set_defaults(handler=record_database_storage_publication_command)
 
     publish_storage = commands.add_parser(

@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import datetime as dt
+import copy
 from pathlib import Path
 import re
 import shutil
@@ -20,6 +21,7 @@ from typing import Any, Iterable
 from grdr_paths import elements_root as configured_elements_root
 
 LOGICAL_COMPONENTS = {"knowledge", "agent", "observations"}
+_VERIFIED_SNAPSHOT_CACHE: dict[tuple[str, str, str, str], tuple[str, dict[str, Any]]] = {}
 
 
 class DistributedRuntimeError(ValueError):
@@ -115,6 +117,32 @@ def snapshot_inventory(snapshot: Path) -> list[dict[str, Any]]:
     return records
 
 
+def snapshot_stat_fingerprint(snapshot: Path) -> str:
+    """Bind a process-local verification cache to filesystem mutation state."""
+
+    records = []
+    roots = [snapshot / component for component in sorted(LOGICAL_COMPONENTS)]
+    roots.append(snapshot / "receipts")
+    for base in roots:
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*")):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(snapshot)
+            if any(part.startswith("._") or part == ".DS_Store" for part in relative.parts):
+                continue
+            stat = path.stat()
+            records.append({
+                "path": relative.as_posix(),
+                "size": stat.st_size,
+                "mtime_ns": stat.st_mtime_ns,
+                "ctime_ns": stat.st_ctime_ns,
+                "inode": stat.st_ino,
+            })
+    return fingerprint(records)
+
+
 def manifest_records_for_location(
     manifest: dict[str, Any],
     location: str,
@@ -170,7 +198,17 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
         status["errors"].append("runtime audit does not prove complete variable resolution")
     manifest_path = snapshot / "receipts" / "manifest.json"
     manifest = read_json(manifest_path) if manifest_path.is_file() else None
+    receipt_fingerprint = receipt.get("receipt_fingerprint")
+    if receipt_fingerprint is not None:
+        receipt_payload = {key: value for key, value in receipt.items() if key != "receipt_fingerprint"}
+        if fingerprint(receipt_payload) != receipt_fingerprint:
+            status["errors"].append("Elements Storage receipt fingerprint is invalid")
     if manifest is not None:
+        package_fingerprint = manifest.get("package_fingerprint")
+        if package_fingerprint is not None:
+            package_payload = {key: value for key, value in manifest.items() if key != "package_fingerprint"}
+            if fingerprint(package_payload) != package_fingerprint:
+                status["errors"].append("Elements manifest package fingerprint is invalid")
         if manifest.get("source_id") != card["source_id"] or manifest.get("snapshot_id") != card["latest_snapshot"]:
             status["errors"].append("Elements manifest identity differs from the central source card")
         if manifest.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
@@ -180,6 +218,18 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             status["snapshot_profile"] = profile
             status["observation_replication_mode"] = profile["observation_replication"]["mode"]
             status["observation_placements"] = profile["observation_placement"]["locations"]
+    cache_key = (
+        card["source_id"],
+        card["latest_snapshot"],
+        str(snapshot),
+        fingerprint(card),
+    )
+    stat_fingerprint = snapshot_stat_fingerprint(snapshot) if verify else None
+    cached = _VERIFIED_SNAPSHOT_CACHE.get(cache_key) if verify else None
+    if cached is not None and cached[0] == stat_fingerprint:
+        cached_status = copy.deepcopy(cached[1])
+        cached_status["verification_cache_hit"] = True
+        return cached_status
     status["runtime_ready"] = not status["errors"]
     status["runtime_audit"] = audit
     if verify:
@@ -210,8 +260,8 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             ]
             status["observation_location_verified"] = actual_observations == expected_observations
             if not status["observation_location_verified"]:
-                status["warnings"].append(
-                    "The callable snapshot is mounted, but the complete Elements observation placement is not materialized."
+                status["errors"].append(
+                    "Elements observation inventory differs from the location-aware snapshot manifest."
                 )
             status["location_inventory_verified"] = (
                 actual_knowledge_agent == expected_knowledge_agent
@@ -220,18 +270,62 @@ def local_snapshot_status(card: dict[str, Any], root: str | Path | None = None, 
             status["logical_parity_verified"] = status["location_inventory_verified"]
             status["computed_elements_inventory_fingerprint"] = fingerprint(records)
         status["runtime_ready"] = not status["errors"]
+        status["verification_cache_hit"] = False
+        if status["runtime_ready"] and stat_fingerprint is not None:
+            _VERIFIED_SNAPSHOT_CACHE[cache_key] = (stat_fingerprint, copy.deepcopy(status))
     return status
 
 
-def available_runtimes(cards: Iterable[dict[str, Any]], root: str | Path | None = None) -> list[tuple[dict[str, Any], Path]]:
+def available_runtimes(
+    cards: Iterable[dict[str, Any]],
+    root: str | Path | None = None,
+    *,
+    verify: bool = True,
+) -> list[tuple[dict[str, Any], Path]]:
     result = []
     for card in cards:
         if not isinstance(card.get("runtime"), dict):
             continue
-        status = local_snapshot_status(card, root)
+        status = local_snapshot_status(card, root, verify=verify)
         if status["runtime_ready"]:
             result.append((card, Path(status["snapshot_path"])))
     return result
+
+
+def observation_route_context(snapshot: Path) -> dict[str, Any]:
+    manifest_path = snapshot / "receipts" / "manifest.json"
+    manifest = read_json(manifest_path) if manifest_path.is_file() else {}
+    profile = manifest.get("snapshot_profile", {})
+    replication = profile.get("observation_replication", {})
+    placement = profile.get("observation_placement", {})
+    locations = placement.get("locations", [])
+    local_observations = snapshot / "observations"
+    external_locations = manifest.get("external_observation_locations", [])
+    mounted = next(
+        (
+            item for item in external_locations
+            if item.get("type") == "object_store"
+            and item.get("local_path")
+            and Path(item["local_path"]).is_dir()
+        ),
+        None,
+    )
+    if local_observations.is_dir():
+        selected_route = "elements_mirror"
+        observation_root = str(local_observations)
+    elif mounted is not None:
+        selected_route = "mounted_object_store"
+        observation_root = str(Path(mounted["local_path"]) / "observations")
+    else:
+        selected_route = "official_upstream"
+        observation_root = ""
+    return {
+        "replication_mode": replication.get("mode", "legacy_or_unknown"),
+        "placements": locations,
+        "selected_route": selected_route,
+        "observation_root": observation_root,
+        "external_locations": external_locations,
+    }
 
 
 def records_by_type(connection: sqlite3.Connection, entity_type: str) -> list[dict[str, Any]]:
@@ -746,10 +840,21 @@ def invoke_source_runtime(
             except (IndexError, ValueError):
                 pass
         command = [sys.executable, str(entrypoint), operation, "--index", str(index), "--variable-id", variable_id, *arguments]
+        route_context = observation_route_context(snapshot)
+        runtime_environment = {
+            **os.environ,
+            "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
+            "GRDR_OBSERVATION_REPLICATION_MODE": route_context["replication_mode"],
+            "GRDR_OBSERVATION_PLACEMENTS": json.dumps(route_context["placements"], separators=(",", ":")),
+            "GRDR_OBSERVATION_ROUTE": route_context["selected_route"],
+            "GRDR_OBSERVATION_ROOT": route_context["observation_root"],
+            "GRDR_OBSERVATION_EXTERNAL_LOCATIONS": json.dumps(route_context["external_locations"], separators=(",", ":")),
+        }
         try:
             completed = subprocess.run(
                 command,
                 cwd=entrypoint.parent,
+                env=runtime_environment,
                 capture_output=True,
                 text=True,
                 timeout=invocation_timeout,
@@ -768,6 +873,7 @@ def invoke_source_runtime(
             "source_id": card["source_id"],
             "snapshot_id": card["latest_snapshot"],
             "runtime_protocol": card["runtime"]["protocol_version"],
+            "observation_route": route_context,
             "result": result,
         }
     raise DistributedRuntimeError(f"variable is absent from every locally available source runtime: {variable_id}")
@@ -986,5 +1092,9 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
         shutil.move(str(logical), str(destination))
     status = local_snapshot_status(card, root, verify=True)
     if not status["runtime_ready"]:
-        raise DistributedRuntimeError("materialized callable snapshot failed final verification")
+        shutil.rmtree(destination, ignore_errors=True)
+        raise DistributedRuntimeError(
+            "materialized callable snapshot failed final verification: "
+            + "; ".join(status["errors"])
+        )
     return {"status": "materialized", **status}

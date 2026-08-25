@@ -53,6 +53,10 @@ class SkillPortabilityTests(unittest.TestCase):
                     str(pointer),
                     "--elements-root",
                     str(elements),
+                    "--github-observation-max-gib",
+                    "5",
+                    "--elements-full-mirror-max-gib",
+                    "10",
                 ],
                 cwd=root,
                 env={**os.environ, "GRDR_STATE_ROOT": str(state)},
@@ -61,8 +65,20 @@ class SkillPortabilityTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             config = json.loads((state / "config.json").read_text(encoding="utf-8"))
-            self.assertEqual(config["schema_version"], "1.0.0")
+            self.assertEqual(config["schema_version"], "1.1.0")
             self.assertEqual(config["elements_root"], str(elements.resolve()))
+            self.assertEqual(
+                config["storage_capacity_policy"]["github_release_observation_max_bytes"],
+                5 * 1024 ** 3,
+            )
+            self.assertEqual(
+                config["storage_capacity_policy"]["elements_full_mirror_max_bytes"],
+                10 * 1024 ** 3,
+            )
+            self.assertLess(
+                config["storage_capacity_policy"]["github_release_asset_max_bytes"],
+                2 * 1024 ** 3,
+            )
 
     def test_all_installed_skill_launchers_work_from_an_arbitrary_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

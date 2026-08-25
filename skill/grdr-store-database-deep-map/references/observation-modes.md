@@ -2,6 +2,21 @@
 
 Choose after Execute is sealed. Do not use database size to weaken `knowledge_scope`; size affects only observation replication and placement.
 
+## Deployment-local capacity policy
+
+Run `scripts/configure_core.py --github-observation-max-gib 5 --elements-full-mirror-max-gib 10` to set adjustable deployment thresholds. Storage measures the actual captured bytes before copying and rejects a GitHub or Elements placement that exceeds its configured limit. It also records the exact thresholds and decision in `snapshot_profile.capacity_assessment`.
+
+GitHub's platform limit is separate: every Release asset must remain below 2 GiB. The configurable GitHub observation threshold controls the total observation bytes assigned to one database Release; it does not override the per-file platform limit.
+
+For partitioned or federated sources, optionally add this to `observation_policy` so classification uses the estimated full upstream size instead of the captured subset:
+
+```json
+"capacity_estimate": {
+  "estimated_total_bytes": 53687091200,
+  "basis": "Official catalog inventory measured on the snapshot date."
+}
+```
+
 ## Full mirror
 
 Use when every observation file inside the locked scope will be copied.
@@ -53,6 +68,8 @@ Use when the snapshot deliberately copies a declared partition set.
 ```
 
 Every `observation_inputs[].name` is one captured partition. The partition manifest is copied into knowledge and fingerprinted.
+
+The manifest must validate against `observation_partition_manifest.schema.json`. Its Source and snapshot IDs, partition names, machine-readable boundary descriptions, relative file paths, sizes, SHA-256 values, partition count, and file count must exactly match the captured observation inventory.
 
 ## Federated on demand
 

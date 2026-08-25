@@ -125,6 +125,30 @@
               }
             }
           }
+        },
+        "capacity_assessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy_source", "estimated_total_bytes", "estimate_basis", "captured_bytes", "size_class", "github_release_observation_max_bytes", "elements_full_mirror_max_bytes", "github_release_asset_max_bytes", "selected_mode", "selected_placements", "recommendation", "policy_compliant"],
+          "properties": {
+            "policy_source": {"type": "string", "minLength": 1},
+            "estimated_total_bytes": {"type": ["integer", "null"], "minimum": 0},
+            "estimate_basis": {"type": "string", "minLength": 1},
+            "captured_bytes": {"type": "integer", "minimum": 0},
+            "size_class": {"enum": ["small", "medium", "large", "unknown"]},
+            "github_release_observation_max_bytes": {"type": "integer", "minimum": 1},
+            "elements_full_mirror_max_bytes": {"type": "integer", "minimum": 1},
+            "github_release_asset_max_bytes": {"type": "integer", "minimum": 1},
+            "selected_mode": {"enum": ["full_mirror", "partitioned_mirror", "federated_on_demand"]},
+            "selected_placements": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"enum": ["github_release", "elements", "object_store", "official_upstream", "research_project_cache"]}
+            },
+            "recommendation": {"type": "string", "minLength": 1},
+            "policy_compliant": {"const": true}
+          }
         }
       }
     },

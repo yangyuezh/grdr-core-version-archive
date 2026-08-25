@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grdr.dev/schemas/observation_partition_manifest.schema.json",
+  "title": "GRDR observation partition manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_id", "snapshot_id", "partition_count", "file_count", "partitions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "source_id": {"type": "string", "pattern": "^grdr:source:[a-z0-9][a-z0-9-]*$"},
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "partition_count": {"type": "integer", "minimum": 1},
+    "file_count": {"type": "integer", "minimum": 1},
+    "partitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "boundary", "files"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "boundary": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": true,
+            "required": ["description", "selectors"],
+            "properties": {
+              "description": {"type": "string", "minLength": 1},
+              "selectors": {"type": "object", "minProperties": 1, "additionalProperties": true}
+            }
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["relative_path", "sha256", "size_bytes"],
+              "properties": {
+                "relative_path": {"type": "string", "minLength": 1},
+                "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "size_bytes": {"type": "integer", "minimum": 0}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

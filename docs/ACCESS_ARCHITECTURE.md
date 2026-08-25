@@ -42,16 +42,19 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 - Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
 - Source repositories reference a Core version; they never copy Core Skills.
+- External runtime configuration owns adjustable GitHub-observation and Elements-full-mirror thresholds. The snapshot records the exact policy and measured bytes used for its decision.
 
 Storage may promote sealed records into external state after validation. It must never promote them into the immutable Core checkout.
 
 ## Observation replication modes
 
 - `full_mirror`: capture every declared observation file within the locked knowledge scope and verify the declared file denominator.
-- `partitioned_mirror`: capture the complete declared partition set, preserve its partition manifest, and state explicitly that completeness applies to that set.
+- `partitioned_mirror`: capture the complete declared partition set and require exact agreement among its Schema-valid partition manifest, boundary descriptions, input names, member paths, sizes, hashes, and denominators.
 - `federated_on_demand`: preserve complete structure, variables, semantics, evidence, official routes, and a fully resolvable source runtime while keeping observation bytes at the official upstream.
 
 Every mode records a separate knowledge-scope claim, observation-completeness claim, and placement list. These claims are not interchangeable.
+
+Before every normal search, resolution, or invocation, Agent Runtime verifies the complete manifest-bound Elements inventory. It passes the selected `elements_mirror`, `mounted_object_store`, or `official_upstream` route context to the source-specific runtime. A missing location that claims a copy is an error, not a warning.
 
 ## On-demand research data
 

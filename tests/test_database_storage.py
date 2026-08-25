@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -24,13 +25,16 @@ from database_deep_map import (  # noqa: E402
     start_database_deep_map,
 )
 from database_storage import (  # noqa: E402
+    assess_storage_capacity,
     audit_database_storage,
+    build_storage_receipt,
     build_agent_index,
     checked_files,
     HUMAN_READABLE_MARKER,
     prepare_database_storage,
     publication_asset_records,
     record_database_storage_publication,
+    sha256_file,
     write_source_readme,
 )
 
@@ -388,7 +392,51 @@ print(json.dumps({
             publication["publication_fingerprint"] = fingerprint(publication)
             publication_path = root / "publication.json"
             publication_path.write_text(json.dumps(publication), encoding="utf-8")
-            completed = record_database_storage_publication(project_dir, publication_path)
+            project_value = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))
+            receipt = build_storage_receipt(
+                project_value, package, publication, "2026-08-22T00:01:00Z"
+            )
+            receipt_path = root / "receipt.json"
+            receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            with patch(
+                "database_storage.verify_github_publication",
+                side_effect=ValueError("remote receipt verification failed"),
+            ):
+                with self.assertRaisesRegex(ValueError, "remote receipt verification failed"):
+                    record_database_storage_publication(project_dir, publication_path, receipt_path)
+            self.assertFalse((project_dir / "storage_receipt.json").exists())
+            self.assertFalse((project_dir / "storage_publication.json").exists())
+            self.assertEqual((external_registry / "source_archives.jsonl").read_text(), "")
+
+            def verified_publication(package_value, publication_value, candidate_receipt_path):
+                verification = {
+                    "schema_version": "1.0.0",
+                    "project_id": package_value["project_id"],
+                    "source_id": package_value["source_id"],
+                    "snapshot_id": package_value["snapshot_id"],
+                    "repository_url": publication_value["repository_url"],
+                    "release_url": publication_value["release_url"],
+                    "release_tag": publication_value["release_tag"],
+                    "source_repository_commit": publication_value["source_repository_commit"],
+                    "assets": publication_value["assets"],
+                    "receipt_asset": {
+                        "name": "storage_receipt.json",
+                        "sha256": sha256_file(candidate_receipt_path),
+                        "size_bytes": candidate_receipt_path.stat().st_size,
+                    },
+                    "verified_at": "2026-08-22T00:02:00Z",
+                }
+                verification["verification_fingerprint"] = fingerprint(verification)
+                return verification
+
+            with patch(
+                "database_storage.verify_github_publication",
+                side_effect=verified_publication,
+            ):
+                completed = record_database_storage_publication(
+                    project_dir, publication_path, receipt_path
+                )
             self.assertTrue(completed["audit"]["storage_complete"])
             self.assertTrue(audit_database_deep_map(project_dir)["completion_ready"])
             self.assertEqual(
@@ -398,9 +446,28 @@ print(json.dumps({
 
             partition_project = root / "project-partitioned"
             shutil.copytree(sealed_template, partition_project)
+            partition_observation = partition_project / "raw_observations" / "observations.csv"
             partition_manifest = root / "partition-manifest.json"
             partition_manifest.write_text(
-                json.dumps({"partitions": [{"name": "main", "path": "raw_observations/observations.csv"}]}),
+                json.dumps({
+                    "schema_version": "1.0.0",
+                    "source_id": "grdr:source:synthetic-example",
+                    "snapshot_id": "2026-08-22-r2",
+                    "partition_count": 1,
+                    "file_count": 1,
+                    "partitions": [{
+                        "name": "main",
+                        "boundary": {
+                            "description": "The complete synthetic fixture partition.",
+                            "selectors": {"unit": ["example"], "year": [2026]},
+                        },
+                        "files": [{
+                            "relative_path": "observations.csv",
+                            "sha256": sha256_file(partition_observation),
+                            "size_bytes": partition_observation.stat().st_size,
+                        }],
+                    }],
+                }),
                 encoding="utf-8",
             )
             partition_spec = json.loads(json.dumps(spec))
@@ -435,7 +502,7 @@ print(json.dumps({
             }
             partition_spec["observation_inputs"] = [{
                 "name": "main",
-                "path": str(partition_project / "raw_observations" / "observations.csv"),
+                "path": str(partition_observation),
             }]
             partition_spec_path = root / "partition-storage-spec.json"
             partition_spec_path.write_text(json.dumps(partition_spec), encoding="utf-8")
@@ -515,6 +582,54 @@ print(json.dumps({
         modes = schema["properties"]["observation_policy"]["properties"]["replication_mode"]["enum"]
         self.assertEqual(modes, ["full_mirror", "partitioned_mirror", "federated_on_demand"])
         self.assertNotIn("minItems", schema["properties"]["observation_inputs"])
+
+    def test_capacity_thresholds_are_external_and_mode_independent(self) -> None:
+        base_policy = {
+            "replication_mode": "full_mirror",
+            "placements": ["elements"],
+        }
+        with patch.dict(os.environ, {
+            "GRDR_GITHUB_OBSERVATION_MAX_BYTES": "5",
+            "GRDR_ELEMENTS_FULL_MIRROR_MAX_BYTES": "10",
+        }):
+            medium = assess_storage_capacity(
+                {"observation_policy": base_policy},
+                [{"size_bytes": 6}],
+            )
+            self.assertEqual(medium["size_class"], "medium")
+            github_policy = json.loads(json.dumps(base_policy))
+            github_policy["placements"] = ["github_release", "elements"]
+            with self.assertRaisesRegex(ValueError, "GitHub Release observation limit"):
+                assess_storage_capacity(
+                    {"observation_policy": github_policy},
+                    [{"size_bytes": 6}],
+                )
+            large = assess_storage_capacity(
+                {"observation_policy": {
+                    "replication_mode": "federated_on_demand",
+                    "placements": ["official_upstream"],
+                    "capacity_estimate": {
+                        "estimated_total_bytes": 11,
+                        "basis": "Synthetic upstream estimate.",
+                    },
+                }},
+                [],
+            )
+            self.assertEqual(large["size_class"], "large")
+            self.assertEqual(large["captured_bytes"], 0)
+        with patch.dict(os.environ, {
+            "GRDR_GITHUB_OBSERVATION_MAX_BYTES": "10",
+            "GRDR_ELEMENTS_FULL_MIRROR_MAX_BYTES": "5",
+        }):
+            github_only = assess_storage_capacity(
+                {"observation_policy": {
+                    "replication_mode": "full_mirror",
+                    "placements": ["github_release"],
+                }},
+                [{"size_bytes": 6}],
+            )
+            self.assertEqual(github_only["size_class"], "medium")
+            self.assertIn("github_release", github_only["recommendation"])
 
     def test_macos_filesystem_sidecars_are_not_storage_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

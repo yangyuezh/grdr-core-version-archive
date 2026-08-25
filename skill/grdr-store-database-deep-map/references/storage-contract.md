@@ -13,6 +13,7 @@ Storage must persist three independent properties:
 1. `knowledge_scope`: inherit the Plan scope mode, completion claim, boundary, snapshot time, and scope fingerprint without modification;
 2. `observation_replication`: select `full_mirror`, `partitioned_mirror`, or `federated_on_demand` and state the exact completeness basis;
 3. `observation_placement`: declare every actual or on-demand location: `github_release`, `elements`, `object_store`, `official_upstream`, or `research_project_cache`.
+4. `capacity_assessment`: record the deployment-local thresholds, actual captured bytes, optional upstream-size estimate, policy-relative size class, selected mode and placements, and compliance result.
 
 Knowledge completeness never implies observation replication completeness, and reduced observation custody never permits reduced knowledge depth.
 
@@ -30,7 +31,7 @@ Raw observation files must never enter `knowledge/`. Exclude every observation i
 ## Mode obligations
 
 - `full_mirror`: require nonzero observation inputs and exact agreement with the declared file denominator.
-- `partitioned_mirror`: require nonzero inputs, a preserved partition manifest, and exact agreement with the declared file and partition denominators.
+- `partitioned_mirror`: require nonzero inputs, a Schema-valid partition manifest, and exact agreement among partition boundaries, names, file paths, sizes, SHA-256 values, and declared file and partition denominators.
 - `federated_on_demand`: require zero local observation inputs, an `official_upstream` location, and a runtime that resolves every indexed Variable.
 
 GitHub observation archives are optional. Elements observation bytes are optional. A mounted object-store copy must be copied and hashed before completion. Research-project caches are derived use-plane artifacts and never mutate the canonical source snapshot.
@@ -43,9 +44,9 @@ GitHub observation archives are optional. Elements observation bytes are optiona
 4. Build the knowledge and Agent artifacts, exclude observation roots, and run the source runtime's offline full-variable self-test.
 5. Apply the observation replication and placement policy, build each declared inventory, and prove no cross-component duplicate.
 6. Generate Release assets and source-repository files.
-7. Verify every claimed location and GitHub publication by read-back.
-8. Seal the Storage receipt.
-9. Write the central source-archive card to external GRDR state and prove Core remained byte-identical.
+7. Verify every claimed location and the non-receipt GitHub publication assets by read-back.
+8. Build and upload the Storage receipt, then read back and verify its exact size and SHA-256 plus the Release tag and source-repository commit.
+9. Transactionally seal publication evidence and receipts, then write the central source-archive card to external GRDR state and prove Core remained byte-identical.
 
 Never write the central card before verified publication. Never reuse a snapshot ID for different bytes. Use a new snapshot for every changed upstream boundary, observation payload, completeness claim, or placement policy.
 

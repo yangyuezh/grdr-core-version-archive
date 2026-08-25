@@ -12,11 +12,11 @@ GRDR Core fixes the workflow as three independent, Agent-callable Skills:
 2. `grdr-execute-database-deep-map` follows the deterministic queue, reconstructs native structure and disciplinary semantics, builds the DataElement → Variable → Construct bridge, and seals the execution without canonical writes.
 3. `grdr-store-database-deep-map` transactionally promotes sealed records, inherits the locked knowledge scope, selects full-mirror, partitioned-mirror, or federated observation handling, publishes the callable knowledge and Runtime artifacts, verifies every declared location, writes the central source card, and issues the final Storage receipt.
 
-These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, mounts a verified snapshot, resolves a variable to its source-native access plan, and invokes the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
+These three Skills are the database production plane. The independent GRDR Agent Runtime is the use plane: it searches central and distributed variable indexes, performs full manifest and SHA-256 verification before treating a snapshot as callable, resolves a variable to its source-native access plan, and passes the sealed observation-route context to the source-specific runtime. Storage packages and tests the runtime artifact; it does not own search, matching, or retrieval behavior.
 
 ## Research use plane
 
-GRDR has six formal Skills in total. `grdr` is the coordinator; the three Skills above produce database snapshots; `grdr-indicator-builder` converts a research question and literature into evidence-linked leaf indicators; and `grdr-resolve-research-semantics` persists the missing R→B entry bridge, traverses the stored B→A graph, evaluates variable fit, explains every selected route, and invokes official data through the source runtime. Agent Runtime and source-specific runtimes are versioned execution code rather than additional Skills.
+GRDR has six formal Skills in total. `grdr` is the coordinator; the three Skills above produce database snapshots; `grdr-indicator-builder` converts a research question and literature into evidence-linked leaf indicators; and `grdr-resolve-research-semantics` persists the missing R→B entry bridge, traverses the stored B→A graph, evaluates variable fit, explains every selected route, and invokes the verified local, mounted, or official observation route through the source runtime. Agent Runtime and source-specific runtimes are versioned execution code rather than additional Skills.
 
 ## Core architecture
 
@@ -26,7 +26,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.1.1<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.2.0<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -45,7 +45,7 @@ flowchart TB
         BUILD_OV["<b>Skill 5 · Indicator Builder</b><br/>question + literature → evidence-linked R"]:::research
         SEM_OV["<b>Skill 6 · Semantic Resolver</b><br/>recall → R→B → B→A → fit → invocation"]:::semantic
         RUN_OV["Agent Runtime + source runtime<br/><i>execution code, not additional Skills</i><br/>search · mount · resolve · call"]:::runtime
-        OUT_OV["Official data<br/>+ path + provenance + uncertainty"]:::result
+        OUT_OV["Verified observations<br/>local · mounted · official upstream<br/>+ path + provenance + uncertainty"]:::result
         BUILD_OV --> SEM_OV --> RUN_OV --> OUT_OV
     end
 
@@ -171,6 +171,7 @@ flowchart TB
             direction TB
             S_PROMOTE["Transactional external-state promotion<br/>audit sealed execution · Core remains byte-identical"]:::storage
             S_PROFILE["Three immutable snapshot properties<br/><b>knowledge scope</b> inherited from Plan<br/><b>observation replication</b> + <b>observation placement</b> decided by Storage"]:::storageStrong
+            S_CAPACITY["Deployment-local capacity assessment<br/>measure bytes before copying · optional upstream estimate<br/>adjustable GitHub + Elements thresholds<br/><i>size never reduces knowledge depth</i>"]:::storage
             S_PACKAGE["Build one source-scoped callable snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source runtime"]:::storageStrong
             S_MODES["Observation replication modes<br/><b>full mirror</b> · <b>partitioned mirror</b> · <b>federated on demand</b><br/>each with an explicit completeness claim"]:::storage
 
@@ -179,28 +180,27 @@ flowchart TB
             S_ELEMENTS["Elements · expanded callable copy<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
             S_LARGE["Large-data placement<br/>mounted object store / large disk<br/>partition inventory + SHA-256"]:::artifact
             S_UPSTREAM["Official upstream<br/>federated observations remain authoritative<br/>verified source runtime + access routes"]:::external
-            S_CACHE["On-demand research-project cache<br/>query-scoped data snapshot + manifest<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
+            S_CACHE["Use-plane derivative after Storage<br/>on-demand research-project data snapshot<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
             S_MANIFEST["Location-aware manifest<br/>every logical file → exact locations + SHA-256<br/><b>knowledge never contains raw observations</b><br/>no logical file appears in two packages accidentally"]:::verify
-            S_VERIFY["Read-back publication verification<br/>source runtime resolves every indexed Variable"]:::verify
-            S_RECEIPT["Valid Storage receipt<br/><b>versioned_database_snapshot</b>"]:::handoff
+            S_VERIFY["Read-back publication verification<br/>repository · tag → exact commit · every asset hash<br/>upload + read back final Storage receipt"]:::verify
+            S_RECEIPT["Receipt verified remotely, then sealed locally<br/><b>versioned_database_snapshot</b>"]:::handoff
             S_CARD["External GRDR state source-archive card<br/>Source ID · repository · snapshot · Release<br/>fingerprint · completion status"]:::shared
 
-            SEALED --> S_PROMOTE --> S_PROFILE --> S_PACKAGE
-            S_PROFILE --> S_MODES
+            SEALED --> S_PROMOTE --> S_PROFILE --> S_CAPACITY --> S_PACKAGE
+            S_CAPACITY --> S_MODES
             S_PACKAGE --> S_REPO
             S_PACKAGE --> S_RELEASE
             S_PACKAGE --> S_ELEMENTS
             S_MODES --> S_LARGE
             S_MODES --> S_UPSTREAM
-            S_MODES --> S_CACHE
             S_RELEASE --> S_MANIFEST
             S_ELEMENTS --> S_MANIFEST
             S_LARGE --> S_MANIFEST
             S_UPSTREAM --> S_MANIFEST
-            S_CACHE -. "query-scoped derivative; not canonical snapshot bytes" .-> S_MANIFEST
             S_REPO --> S_VERIFY
             S_MANIFEST --> S_VERIFY
             S_VERIFY --> S_RECEIPT --> S_CARD
+            S_CARD -. "later Agent query" .-> S_CACHE
         end
 
     classDef shared fill:#E8F1F5,stroke:#5E879A,color:#173B57,stroke-width:1.5px;
@@ -218,7 +218,17 @@ flowchart TB
 
 数据库规模只影响**原始观测数据的复制方式与物理存放位置**，不得降低知识解析深度。无论数据库通常被称为小型、中型还是大型，GRDR 都必须在 Plan 锁定、Execute 验证的知识范围内，完整保存数据库结构、变量语义、方法证据和 Agent 调用能力。这里的“完整”始终对应快照中明确声明的 `knowledge_scope`，不能把局部样本冒充整个上游数据库。
 
-“小型／中型／大型”只是帮助选择 Storage 策略的常见经验，不是互斥分类，也不是 Schema 字段。实际快照必须记录三个相互独立的属性：Plan 继承的 `knowledge_scope`、Storage 选择的 `observation_replication` 和可多选的 `observation_placement`。
+“小型／中型／大型”是当前部署容量策略根据字节数计算出的可调建议，不是数据库固有身份，也不改变三项核心快照属性。实际快照必须记录 Plan 继承的 `knowledge_scope`、Storage 选择的 `observation_replication`、可多选的 `observation_placement`，并附带 `capacity_assessment`，保存当时实际使用的阈值、测量字节数、估计依据、分类和决策。以后硬件升级只需调整外部参数，不需要修改 Skill。
+
+当前默认参数如下。前两项可以在外部配置中调整；第三项是 GitHub 平台的单文件硬约束，不能通过 GRDR 参数突破。
+
+| 参数 | 当前默认值 | 超过后的实际行为 | 是否可调 |
+|---|---:|---|---|
+| `github_release_observation_max_bytes` | 5 GiB | 不允许把该快照的观测数据配置到 GitHub Release；知识和 Agent 制品仍照常发布 | 是 |
+| `elements_full_mirror_max_bytes` | 10 GiB | 不允许继续选择 Elements 完整镜像；改用分区镜像、联邦调用或具备容量的挂载存储 | 是 |
+| `github_release_asset_max_bytes` | 严格低于 2 GiB／文件 | 任何知识、Agent 或观测 Release 文件超限都必须重新分包，不能发布 | 只能调低，不能超过平台上限 |
+
+默认推荐分类为：不超过 GitHub 阈值是“小型”；超过 GitHub 阈值但不超过 Elements 完整镜像阈值是“中型”；超过 Elements 阈值是“大型”。分区或联邦快照如果没有可靠的上游总体量估计，则分类明确记为 `unknown`，不会用已经复制的局部数据量冒充整个数据库规模。
 
 | 内容或能力 | 所有数据库的硬性规则 | 常见小型数据库 | 常见中型数据库 | 常见大型或持续更新数据库 |
 |---|---|---|---|---|
@@ -243,9 +253,9 @@ flowchart TB
 
 | Storage 模式 | 适用判断 | 快照中的原始观测数据 | 允许的主要位置 | 强制完整性声明 | Agent 使用方式 | 完成前必须核验 |
 |---|---|---|---|---|---|---|
-| `full_mirror` 完整镜像 | 锁定范围内的全部观测文件能够复制和持续管理；常见于小型或可控的中型数据库 | 声明范围内全部复制 | GitHub Release、Elements、挂载对象存储，可多选；GitHub 不是必选 | `complete_within_knowledge_scope` | 从已经核验的镜像直接读取 | 权威文件分母、预期与实际文件数、逐文件 SHA-256、物理位置可读性 |
-| `partitioned_mirror` 分区镜像 | 只复制明确且有研究价值的年份、国家、主题或其他分区；常见于中型或可分区的大型数据库 | 仅复制分区清单中声明的完整分区 | GitHub Release、Elements、挂载对象存储，可配研究项目缓存 | `complete_declared_partition_set` | 优先读取本地分区；范围外数据按已登记的官方访问路径处理 | 分区清单、分区边界、预期与实际分区数和文件数、逐文件 SHA-256 |
-| `federated_on_demand` 联邦按需调用 | 整体复制不合理、数据持续更新，或官方查询服务更适合调用；常见于大型数据库 | 规范快照中不复制原始观测文件 | `official_upstream`，可配 `research_project_cache`；不得伪装为本地镜像 | `knowledge_complete_observations_federated` | Runtime 从官方服务按变量和查询参数获取；需要复现时封存研究项目快照 | 官方地址、来源专属 Runtime、变量解析、查询参数、返回结果和项目快照哈希 |
+| `full_mirror` 完整镜像 | 锁定范围内的全部观测文件能够复制和持续管理，且所选物理位置没有超过其配置阈值 | 声明范围内全部复制 | GitHub Release、Elements、挂载对象存储，可多选；GitHub 不是必选 | `complete_within_knowledge_scope` | Runtime 获得位置上下文并使用已核验的 Elements 或挂载镜像 | 权威文件分母、预期与实际文件数、实际字节数、逐文件 SHA-256、所选位置和容量策略 |
+| `partitioned_mirror` 分区镜像 | 只复制明确且有研究价值的年份、国家、主题或其他分区 | 仅复制分区清单中声明的完整分区 | GitHub Release、Elements、挂载对象存储，可配研究项目缓存 | `complete_declared_partition_set` | Runtime 优先使用已核验的本地／挂载分区；范围外数据只有在登记了官方路径时才联邦调用 | Schema 有效的分区清单；每个分区的边界、名称、成员路径、大小、SHA-256；预期与实际分区数和文件数完全一致 |
+| `federated_on_demand` 联邦按需调用 | 整体复制不合理、数据持续更新，或官方查询服务更适合调用 | 规范快照中不复制原始观测文件 | `official_upstream`，可声明未来允许 `research_project_cache`；不得伪装为本地镜像 | `knowledge_complete_observations_federated` | Runtime 从已核验的官方服务按变量和参数获取；查询发生后才可封存研究项目快照 | **Storage 完成时**只核验官方地址、来源专属 Runtime 和全部变量可解析；查询结果和项目快照哈希属于以后实际调用的验收，不是 Storage 完成条件 |
 
 选择顺序是：先锁定并完成同等深度的知识解析，再根据观测数据的实际体量、分区性、更新频率、官方接口和可维护性选择模式。不得先用“数据库很大”作为理由缩减知识范围，也不得为了宣称完整而把未复制的数据写成已经镜像。
 
@@ -258,7 +268,7 @@ flowchart TB
 - `location-aware manifest` 必须记录每个逻辑文件的实际位置和哈希，使 Agent 能确认不同位置对应同一快照，而不是两个互相冲突的版本。
 - 研究项目缓存是带查询范围和来源证据的派生快照，不得冒充数据库的规范观测镜像。
 
-### 3. Research use plane: R → B → A → official data
+### 3. Research use plane: R → B → A → verified observation route
 
 ```mermaid
 flowchart TB
@@ -291,12 +301,18 @@ flowchart TB
     HUMAN -. "approve contested decisions" .-> FIT
 
     SOURCE_RUNTIME["Source-specific callable runtime<br/>verified adapter + exact snapshot + access plan"]:::runtime
+    ROUTER["Location-aware observation router<br/>sealed mode + placements + verified paths"]:::runtime
+    LOCAL["Verified Elements mirror<br/>full or declared partitions"]:::local
+    MOUNTED["Verified mounted mirror<br/>object store / large disk"]:::local
     UPSTREAM["Authoritative upstream route<br/>official API · file · query service"]:::external
     RESULT["Research-ready output<br/>data + source + snapshot + Variable<br/>alignment/path + provenance + uncertainty"]:::result
     GAP["Data-gap diagnosis<br/>missing construct · variable · population · unit<br/>time · space · modality · joinability"]:::gap
     EXPAND["Expansion and rerun<br/>discover or deepen source → Plan → Execute → Storage<br/>→ rebuild recall/alignment/path → rerun matching"]:::shared
 
-    INVOKE --> SOURCE_RUNTIME --> UPSTREAM --> RESULT
+    INVOKE --> SOURCE_RUNTIME --> ROUTER
+    ROUTER -->|"elements_mirror"| LOCAL --> RESULT
+    ROUTER -->|"mounted_object_store"| MOUNTED --> RESULT
+    ROUTER -->|"official_upstream"| UPSTREAM --> RESULT
     FIT -->|"not_found_registry_snapshot / incompatible"| GAP --> EXPAND
 
     classDef research fill:#FDECF1,stroke:#C76884,color:#6E243D,stroke-width:1.5px;
@@ -306,6 +322,7 @@ flowchart TB
     classDef resolver fill:#EEE9FF,stroke:#7B62C5,color:#3F2A72,stroke-width:1.5px;
     classDef resolverStrong fill:#DED3FF,stroke:#6646B7,color:#3F2A72,stroke-width:2px;
     classDef runtime fill:#E5F3FF,stroke:#4787B8,color:#173B57,stroke-width:2px;
+    classDef local fill:#E7F6EC,stroke:#4D9B63,color:#204F2D,stroke-width:2px;
     classDef external fill:#FFFFFF,stroke:#64748B,color:#263849,stroke-width:1.5px;
     classDef result fill:#DDF7E7,stroke:#3D9158,color:#1F5A31,stroke-width:2px;
     classDef gap fill:#FFF0F0,stroke:#C65C5C,color:#722E2E,stroke-width:2px;
@@ -348,6 +365,11 @@ python3 scripts/configure_core.py
 # Persist an external Elements root once for all Agent Runtime commands.
 python3 scripts/configure_core.py --elements-root /absolute/path/to/GRDR
 
+# Optional deployment policy; change these values later as storage hardware changes.
+python3 scripts/configure_core.py \
+  --github-observation-max-gib 5 \
+  --elements-full-mirror-max-gib 10
+
 # Optional: choose another external mutable-state location.
 export GRDR_STATE_ROOT=/absolute/path/outside/grdr-core
 
@@ -387,4 +409,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.1.1` completes the deployable v4.1 line: Storage remains scale-independent, ordinary search prefers latest callable snapshots, persisted research mappings are invalidated when their source snapshot is superseded, and an external Elements root can be configured once. Knowledge scope remains locked to Plan, observation replication and placement stay explicit, and raw observations remain forbidden from the knowledge package.
+Version `4.2.0` closes the scalable-Storage and Runtime trust boundary: deployment-local capacity thresholds are adjustable and sealed into each snapshot decision; partition manifests must exactly match their copied members; every normal Runtime operation fully verifies the local manifest-bound inventory; mirror, mounted, and upstream routes are explicit; and a snapshot cannot become complete until its final Storage receipt has been uploaded to GitHub and verified by read-back. Knowledge scope remains locked to Plan, and raw observations remain forbidden from the knowledge package.

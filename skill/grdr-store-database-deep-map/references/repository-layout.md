@@ -46,6 +46,7 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 ├── observations/<partition>/...       # only when placed on Elements
 └── receipts/
     ├── manifest.json
+    ├── storage_publication_verification.json
     └── storage_receipt.json
 ```
 
