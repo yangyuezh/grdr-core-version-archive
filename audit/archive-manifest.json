@@ -1,0 +1,18 @@
+{
+  "archive_role": "software_version_audit",
+  "canonical_release_count": 19,
+  "coverage": {
+    "earliest_preserved": "0.1.0",
+    "formal_4_0_0_release_found": false,
+    "latest_preserved": "4.5.0",
+    "requested_from": "1.0.0",
+    "requested_through": "4.5.0",
+    "v4_0_0_candidate_preserved": true
+  },
+  "pre_1_0_provenance_count": 8,
+  "record_count": 34,
+  "schema_version": "1.0.0",
+  "version_ledger_csv_sha256": "0b95540adf026893920c4806a2fea936f2ffd28196013b75ba63eac60317dc6c",
+  "version_ledger_sha256": "7c6fcc8eaddab9abd73d5f57d524955b9c5f1a5a28c0ec33329c1772bac7d0a8",
+  "version_map_sha256": "27474f46fb04bd9e99e338444556efd247c58dbc6ab276640d3d36b25c966317"
+}

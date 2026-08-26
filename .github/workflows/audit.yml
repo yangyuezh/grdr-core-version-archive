@@ -1,0 +1,23 @@
+name: Verify GRDR version archive
+
+on:
+  push:
+    branches: [main]
+    tags: ["audit/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every audit tag
+        run: git fetch --force --tags origin
+      - name: Verify immutable Git objects and generated ledgers
+        run: python3 scripts/audit_archive.py
