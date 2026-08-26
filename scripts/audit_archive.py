@@ -19,6 +19,7 @@ LEDGER = AUDIT / "version-ledger.jsonl"
 CSV_PATH = AUDIT / "version-ledger.csv"
 MANIFEST = AUDIT / "archive-manifest.json"
 SUMS = AUDIT / "SHA256SUMS"
+README = ROOT / "README.md"
 
 
 def git(*args: str) -> str:
@@ -45,6 +46,7 @@ def load_jsonl(path: Path) -> list[dict]:
 
 def render() -> dict[str, bytes]:
     source_rows = load_jsonl(SOURCE)
+    readme = README.read_text()
     seen_ids: set[str] = set()
     seen_tags: set[str] = set()
     ledger_rows: list[dict] = []
@@ -56,6 +58,8 @@ def render() -> dict[str, bytes]:
             raise ValueError(f"duplicate record_id: {record_id}")
         if tag in seen_tags:
             raise ValueError(f"duplicate archive_tag: {tag}")
+        if f"`{record_id}`" not in readme:
+            raise ValueError(f"README is missing audit record: {record_id}")
         seen_ids.add(record_id)
         seen_tags.add(tag)
 
@@ -134,12 +138,21 @@ def render() -> dict[str, bytes]:
 
     release_rows = [row for row in ledger_rows if row["canonical"] and row["status"] == "release"]
     manifest = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "archive_role": "software_version_audit",
         "record_count": len(ledger_rows),
+        "canonical_version_node_count": sum(row["canonical"] for row in ledger_rows),
         "canonical_release_count": len(release_rows),
+        "expected_archival_release_count": len(ledger_rows),
         "pre_1_0_provenance_count": sum(
             row["status"] == "pre_1_0_provenance" for row in ledger_rows
+        ),
+        "historical_variant_count": sum(
+            row["status"] in {"historical_variant", "equivalent_tree_variant"}
+            for row in ledger_rows
+        ),
+        "post_release_docs_count": sum(
+            row["status"] == "post_release_docs" for row in ledger_rows
         ),
         "coverage": {
             "requested_from": "1.0.0",

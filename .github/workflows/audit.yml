@@ -21,3 +21,7 @@ jobs:
         run: git fetch --force --tags origin
       - name: Verify immutable Git objects and generated ledgers
         run: python3 scripts/audit_archive.py
+      - name: Verify every archival GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/audit_remote_releases.py

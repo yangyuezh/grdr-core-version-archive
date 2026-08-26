@@ -1,5 +1,19 @@
 # Restore and compare archived versions
 
+## Download one archival Release
+
+Every audit tag has a GitHub archival Release and an automatically generated
+source archive:
+
+```bash
+gh release download 'audit/v4.5.0' \
+  --repo yangyuezh/grdr-core-version-archive \
+  --archive=tar.gz
+```
+
+The Release publication date is the later audit-packaging date. Use the ledger's
+commit timestamp, commit SHA, and tree SHA when establishing historical identity.
+
 ## Inspect one version
 
 ```bash
