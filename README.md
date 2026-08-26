@@ -4,6 +4,47 @@ GRDR Core is the database-independent engine for the Global Research Data Regist
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
 
+## Frozen archive notice
+
+This private repository intentionally preserves the accepted GRDR Core `v4.0.1` delivery as a feature-frozen integration baseline. It is not the continuing GRDR development line and should not be silently upgraded to imitate later Core versions. The current Core is maintained separately in [`yangyuezh/grdr-core`](https://github.com/yangyuezh/grdr-core).
+
+> **中文定位：** 本仓库是已经验收的 GRDR Core v4.0.1 冻结归档版，面向小型、边界明确、强调完整本地快照的 AI Agent 数据库集成。它保留“完整 GitHub Release + 完整 Elements 展开副本 + 严格哈希一致性”的清晰工程模式，不随当前主线继续升级。
+>
+> **保留原因：** v4.0.1 不是不完整的旧草稿，而是一套经过独立验收、能够完整运行的产品形态。后续版本解决更大规模数据库、在线路线、弹性观测复制和全局检索问题；本仓库则专门保留较简单、自包含、容易理解和部署的本地方案。
+
+| Archive property | Meaning |
+|---|---|
+| Frozen functional baseline | `v4.0.1`; the existing tag and its commit remain immutable |
+| Primary use case | Small or locally managed AI-agent database projects that benefit from a self-contained snapshot and strict GitHub Release ↔ Elements parity |
+| Preserved architecture | Six Skills; Plan → Execute → Storage; immutable Core; external mutable state; Source Runtime 1.0; distributed semantic and variable retrieval |
+| Storage assumption | Every completed snapshot contains actual observation inputs inside its declared boundary and preserves the same logical `knowledge/`, `agent/`, and `observations/` inventory in the GitHub Release and expanded Elements copy |
+| Validation state | Empty Core Registry, database-independent release boundary, location-independent Skills, deterministic current-versus-history semantic recall, and complete release/runtime parity tests |
+| Documentation status | Later documentation-only clarifications may appear on `main`; they do not alter `VERSION`, executable behavior, schemas, artifacts, or the immutable `v4.0.1` tag |
+
+### Why this version is preserved
+
+Version 4.0.1 is the last accepted GRDR baseline built around a deliberately concrete local-storage contract: within a snapshot's declared and evidenced boundary, Storage requires real observation files, publishes them with the complete knowledge and Agent artifacts, expands the same logical snapshot on Elements, verifies ordered SHA-256 parity, and proves that Source Runtime 1.0 resolves every indexed Variable. This makes the version especially understandable and dependable for small, self-contained local AI-agent integrations.
+
+Its limits are equally intentional. It does not provide the later universal Source Runtime 2.0 online-route contract, independent full/partitioned/no-mirror observation policies, optional rebuildable local cache, policy-ordered observation routing, or external Global Index & Routing Layer. Those capabilities belong to later Core versions and are not retrofitted into this frozen archive.
+
+### Exact boundary from the current Core
+
+The comparison below describes the preserved `v4.0.1` contract against GRDR Core `v4.5.0`, the current release when this archive annotation was written. It is a version-boundary statement, not a claim that either design is universally better.
+
+| Capability | Frozen v4.0.1 | Current-line v4.5.0 |
+|---|---|---|
+| Database production factory | Three independent Skills: Plan → Execute → Storage | Same three-step factory, with later storage and online-access contracts |
+| Formal Skills | Six | Six; Runtime components are still not additional Skills |
+| Source runtime | `grdr-source-runtime/1.0` | `grdr-source-runtime/2.0`, while retaining legacy compatibility |
+| Observation requirement | At least one real observation asset is required for Storage completion | Knowledge depth is mandatory, while observation replication independently selects full mirror, partitioned mirror, or no mirror |
+| GitHub Release and local copy | Complete Release and expanded Elements copy are both normative and hash-equivalent | GitHub Release remains canonical; a local expansion is optional and rebuildable, and large observations may remain upstream or in declared mounted storage |
+| Official online access | Source-specific resolution and invocation are available, but complete tested online coverage is not a universal Storage invariant | Every registered Variable must have a tested official online route before Storage completion |
+| Route policies | No uniform observation-level `latest`, `reproducible`, and `offline` policy engine | Explicit policy-ordered routing with attempted-route and fallback traces |
+| Cross-source retrieval | Central and distributed source indexes are searched directly | External incremental Global Index performs recall first, then opens only selected source shards |
+| Best fit | Small, bounded, self-contained local Agent database integration | Larger and growing multi-database systems with heterogeneous observation-placement needs |
+
+The `latest_callable` versus `history` option in v4.0.1 controls which semantic snapshot is recalled. It must not be confused with the later observation-route policies named `latest`, `reproducible`, and `offline`.
+
 ## Three-step database factory
 
 GRDR Core fixes the workflow as three independent, Agent-callable Skills:
@@ -21,6 +62,8 @@ GRDR has six formal Skills in total. `grdr` is the coordinator; the three Skills
 ## Core architecture
 
 The complete architecture is shown in three linked views so that every element remains readable at normal GitHub width: the system overview, the database production plane, and the research use plane. The production view is divided into Plan, Execute, and Storage panels without changing the single three-step workflow.
+
+All five diagrams below are authoritative descriptions of the frozen v4.0.1 implementation. They intentionally show mandatory Release ↔ Elements parity and the Source Runtime 1.0-era distributed retrieval path; they are not diagrams of the later Global Index or Runtime 2.0 architecture.
 
 ### 1. End-to-end system overview
 
