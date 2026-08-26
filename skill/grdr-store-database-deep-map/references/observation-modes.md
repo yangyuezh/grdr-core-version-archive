@@ -125,6 +125,33 @@ Use when the canonical snapshot should copy no original observation files. This 
 
 `observation_inputs` and replication placements must both be empty. Temporary raw files retained inside the deep-map project must still appear under `raw_observation_exclusions` so they cannot enter knowledge.
 
+## Runtime invocation acceptance probes
+
+Self-tests and route coverage are necessary but not sufficient. For every nonempty Variable index, declare `runtime.acceptance_probes` that drive the staged source Runtime through Core's public argument names:
+
+```json
+"runtime": {
+  "descriptor": "/absolute/path/runtime.json",
+  "files": ["/absolute/path/source_runtime.py"],
+  "acceptance_probes": [{
+    "probe_id": "population-online",
+    "variable_id": "grdr:variable:example-population",
+    "route_policy": "latest",
+    "parameters": {
+      "country": "USA",
+      "start_period": "2023",
+      "end_period": "2024"
+    },
+    "expected": {
+      "minimum_row_count": 1,
+      "selected_routes": ["official_upstream"]
+    }
+  }]
+}
+```
+
+The `latest` probe is always required. If `online_access.route_policies.offline` is nonempty, add a second probe whose expected route is a local or mounted mirror. Storage supplies its own temporary output directory, requires `status=fetched`, verifies Source and Variable identity, checks nonzero rows and files, and seals only the result summary and output fingerprint—not the temporary probe data.
+
 ## Cache policy
 
 Cache is independent of both online access and canonical replication:

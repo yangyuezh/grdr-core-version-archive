@@ -39,6 +39,7 @@ from database_deep_map import (
     write_jsonl,
 )
 from grdr_paths import source_archive_file, storage_capacity_policy
+from distributed_runtime import DistributedRuntimeError, invoke_snapshot_runtime
 
 
 STORAGE_PACKAGE_FILE = "storage_package.json"
@@ -53,6 +54,7 @@ RUNTIME_DESCRIPTOR_FILE = "runtime.json"
 RUNTIME_AUDIT_FILE = "runtime_audit.json"
 ONLINE_ACCESS_FILE = "online_access.json"
 ONLINE_RUNTIME_AUDIT_FILE = "online_runtime_audit.json"
+INVOCATION_ACCEPTANCE_AUDIT_FILE = "invocation_acceptance_audit.json"
 OBSERVATION_MANIFEST_FILE = "observation_manifest.json"
 SNAPSHOT_MANIFEST_FILE = "manifest.json"
 PUBLICATION_VERIFICATION_FILE = "storage_publication_verification.json"
@@ -69,6 +71,14 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def core_requires_invocation_acceptance(version: str) -> bool:
+    try:
+        parts = tuple(int(part) for part in version.split("."))
+    except ValueError:
+        return False
+    return parts >= (4, 5, 1)
 
 
 def file_record(
@@ -511,6 +521,176 @@ def run_source_runtime_online_test(
     return report
 
 
+def run_source_runtime_invocation_acceptance(
+    spec: dict[str, Any],
+    descriptor: dict[str, Any],
+    runtime_audit: dict[str, Any],
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    """Prove that Core's public query arguments fetch real observations.
+
+    Runtime self-tests establish declared coverage. This gate independently
+    invokes the staged Runtime through the same route-selection and argument
+    protocol used by Agent Runtime, so a source-specific CLI drift cannot pass
+    Storage merely by reporting that its routes are ready.
+    """
+
+    probes = spec["runtime"].get("acceptance_probes", [])
+    variable_count = runtime_audit["variable_count"]
+    if variable_count and not probes:
+        raise ValueError(
+            "a Runtime with registered Variables requires at least one parameterized acceptance probe"
+        )
+    probe_ids = [item["probe_id"] for item in probes]
+    if len(probe_ids) != len(set(probe_ids)):
+        raise ValueError("Runtime acceptance probes must have unique probe_id values")
+
+    access = read_json(snapshot_root / "agent" / descriptor["online_access_manifest"])
+    declared_policies = access["route_policies"]
+    policies = {item["route_policy"] for item in probes}
+    if variable_count and "latest" not in policies:
+        raise ValueError("Runtime acceptance requires a latest-policy parameterized fetch")
+    if variable_count and declared_policies.get("offline") and "offline" not in policies:
+        raise ValueError(
+            "a Runtime with an offline route requires an offline parameterized acceptance fetch"
+        )
+    if (
+        variable_count
+        and access["official_access"]["status"] == "callable"
+        and not any(
+            item["route_policy"] == "latest"
+            and "official_upstream" in item["expected"]["selected_routes"]
+            for item in probes
+        )
+    ):
+        raise ValueError(
+            "callable official access requires a latest-policy acceptance probe that expects official_upstream"
+        )
+
+    card = {
+        "source_id": spec["source_id"],
+        "latest_snapshot": spec["snapshot_id"],
+        "runtime": {
+            "protocol_version": descriptor["protocol_version"],
+            "agent_index": f"agent/{descriptor['agent_index']}",
+            "entrypoint": f"agent/{descriptor['entrypoint']}",
+        },
+    }
+    results = []
+    for probe in probes:
+        parameters = probe["parameters"]
+        if not any(key in parameters for key in ("country", "start_period", "end_period")):
+            raise ValueError(
+                f"Runtime acceptance probe {probe['probe_id']} is not parameterized by country or period"
+            )
+        if probe["route_policy"] not in declared_policies:
+            raise ValueError(
+                f"Runtime acceptance probe {probe['probe_id']} names an unknown route policy"
+            )
+        if not declared_policies[probe["route_policy"]]:
+            raise ValueError(
+                f"Runtime acceptance probe {probe['probe_id']} selects an unavailable route policy"
+            )
+        arguments = []
+        for name in ("country", "start_period", "end_period", "timeout"):
+            if name in parameters:
+                arguments.extend([f"--{name.replace('_', '-')}", str(parameters[name])])
+        with tempfile.TemporaryDirectory(prefix=f".{probe['probe_id']}.") as temporary:
+            output_dir = Path(temporary)
+            try:
+                invocation = invoke_snapshot_runtime(
+                    card,
+                    snapshot_root,
+                    probe["variable_id"],
+                    "fetch-variable",
+                    [*arguments, "--output-dir", str(output_dir)],
+                    probe["route_policy"],
+                )
+            except DistributedRuntimeError as exc:
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} failed: {exc}"
+                ) from exc
+            result = invocation.get("result")
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} returned no result object"
+                )
+            expected = probe["expected"]
+            selected_route = invocation["observation_route"].get("selected_route")
+            if selected_route not in expected["selected_routes"]:
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} selected {selected_route!r}, "
+                    f"expected one of {expected['selected_routes']!r}"
+                )
+            if result.get("source_id") != spec["source_id"]:
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} returned the wrong source_id"
+                )
+            if result.get("variable_id") != probe["variable_id"]:
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} returned the wrong variable_id"
+                )
+            if result.get("status") != "fetched":
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} did not report status=fetched"
+                )
+            row_count = result.get("row_count")
+            if (
+                not isinstance(row_count, int)
+                or isinstance(row_count, bool)
+                or row_count < expected["minimum_row_count"]
+            ):
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} returned too few observations"
+                )
+            output_files = [
+                path for path in sorted(output_dir.rglob("*"))
+                if path.is_file() and not is_ignored_filesystem_metadata(path.relative_to(output_dir))
+            ]
+            if not output_files:
+                raise ValueError(
+                    f"Runtime acceptance probe {probe['probe_id']} produced no output artifact"
+                )
+            outputs = [
+                {
+                    "path": path.relative_to(output_dir).as_posix(),
+                    "sha256": sha256_file(path),
+                    "size_bytes": path.stat().st_size,
+                }
+                for path in output_files
+            ]
+            results.append({
+                "probe_id": probe["probe_id"],
+                "variable_id": probe["variable_id"],
+                "route_policy": probe["route_policy"],
+                "parameters": parameters,
+                "selected_route": selected_route,
+                "selected_route_id": invocation["observation_route"].get("selected_route_id"),
+                "row_count": row_count,
+                "output_file_count": len(outputs),
+                "output_content_fingerprint": fingerprint(outputs),
+                "status": "passed",
+            })
+    report = {
+        "schema_version": "1.0.0",
+        "source_id": spec["source_id"],
+        "snapshot_id": spec["snapshot_id"],
+        "status": "ready",
+        "registered_variable_count": variable_count,
+        "probe_count": len(results),
+        "probes": results,
+        "tested_at": now(),
+    }
+    errors = validate_schema(
+        report,
+        "invocation_acceptance_audit.schema.json",
+        INVOCATION_ACCEPTANCE_AUDIT_FILE,
+    )
+    if errors:
+        raise ValueError("invalid Runtime invocation acceptance audit: " + "; ".join(errors))
+    return report
+
+
 def create_deterministic_tar_gz(source: Path, output: Path, archive_root: str) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as raw:
@@ -849,6 +1029,7 @@ def package_payload(
     runtime_audit: dict[str, Any],
     online_access_manifest: dict[str, Any],
     online_runtime_audit: dict[str, Any],
+    invocation_acceptance_audit: dict[str, Any],
     profile: dict[str, Any],
     external_locations: list[dict[str, Any]],
     prepared_at: str,
@@ -882,6 +1063,7 @@ def package_payload(
         "runtime_audit": runtime_audit,
         "online_access_manifest": online_access_manifest,
         "online_runtime_audit": online_runtime_audit,
+        "invocation_acceptance_audit": invocation_acceptance_audit,
         "knowledge_content_fingerprint": fingerprint(knowledge_files),
         "observation_content_fingerprint": fingerprint(observation_files),
         "duplicate_content_hash_count": len(duplicate_cross_component_hashes(logical_files)),
@@ -916,6 +1098,7 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 - Default latest route order: {', '.join(package['snapshot_profile']['online_access']['route_policies']['latest'])}
 - Agent runtime: `{package['runtime']['protocol_version']}` via `agent/{package['runtime']['entrypoint']}`
 - Runtime variable coverage: {package['runtime_audit']['resolvable_variable_count']}/{package['runtime_audit']['variable_count']}
+- Parameterized Core-to-Runtime acceptance probes: {package['invocation_acceptance_audit']['probe_count']}
 - Logical content fingerprint: `{package['logical_content_fingerprint']}`
 
 The GitHub Release always carries the knowledge and Agent artifacts. Observation bytes exist only
@@ -1004,6 +1187,11 @@ def materialize_source_repository(
     write_json(runtime_dir / RUNTIME_AUDIT_FILE, package["runtime_audit"])
     write_json(runtime_dir / ONLINE_ACCESS_FILE, package["online_access_manifest"])
     write_json(runtime_dir / ONLINE_RUNTIME_AUDIT_FILE, package["online_runtime_audit"])
+    if "invocation_acceptance_audit" in package:
+        write_json(
+            runtime_dir / INVOCATION_ACCEPTANCE_AUDIT_FILE,
+            package["invocation_acceptance_audit"],
+        )
     test_content = f'''{GENERATED_PY_MARKER}
 import hashlib
 import json
@@ -1022,6 +1210,9 @@ def test_snapshot_manifest_is_self_consistent():
     assert manifest["runtime_audit"]["variable_count"] == manifest["runtime_audit"]["resolvable_variable_count"]
     assert manifest["online_runtime_audit"]["unresolved_online_variable_count"] == 0
     assert manifest["online_runtime_audit"]["variable_count"] == manifest["online_runtime_audit"]["online_callable_variable_count"]
+    assert manifest["invocation_acceptance_audit"]["status"] == "ready"
+    if manifest["runtime_audit"]["variable_count"]:
+        assert manifest["invocation_acceptance_audit"]["probe_count"] > 0
 '''
     write_generated(repository / "tests" / "test_snapshot_manifest.py", test_content)
 
@@ -1145,6 +1336,13 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         )
         write_json(agent_dir / RUNTIME_AUDIT_FILE, runtime_audit)
         write_json(agent_dir / ONLINE_RUNTIME_AUDIT_FILE, online_runtime_audit)
+        invocation_acceptance_audit = run_source_runtime_invocation_acceptance(
+            spec, runtime, runtime_audit, logical_root
+        )
+        write_json(
+            agent_dir / INVOCATION_ACCEPTANCE_AUDIT_FILE,
+            invocation_acceptance_audit,
+        )
         if partition_record is not None:
             source_partition_manifest = Path(partition_record.pop("source_path"))
             suffix = "".join(source_partition_manifest.suffixes) or ".json"
@@ -1233,7 +1431,8 @@ def prepare_database_storage(project_dir: str | Path, spec_file: str | Path) -> 
         package = package_payload(
             project, spec, archive_receipt, local_cache_path, release_assets_path,
             logical_files, release_assets, runtime, runtime_audit,
-            online_access_manifest, online_runtime_audit, profile, external_locations,
+            online_access_manifest, online_runtime_audit,
+            invocation_acceptance_audit, profile, external_locations,
             prepared_at,
         )
         validation_errors = validate_schema(package, "database_storage_package.schema.json", STORAGE_PACKAGE_FILE)
@@ -1637,10 +1836,20 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         if current_package:
             access = package.get("online_access_manifest", {})
             online_audit = package.get("online_runtime_audit", {})
+            invocation_audit = package.get("invocation_acceptance_audit", {})
+            invocation_required = core_requires_invocation_acceptance(
+                package.get("core_version", "0.0.0")
+            )
             access_errors = validate_schema(access, "online_access_manifest.schema.json", ONLINE_ACCESS_FILE)
             audit_errors = validate_schema(online_audit, "online_runtime_audit.schema.json", ONLINE_RUNTIME_AUDIT_FILE)
             errors.extend(access_errors)
             errors.extend(audit_errors)
+            if invocation_required or invocation_audit:
+                errors.extend(validate_schema(
+                    invocation_audit,
+                    "invocation_acceptance_audit.schema.json",
+                    INVOCATION_ACCEPTANCE_AUDIT_FILE,
+                ))
             online_profile = profile.get("online_access", {})
             if access.get("source_id") != package["source_id"] or access.get("snapshot_id") != package["snapshot_id"]:
                 errors.append("online access manifest identity differs from the storage package")
@@ -1650,6 +1859,20 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                 errors.append("online runtime variable count differs from the offline runtime audit")
             if online_audit.get("online_callable_variable_count") != online_audit.get("variable_count"):
                 errors.append("online runtime audit does not cover every registered Variable")
+            if invocation_required and (
+                invocation_audit.get("source_id") != package["source_id"]
+                or invocation_audit.get("snapshot_id") != package["snapshot_id"]
+            ):
+                errors.append("Runtime invocation acceptance identity differs from the storage package")
+            if invocation_required and invocation_audit.get("registered_variable_count") != package["runtime_audit"].get("variable_count"):
+                errors.append("Runtime invocation acceptance variable count differs from the runtime audit")
+            if (
+                invocation_required
+                and
+                package["runtime_audit"].get("variable_count", 0) > 0
+                and invocation_audit.get("probe_count", 0) < 1
+            ):
+                errors.append("Runtime invocation acceptance has no parameterized fetch probe")
             if online_profile.get("routes") != access.get("routes") or online_profile.get("route_policies") != access.get("route_policies"):
                 errors.append("snapshot online-access profile differs from the sealed access manifest")
             if online_profile.get("online_callable_variable_count") != online_audit.get("online_callable_variable_count"):
@@ -1720,10 +1943,19 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
             if current_package:
                 cached_access = local_cache / "agent" / ONLINE_ACCESS_FILE
                 cached_online_audit = local_cache / "agent" / ONLINE_RUNTIME_AUDIT_FILE
+                invocation_required = core_requires_invocation_acceptance(
+                    package.get("core_version", "0.0.0")
+                )
+                cached_invocation_audit = local_cache / "agent" / INVOCATION_ACCEPTANCE_AUDIT_FILE
                 if not cached_access.is_file() or read_json(cached_access) != package.get("online_access_manifest"):
                     errors.append("cached online access manifest is missing or differs from the storage package")
                 if not cached_online_audit.is_file() or read_json(cached_online_audit) != package.get("online_runtime_audit"):
                     errors.append("cached online runtime audit is missing or differs from the storage package")
+                if (invocation_required or package.get("invocation_acceptance_audit")) and (
+                    not cached_invocation_audit.is_file()
+                    or read_json(cached_invocation_audit) != package.get("invocation_acceptance_audit")
+                ):
+                    errors.append("cached Runtime invocation acceptance audit is missing or differs from the storage package")
     assets_path = Path(package["release_assets_path"])
     expected_release_files = (
         package["logical_files"]

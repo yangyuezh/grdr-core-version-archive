@@ -12,7 +12,7 @@ Turn one sealed Step 2 execution into one durable `versioned_database_snapshot`.
 1. promote the sealed candidates into the canonical registry under external `GRDR_STATE_ROOT` and keep its internal archive receipt without modifying Core;
 2. create or update one private source repository that references, but never copies, GRDR Core;
 3. inherit the exact Plan knowledge scope and independently declare online access, observation replication, and observation placement;
-4. require source Runtime 2.0 to test every declared online route and map every registered Variable to at least one executable route;
+4. require source Runtime 2.0 to test every declared online route, map every registered Variable to at least one executable route, and pass Core-driven parameterized fetch acceptance with a real Variable;
 5. load the deployment-local capacity policy, measure actual observation bytes before copying, record any upstream-size estimate, and validate the selected replication and placement;
 6. build the complete knowledge artifact, Agent SQLite index, source Runtime, online manifests/audits, and only the observation artifacts required by the selected replication mode;
 7. publish knowledge and Agent artifacts in the GitHub Release and place observation bytes only where declared; any local expanded copy is a disposable cache;
@@ -50,6 +50,7 @@ Create a Schema-valid Storage specification with:
 - an on-demand research-project cache policy;
 - source-specific adapter files needed for reproducibility.
 - one Schema-valid `grdr-source-runtime/2.0` descriptor and its source-specific executable files, including `self-test-online` and the route-context protocol.
+- `runtime.acceptance_probes`: at least one real registered Variable queried with Core-standard country and/or period parameters under `latest`; when the snapshot has an offline route, add an `offline` probe too. Every probe must require nonzero rows and explicitly name the acceptable selected route.
 
 Configure the GitHub observation threshold outside Core. The default is 5 GiB of observations per database Release and is adjustable without changing the Skill. Every GitHub Release file must remain strictly below 2 GiB. These are the only two default capacity boundaries. Treat the resulting size label as a policy-relative recommendation, never as a database identity or a reason to reduce knowledge scope.
 
@@ -67,12 +68,12 @@ python3 "$GRDR_LAUNCHER" database-storage-status <project>
 Preparation must produce:
 
 - ordinary source-repository files: configuration, adapters, locked Plan, snapshot manifest, canonical archive receipt, README, and tests;
-- Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, Runtime 2.0 descriptor, executable entrypoint, offline runtime audit, online access manifest, and online runtime audit; optional observation archives only when GitHub is an observation placement; and `manifest.json`;
+- Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, Runtime 2.0 descriptor, executable entrypoint, offline runtime audit, online access manifest, online runtime audit, and Core-to-Runtime invocation acceptance audit; optional observation archives only when GitHub is an observation placement; and `manifest.json`;
 - optional local runtime cache: a rebuildable expansion of verified Release assets; it is not canonical and is not required for completion;
 - optional mounted large-data copies plus verified official or GRDR Release online routes;
 - `storage_package.json` bound to the locked knowledge scope, completeness claim, location-aware file inventory, canonical archive receipt, and every checksum.
 
-Always exclude declared observation roots from `knowledge/`. Reject any content hash shared by knowledge and observations. Reject zero or denominator-mismatched observations in mirror modes, any observation input or placement in no-mirror mode, any indexed Variable the Runtime cannot resolve, any online route whose test failed, any registered Variable with no tested online route, checksum mismatch, missing repository files, path conflicts, altered manifests, or mismatch at any location that claims a copy.
+Always exclude declared observation roots from `knowledge/`. Reject any content hash shared by knowledge and observations. Reject zero or denominator-mismatched observations in mirror modes, any observation input or placement in no-mirror mode, any indexed Variable the Runtime cannot resolve, any online route whose test failed, any registered Variable with no tested online route, any Core-standard parameterized fetch that fails or returns zero rows/files, checksum mismatch, missing repository files, path conflicts, altered manifests, or mismatch at any location that claims a copy.
 
 For `partitioned_mirror`, require `observation_partition_manifest.schema.json`. Every partition must state a boundary and must enumerate exactly the copied files, relative paths, sizes, and SHA-256 values. Partition names must equal `observation_inputs[].name`; file and partition counts must match both the manifest and the Storage completeness declaration.
 

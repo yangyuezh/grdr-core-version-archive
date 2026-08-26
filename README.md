@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.0`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.0)**
+> **Current stable release / 当前稳定版本：[`v4.5.1`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.1)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.0<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.1<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -177,6 +177,7 @@ flowchart TB
             S_PROFILE["Three independent snapshot axes<br/><b>knowledge scope</b> inherited from Plan<br/><b>online access</b> complete for every registered Variable<br/><b>observation replication + placement</b> decided by Storage"]:::storageStrong
             S_CAPACITY["GitHub capacity assessment<br/>measure bytes before copying · optional upstream estimate<br/>5 GiB observation total · each asset strictly below 2 GiB<br/><i>size never reduces knowledge depth</i>"]:::storage
             S_ONLINE["Universal online-callability gate<br/>official API · official bulk download · browser automation<br/>or GRDR Release snapshot fallback<br/><b>100% registered Variables must have an executable route</b>"]:::online
+            S_ACCEPT["Core → Source Runtime invocation acceptance<br/>real Variable + country/period parameters + output artifacts<br/><b>latest required · offline required when available</b>"]:::verify
             S_PACKAGE["Build one source-scoped callable snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source Runtime 2.0"]:::storageStrong
             S_MODES["Independent observation replication<br/><b>full mirror</b> · <b>partitioned mirror</b> · <b>no mirror</b><br/>capacity affects copied bytes only"]:::storage
 
@@ -193,7 +194,7 @@ flowchart TB
             S_CARD["External GRDR state source-archive card<br/>Source ID · repository · snapshot · Release<br/>fingerprint · completion status"]:::shared
 
             SEALED --> S_PROMOTE --> S_PROFILE
-            S_PROFILE --> S_ONLINE --> S_PACKAGE
+            S_PROFILE --> S_ONLINE --> S_ACCEPT --> S_PACKAGE
             S_PROFILE --> S_CAPACITY --> S_PACKAGE
             S_CAPACITY --> S_MODES
             S_PACKAGE --> S_REPO
@@ -203,6 +204,7 @@ flowchart TB
             S_MODES --> S_LARGE
             S_ONLINE --> S_UPSTREAM
             S_ONLINE --> S_ONLINE_MANIFEST
+            S_ACCEPT --> S_ONLINE_MANIFEST
             S_RELEASE --> S_MANIFEST
             S_RELEASE -. "verified online fallback when declared" .-> S_ONLINE_MANIFEST
             S_LOCAL_CACHE -. "verified against Release manifest" .-> S_MANIFEST
@@ -279,13 +281,13 @@ flowchart TB
 
 ##### 在线调用完成规则与路由优先级
 
-在线调用不是观测复制模式。Storage 必须生成 `online_access.json` 和 `online_runtime_audit.json`，逐条记录在线路线测试结果，并保存每个已登记 Variable 对应的一个或多个可执行 `route_id`。只有 `unresolved_online_variable_count = 0`，快照才能达到 `callable_complete`。
+在线调用不是观测复制模式。Storage 必须生成 `online_access.json`、`online_runtime_audit.json` 和 `invocation_acceptance_audit.json`。前两份文件记录路线声明、自检结果和每个已登记 Variable 对应的可执行 `route_id`；第三份文件必须通过 Core 的标准 `fetch-variable` 协议，用真实 Variable 和国家／时期参数取回非空观测值及输出文件。`latest` 路线必须验收；存在离线路线时还必须验收 `offline`。只有变量覆盖为零缺口且参数化调用门禁通过，快照才能达到 `callable_complete`。
 
 | 官方数据库形态 | Runtime 适配方式 | 能否达到在线完成 | 关键验收 |
 |---|---|---|---|
-| 官方 API／查询接口 | 参数化 API 适配器 | 能 | 实际请求成功、结果与 Variable 对齐、全部变量有路线 |
-| 只能下载整表或压缩包 | 下载、校验、解包、筛选适配器 | 能 | 官方文件可取、哈希／版本可证、筛选结果可归因 |
-| 只能通过网页操作 | 浏览器自动化适配器 | 能，但稳定性要求更高 | 实际流程可重复、选择参数可记录、产物可核验 |
+| 官方 API／查询接口 | 参数化 API 适配器 | 能 | Core 标准国家／时期参数实际请求成功、返回非空观测和可核验产物、全部变量有路线 |
+| 只能下载整表或压缩包 | 下载、校验、解包、筛选适配器 | 能 | 官方文件可取、哈希／版本可证，并通过 Core 参数筛选得到非空结果 |
+| 只能通过网页操作 | 浏览器自动化适配器 | 能，但稳定性要求更高 | 实际流程可重复、选择参数可记录、产物可核验，并通过参数化调用门禁 |
 | 官方在线源暂时不可用 | 经核验的 GRDR GitHub Release 快照路线 | 能作为在线后备 | 官方状态明确记为 `unavailable`，Release 路线覆盖全部变量 |
 | 既无可执行官方路线，也无 GRDR 在线后备 | 无 | 不能 | Storage 必须阻止完成，不能只靠本机文件冒充在线可调用 |
 
@@ -495,4 +497,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.0` adds the external, rebuildable Global Index & Routing Layer to the Agent Runtime use plane. It incrementally indexes central records and latest callable source snapshots, recalls candidates globally, opens only selected source shards, and routes a Variable to its Source Runtime 2.0 before policy-ordered invocation. The layer is derived state rather than a seventh Skill or a fourth production step: source repositories, Releases, central cards, and source-level knowledge remain canonical, while an unavailable global index can be rebuilt or bypassed through the legacy scan fallback. Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.
+Version `4.5.1` closes the Storage acceptance gap between Core Agent Runtime and source Runtime 2.0. In addition to full-variable self-tests and Variable-to-route coverage, every nonempty source must now pass a real Core-driven parameterized `latest` fetch, and mirrored sources must also pass an `offline` fetch; the nonempty rows, selected routes, and output fingerprints are sealed in `invocation_acceptance_audit.json`. Version `4.5.0` remains the feature baseline that introduced the external, rebuildable Global Index & Routing Layer, and Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.

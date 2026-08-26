@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.5.1] - 2026-08-26
+
+### Fixed
+
+- Close the Storage acceptance gap that allowed a source Runtime to pass its own offline/online declarations while rejecting Core's public `fetch-variable` parameter names.
+- Add Core-driven parameterized invocation probes using a real registered Variable, nonempty observation results, output artifacts, and an explicit selected-route expectation.
+- Require a `latest` probe for every nonempty Variable index and an additional `offline` probe whenever the snapshot declares an offline route.
+
+### Audit and artifacts
+
+- Persist `invocation_acceptance_audit.json` inside the Agent artifact and bind it into the Storage package, local materialization audit, source README, and generated source-repository tests.
+- Add regression coverage that rejects the exact `--start-period` versus source-specific `--start-year` protocol drift discovered during source validation.
+- Revalidate the repaired gate against a completed real source snapshot: its online and offline population probes for one country and two years each returned two rows through their required routes. Source-specific evidence remains in the external version archive, not in database-independent Core.
+
 ## [4.5.0] - 2026-08-25
 
 ### Added

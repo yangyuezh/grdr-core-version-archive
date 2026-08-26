@@ -105,7 +105,7 @@ agent/online_runtime_audit.json
 
 ### 执行命令
 
-先写Schema 4.1 Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、三个判断轴、观测数据输入、在线路线、适配器和来源专属Runtime；不再填写Elements根目录：
+先写Schema 4.1 Storage specification，明确Source、快照、Core版本、独立私有仓库、Release、三个判断轴、观测数据输入、在线路线、适配器、来源专属Runtime，以及至少一条真实Variable的参数化调用验收探针；不再填写Elements根目录：
 
 ```bash
 .venv/bin/python scripts/grdr.py prepare-database-storage <project> <storage-spec.json>
@@ -120,7 +120,7 @@ agent/online_runtime_audit.json
 .venv/bin/python scripts/grdr.py store-database-deep-map <project> <storage-spec.json>
 ```
 
-完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；分区镜像还要求Schema有效的分区清单逐项匹配分区边界、名称、成员路径、大小和SHA-256；`no_mirror`要求零观测输入和零复制位置。三种复制模式一律要求Runtime 2.0在线自检：路线清单与测试结果完全对应，每个已登记Variable至少映射一条可执行路线，未解决数量必须为零。所有模式都拒绝超出所选位置容量阈值、Runtime不能解析全部索引变量、在线覆盖不完整、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
+完整镜像和分区镜像拒绝零观测文件、零总字节数和声明分母不一致；分区镜像还要求Schema有效的分区清单逐项匹配分区边界、名称、成员路径、大小和SHA-256；`no_mirror`要求零观测输入和零复制位置。三种复制模式一律要求Runtime 2.0在线自检：路线清单与测试结果完全对应，每个已登记Variable至少映射一条可执行路线，未解决数量必须为零。只要索引中存在Variable，还必须用Core标准国家／时期参数完成一次`latest`真实取数；存在离线路线时再完成一次`offline`真实取数，并把非空行数、所选路线和输出指纹封存在`invocation_acceptance_audit.json`。所有模式都拒绝超出所选位置容量阈值、Runtime不能解析全部索引变量、在线覆盖不完整、参数化调用失败、knowledge与observations重复、复用已有但内容不同的快照路径、非GRDR文件覆盖、位置清单不一致、未验证GitHub发布、失效回执或中央卡片不一致。
 
 发布顺序是硬约束：先上传并核验知识、Agent和可选观测资产，再生成并上传最终Storage回执；只有从GitHub重新读取并核验回执、Release标签、精确提交和所有资产哈希以后，才能写本地项目凭证、中央卡片和`complete`状态。
 

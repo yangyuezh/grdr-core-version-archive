@@ -68,7 +68,7 @@ Every mode records a separate observation-completeness claim and placement list.
 
 ## Universal online access
 
-Storage must produce `online_access.json` and `online_runtime_audit.json`. The first records official availability, executable route definitions, and route orders. The second records live or staged route tests and an exact Variable-to-route map. Completion requires `unresolved_online_variable_count: 0`.
+Storage must produce `online_access.json`, `online_runtime_audit.json`, and `invocation_acceptance_audit.json`. The first records official availability, executable route definitions, and route orders. The second records live or staged route tests and an exact Variable-to-route map. The third proves that Core's public `fetch-variable` argument protocol can retrieve nonempty observations and output artifacts for a real Variable. A `latest` probe is mandatory; when an offline route exists, an `offline` probe is mandatory too. Completion requires `unresolved_online_variable_count: 0` and a ready invocation-acceptance audit.
 
 Supported online methods are official API, official bulk download, official browser automation, and a verified GRDR GitHub Release observation snapshot. Bulk-only and browser-only sources require source-specific adapters that download or operate the official interface, normalize the result, and preserve parameters and evidence. If the official source is unavailable, a verified GRDR Release route may serve as the online fallback. If no online route covers all registered Variables, Storage must remain incomplete.
 

@@ -34,6 +34,7 @@ from database_storage import (  # noqa: E402
     prepare_database_storage,
     publication_asset_records,
     record_database_storage_publication,
+    run_source_runtime_invocation_acceptance,
     run_source_runtime_online_test,
     sha256_file,
     write_source_readme,
@@ -852,6 +853,133 @@ print(json.dumps({
             self.assertIn("new", value)
             self.assertNotIn("old", value)
             self.assertIn("## Curated details\nKeep this.", value)
+
+    def test_parameterized_runtime_acceptance_catches_core_cli_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            snapshot = Path(temp) / "snapshot"
+            agent = snapshot / "agent"
+            observations = snapshot / "observations"
+            agent.mkdir(parents=True)
+            observations.mkdir()
+            variable_id = "grdr:variable:synthetic-population"
+            index = agent / "grdr-agent-index.sqlite"
+            connection = sqlite3.connect(index)
+            connection.execute(
+                "CREATE TABLE records (id TEXT PRIMARY KEY, entity_type TEXT, label TEXT, search_text TEXT, payload_json TEXT)"
+            )
+            connection.execute(
+                "INSERT INTO records VALUES (?, 'variables', 'Population', 'Population', ?)",
+                (variable_id, json.dumps({"id": variable_id, "name": "Population"})),
+            )
+            connection.commit()
+            connection.close()
+            access = {
+                "schema_version": "1.0.0",
+                "source_id": "grdr:source:synthetic",
+                "snapshot_id": "r1",
+                "status": "callable_complete",
+                "completion_requirement": "all_registered_variables_online_callable",
+                "official_access": {"status": "callable", "basis": "Synthetic route."},
+                "routes": [{
+                    "route_id": "official-api",
+                    "access_method": "official_api",
+                    "authority": "official",
+                    "uri": "https://example.org/api",
+                    "freshness": "current_upstream",
+                    "coverage_claim": "all_registered_variables",
+                    "verification": "live_runtime_test",
+                }],
+                "coverage": {"claim": "all_registered_variables", "expected_variable_count": 1},
+                "route_policies": {
+                    "latest": ["official_online", "local_snapshot_cache"],
+                    "reproducible": ["local_snapshot_cache"],
+                    "offline": ["local_snapshot_cache"],
+                },
+            }
+            (agent / "online_access.json").write_text(json.dumps(access), encoding="utf-8")
+            (agent / "online_runtime_audit.json").write_text(json.dumps({
+                "variable_routes": [{"variable_id": variable_id, "route_ids": ["official-api"]}],
+            }), encoding="utf-8")
+            runtime_script = agent / "runtime.py"
+            runtime_script.write_text(
+                """import argparse, json, os
+from pathlib import Path
+parser = argparse.ArgumentParser()
+parser.add_argument("operation")
+parser.add_argument("--index", required=True)
+parser.add_argument("--variable-id", required=True)
+parser.add_argument("--country", required=True)
+parser.add_argument("--start-period")
+parser.add_argument("--end-period")
+parser.add_argument("--timeout")
+parser.add_argument("--output-dir", required=True)
+args = parser.parse_args()
+output = Path(args.output_dir)
+raw = output / "observations.json"
+raw.write_text(json.dumps([{"country": args.country, "period": args.start_period, "value": 1}]))
+(output / "provenance.json").write_text(json.dumps({"route": os.environ["GRDR_OBSERVATION_ROUTE"]}))
+print(json.dumps({
+    "source_id": "grdr:source:synthetic",
+    "variable_id": args.variable_id,
+    "status": "fetched",
+    "row_count": 1,
+    "raw_path": str(raw),
+}))
+""",
+                encoding="utf-8",
+            )
+            descriptor = {
+                "protocol_version": "grdr-source-runtime/2.0",
+                "source_id": "grdr:source:synthetic",
+                "entrypoint": "runtime.py",
+                "agent_index": "grdr-agent-index.sqlite",
+                "online_access_manifest": "online_access.json",
+            }
+            probes = [{
+                "probe_id": "population-online",
+                "variable_id": variable_id,
+                "route_policy": "latest",
+                "parameters": {"country": "USA", "start_period": "2023", "end_period": "2024"},
+                "expected": {"minimum_row_count": 1, "selected_routes": ["official_upstream"]},
+            }, {
+                "probe_id": "population-offline",
+                "variable_id": variable_id,
+                "route_policy": "offline",
+                "parameters": {"country": "USA", "start_period": "2023", "end_period": "2024"},
+                "expected": {"minimum_row_count": 1, "selected_routes": ["local_snapshot_cache"]},
+            }]
+            spec = {
+                "source_id": "grdr:source:synthetic",
+                "snapshot_id": "r1",
+                "runtime": {"acceptance_probes": probes},
+            }
+            report = run_source_runtime_invocation_acceptance(
+                spec,
+                descriptor,
+                {"variable_count": 1},
+                snapshot,
+            )
+            self.assertEqual(report["status"], "ready")
+            self.assertEqual(report["probe_count"], 2)
+            self.assertEqual(
+                [item["selected_route"] for item in report["probes"]],
+                ["official_upstream", "local_snapshot_cache"],
+            )
+
+            runtime_script.write_text(
+                runtime_script.read_text(encoding="utf-8").replace(
+                    'parser.add_argument("--start-period")',
+                    'parser.add_argument("--start-year")',
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "population-online failed"):
+                run_source_runtime_invocation_acceptance(
+                    spec,
+                    descriptor,
+                    {"variable_count": 1},
+                    snapshot,
+                )
 
 
 if __name__ == "__main__":

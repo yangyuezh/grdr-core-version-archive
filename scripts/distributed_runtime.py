@@ -1101,6 +1101,123 @@ def retryable_runtime_failure(candidate: dict[str, Any], error: str, timed_out: 
     ))
 
 
+def invoke_snapshot_runtime(
+    card: dict[str, Any],
+    snapshot: Path,
+    variable_id: str,
+    operation: str,
+    extra_args: Iterable[str] = (),
+    route_policy: str = "latest",
+) -> dict[str, Any]:
+    index = snapshot / card["runtime"]["agent_index"]
+    connection = sqlite3.connect(index)
+    try:
+        if record_by_id(connection, variable_id) is None:
+            raise DistributedRuntimeError(
+                f"variable is absent from the selected source runtime: {variable_id}"
+            )
+    finally:
+        connection.close()
+    entrypoint = snapshot / card["runtime"]["entrypoint"]
+    arguments = list(extra_args)
+    invocation_timeout = 90.0
+    if "--timeout" in arguments:
+        try:
+            invocation_timeout = max(30.0, float(arguments[arguments.index("--timeout") + 1]) + 30.0)
+        except (IndexError, ValueError):
+            pass
+    command = [sys.executable, str(entrypoint), operation, "--index", str(index), "--variable-id", variable_id, *arguments]
+    route_context = observation_route_context(snapshot, route_policy, variable_id)
+    attempted_routes = []
+    for candidate in route_context["candidate_routes"]:
+        runtime_environment = {
+            **os.environ,
+            "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
+            "GRDR_ROUTE_POLICY": route_policy,
+            "GRDR_OBSERVATION_REPLICATION_MODE": route_context["replication_mode"],
+            "GRDR_OBSERVATION_PLACEMENTS": json.dumps(route_context["placements"], separators=(",", ":")),
+            "GRDR_OBSERVATION_ROUTE": candidate["selected_route"],
+            "GRDR_OBSERVATION_ROUTE_ID": candidate["route_id"],
+            "GRDR_OBSERVATION_ACCESS_METHOD": candidate["access_method"],
+            "GRDR_OBSERVATION_URI": candidate["uri"],
+            "GRDR_OBSERVATION_ROOT": candidate["observation_root"],
+            "GRDR_OBSERVATION_EXTERNAL_LOCATIONS": json.dumps(route_context["external_locations"], separators=(",", ":")),
+            "GRDR_ONLINE_ACCESS_MANIFEST": str(snapshot / "agent" / "online_access.json"),
+            "GRDR_ONLINE_ACCESS_ROUTES": json.dumps(route_context.get("online_access", {}).get("routes", []), separators=(",", ":")),
+        }
+        maximum_attempts = 3 if candidate.get("access_method", "").startswith("official_") else 1
+        result = None
+        for attempt in range(1, maximum_attempts + 1):
+            timed_out = False
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=entrypoint.parent,
+                    env=runtime_environment,
+                    capture_output=True,
+                    text=True,
+                    timeout=invocation_timeout,
+                )
+                error = (
+                    (completed.stderr or completed.stdout).strip()
+                    if completed.returncode
+                    else ""
+                )
+            except subprocess.TimeoutExpired:
+                completed = None
+                timed_out = True
+                error = f"source runtime exceeded {invocation_timeout:g} seconds"
+            if completed is not None and completed.returncode == 0:
+                try:
+                    result = json.loads(completed.stdout)
+                except json.JSONDecodeError:
+                    error = "source runtime did not emit one JSON object"
+                else:
+                    attempted_routes.append({
+                        "route_id": candidate["route_id"],
+                        "selected_route": candidate["selected_route"],
+                        "attempt": attempt,
+                        "status": "succeeded",
+                        "error": None,
+                    })
+                    break
+            retryable = retryable_runtime_failure(candidate, error, timed_out)
+            attempted_routes.append({
+                "route_id": candidate["route_id"],
+                "selected_route": candidate["selected_route"],
+                "attempt": attempt,
+                "status": "retrying" if retryable and attempt < maximum_attempts else "failed",
+                "error": error or "source runtime invocation failed",
+            })
+            if not retryable or attempt >= maximum_attempts:
+                break
+            time.sleep(0.5 * (2 ** (attempt - 1)))
+        if result is None:
+            continue
+        selected_context = {
+            **route_context,
+            "selected_route": candidate["selected_route"],
+            "selected_route_id": candidate["route_id"],
+            "access_method": candidate["access_method"],
+            "uri": candidate["uri"],
+            "observation_root": candidate["observation_root"],
+            "attempted_routes": attempted_routes,
+        }
+        return {
+            "source_id": card["source_id"],
+            "snapshot_id": card["latest_snapshot"],
+            "runtime_protocol": card["runtime"]["protocol_version"],
+            "observation_route": selected_context,
+            "result": result,
+        }
+    detail = "; ".join(
+        f"{item['route_id']}: {item['error']}" for item in attempted_routes
+    )
+    raise DistributedRuntimeError(
+        f"every {route_policy} observation route failed for {variable_id}: {detail}"
+    )
+
+
 def invoke_source_runtime(
     cards: Iterable[dict[str, Any]],
     variable_id: str,
@@ -1118,103 +1235,13 @@ def invoke_source_runtime(
                 continue
         finally:
             connection.close()
-        entrypoint = snapshot / card["runtime"]["entrypoint"]
-        arguments = list(extra_args)
-        invocation_timeout = 90.0
-        if "--timeout" in arguments:
-            try:
-                invocation_timeout = max(30.0, float(arguments[arguments.index("--timeout") + 1]) + 30.0)
-            except (IndexError, ValueError):
-                pass
-        command = [sys.executable, str(entrypoint), operation, "--index", str(index), "--variable-id", variable_id, *arguments]
-        route_context = observation_route_context(snapshot, route_policy, variable_id)
-        attempted_routes = []
-        for candidate in route_context["candidate_routes"]:
-            runtime_environment = {
-                **os.environ,
-                "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
-                "GRDR_ROUTE_POLICY": route_policy,
-                "GRDR_OBSERVATION_REPLICATION_MODE": route_context["replication_mode"],
-                "GRDR_OBSERVATION_PLACEMENTS": json.dumps(route_context["placements"], separators=(",", ":")),
-                "GRDR_OBSERVATION_ROUTE": candidate["selected_route"],
-                "GRDR_OBSERVATION_ROUTE_ID": candidate["route_id"],
-                "GRDR_OBSERVATION_ACCESS_METHOD": candidate["access_method"],
-                "GRDR_OBSERVATION_URI": candidate["uri"],
-                "GRDR_OBSERVATION_ROOT": candidate["observation_root"],
-                "GRDR_OBSERVATION_EXTERNAL_LOCATIONS": json.dumps(route_context["external_locations"], separators=(",", ":")),
-                "GRDR_ONLINE_ACCESS_MANIFEST": str(snapshot / "agent" / "online_access.json"),
-                "GRDR_ONLINE_ACCESS_ROUTES": json.dumps(route_context.get("online_access", {}).get("routes", []), separators=(",", ":")),
-            }
-            maximum_attempts = 3 if candidate.get("access_method", "").startswith("official_") else 1
-            result = None
-            for attempt in range(1, maximum_attempts + 1):
-                timed_out = False
-                try:
-                    completed = subprocess.run(
-                        command,
-                        cwd=entrypoint.parent,
-                        env=runtime_environment,
-                        capture_output=True,
-                        text=True,
-                        timeout=invocation_timeout,
-                    )
-                    error = (
-                        (completed.stderr or completed.stdout).strip()
-                        if completed.returncode
-                        else ""
-                    )
-                except subprocess.TimeoutExpired:
-                    completed = None
-                    timed_out = True
-                    error = f"source runtime exceeded {invocation_timeout:g} seconds"
-                if completed is not None and completed.returncode == 0:
-                    try:
-                        result = json.loads(completed.stdout)
-                    except json.JSONDecodeError:
-                        error = "source runtime did not emit one JSON object"
-                    else:
-                        attempted_routes.append({
-                            "route_id": candidate["route_id"],
-                            "selected_route": candidate["selected_route"],
-                            "attempt": attempt,
-                            "status": "succeeded",
-                            "error": None,
-                        })
-                        break
-                retryable = retryable_runtime_failure(candidate, error, timed_out)
-                attempted_routes.append({
-                    "route_id": candidate["route_id"],
-                    "selected_route": candidate["selected_route"],
-                    "attempt": attempt,
-                    "status": "retrying" if retryable and attempt < maximum_attempts else "failed",
-                    "error": error or "source runtime invocation failed",
-                })
-                if not retryable or attempt >= maximum_attempts:
-                    break
-                time.sleep(0.5 * (2 ** (attempt - 1)))
-            if result is None:
-                continue
-            selected_context = {
-                **route_context,
-                "selected_route": candidate["selected_route"],
-                "selected_route_id": candidate["route_id"],
-                "access_method": candidate["access_method"],
-                "uri": candidate["uri"],
-                "observation_root": candidate["observation_root"],
-                "attempted_routes": attempted_routes,
-            }
-            return {
-                "source_id": card["source_id"],
-                "snapshot_id": card["latest_snapshot"],
-                "runtime_protocol": card["runtime"]["protocol_version"],
-                "observation_route": selected_context,
-                "result": result,
-            }
-        detail = "; ".join(
-            f"{item['route_id']}: {item['error']}" for item in attempted_routes
-        )
-        raise DistributedRuntimeError(
-            f"every {route_policy} observation route failed for {variable_id}: {detail}"
+        return invoke_snapshot_runtime(
+            card,
+            snapshot,
+            variable_id,
+            operation,
+            extra_args,
+            route_policy,
         )
     raise DistributedRuntimeError(f"variable is absent from every locally available source runtime: {variable_id}")
 

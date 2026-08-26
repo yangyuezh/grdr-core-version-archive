@@ -45,6 +45,7 @@
     },
     "online_access_manifest": {"$ref": "#/$defs/online_access"},
     "online_runtime_audit": {"$ref": "#/$defs/online_runtime_audit"},
+    "invocation_acceptance_audit": {"$ref": "#/$defs/invocation_acceptance_audit"},
     "knowledge_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "observation_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "duplicate_content_hash_count": {"const": 0},
@@ -282,6 +283,40 @@
           "items": {
             "type": "object", "additionalProperties": false, "required": ["variable_id", "route_ids"],
             "properties": {"variable_id": {"type": "string"}, "route_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}}
+          }
+        },
+        "tested_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "invocation_acceptance_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "source_id", "snapshot_id", "status", "registered_variable_count", "probe_count", "probes", "tested_at"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "source_id": {"type": "string"},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "status": {"const": "ready"},
+        "registered_variable_count": {"type": "integer", "minimum": 0},
+        "probe_count": {"type": "integer", "minimum": 0},
+        "probes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["probe_id", "variable_id", "route_policy", "parameters", "selected_route", "selected_route_id", "row_count", "output_file_count", "output_content_fingerprint", "status"],
+            "properties": {
+              "probe_id": {"type": "string"},
+              "variable_id": {"type": "string"},
+              "route_policy": {"enum": ["latest", "reproducible", "offline"]},
+              "parameters": {"type": "object"},
+              "selected_route": {"type": "string"},
+              "selected_route_id": {"type": "string"},
+              "row_count": {"type": "integer", "minimum": 0},
+              "output_file_count": {"type": "integer", "minimum": 1},
+              "output_content_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "status": {"const": "passed"}
+            }
           }
         },
         "tested_at": {"type": "string", "format": "date-time"}

@@ -23,7 +23,7 @@ Knowledge completeness, online callability, and observation replication are not 
 The GitHub Release always contains:
 
 - `knowledge/`: Plan, Execute ledgers, staged canonical records, evidence, canonical archive package and receipt, and human report;
-- `agent/`: the source-scoped SQLite index, Runtime 2.0 descriptor, source-specific executable entrypoint, sealed offline runtime audit, `online_access.json`, and `online_runtime_audit.json`.
+- `agent/`: the source-scoped SQLite index, Runtime 2.0 descriptor, source-specific executable entrypoint, sealed offline runtime audit, `online_access.json`, `online_runtime_audit.json`, and `invocation_acceptance_audit.json`.
 
 `observations/` exists only at locations declared by the observation policy. The Release manifest binds the ordered logical file inventory, per-file locations, SHA-256 values, sizes, Release assets, external locations, canonical archive receipt, Core version, repository identity, and snapshot identity.
 
@@ -37,6 +37,7 @@ Raw observation files must never enter `knowledge/`. Exclude every observation i
 - The online audit must enumerate exactly the indexed Variables and give every Variable one or more tested route IDs.
 - `unresolved_online_variable_count` must be zero. If neither an official route nor a GRDR Release route provides complete coverage, Storage cannot complete.
 - Route policies must define `latest`, `reproducible`, and `offline`; Runtime records each attempted route and selected fallback.
+- Core must independently execute at least one real registered Variable through the public country/period `fetch-variable` arguments under `latest`; if an offline route exists, it must also execute an `offline` probe. Each probe must return the declared minimum nonzero row count and at least one output artifact, and its route and output fingerprint are sealed in `invocation_acceptance_audit.json`.
 - A no-mirror source with only an unversioned current official route has no reproducible route and cannot complete until it adds a frozen online snapshot or a version-pinned/frozen official route.
 
 ## Replication obligations
@@ -53,7 +54,7 @@ GitHub observation archives are optional. A mounted object-store copy must be co
 2. Promote canonical records transactionally if necessary.
 3. Inherit and verify the Plan knowledge scope.
 4. Build the knowledge and Agent artifacts, exclude observation roots, and run the source Runtime's offline full-variable self-test.
-5. Build the online-access manifest, run every online route test, and prove exact all-Variable route coverage.
+5. Build the online-access manifest, run every online route test, prove exact all-Variable route coverage, then run Core-driven parameterized fetch probes and seal their invocation acceptance audit.
 6. Apply the independent observation replication and placement policy, build each declared inventory, and prove no cross-component duplicate.
 7. Generate Release assets and source-repository files.
 8. Verify every claimed canonical location and the non-receipt GitHub publication assets by read-back; never require an optional local cache.

@@ -44,7 +44,8 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 │   ├── <source-runtime>.py
 │   ├── runtime_audit.json
 │   ├── online_access.json
-│   └── online_runtime_audit.json
+│   ├── online_runtime_audit.json
+│   └── invocation_acceptance_audit.json
 ├── observations/<partition>/...       # only when present in the downloaded Release
 └── receipts/
     ├── manifest.json
