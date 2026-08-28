@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.5.4] - 2026-08-28
+
+### Fixed
+
+- Bind execution-spine checkpoints to graph topology only: node identities, edge identities and endpoints, roots, and leaves.
+- Stop serializing complete Variable, Construct, DataElement, definition, evidence, and Codelist payloads when computing a topology fingerprint; those contents remain independently protected by the staging manifest.
+- Record the new `topology-v2` fingerprint contract on newly created and batch-recorded spines while retaining Schema compatibility with existing sealed projects.
+
+### Validation
+
+- Add regression coverage proving that large non-topological record payloads do not affect the spine fingerprint while a changed graph endpoint does.
+- Preserve endpoint membership, connectivity, staged-content fingerprints, execution locks, and Storage receipt verification as independent completion gates.
+
 ## [4.5.3] - 2026-08-28
 
 ### Fixed

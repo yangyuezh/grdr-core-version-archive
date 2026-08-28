@@ -95,6 +95,7 @@
         "root_node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:[a-z-]+:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
         "leaf_node_ids": {"type": "array", "items": {"type": "string", "pattern": "^grdr:[a-z-]+:[a-z0-9][a-z0-9-]*$"}, "uniqueItems": true},
         "topology_fingerprint": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "topology_fingerprint_version": {"enum": ["topology-v2"]},
         "completion_basis": {"type": ["string", "null"]},
         "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
         "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},

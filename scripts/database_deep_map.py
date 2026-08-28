@@ -599,6 +599,7 @@ def empty_spine(timestamp: str) -> dict[str, Any]:
         "root_node_ids": [],
         "leaf_node_ids": [],
         "topology_fingerprint": None,
+        "topology_fingerprint_version": "topology-v2",
         "completion_basis": None,
         "evidence": [],
         "blockers": [],
@@ -798,6 +799,33 @@ def stage_errors(unit: dict[str, Any], stage_name: str, stage: dict[str, Any], k
 
 
 def spine_topology_fingerprint(spine: dict[str, Any], records: dict[str, dict[str, Any]]) -> str:
+    """Fingerprint graph topology without serializing complete scientific records.
+
+    Definitions, evidence, Codelists, and other record payloads are already bound by
+    the staging manifest. A spine checkpoint only needs to bind node identity, edge
+    identity and endpoints, plus its declared roots and leaves.
+    """
+    edges = [
+        {
+            "id": item,
+            "subject_id": records[item].get("subject_id"),
+            "predicate": records[item].get("predicate"),
+            "object_id": records[item].get("object_id"),
+        }
+        for item in sorted(spine["edge_ids"])
+        if item in records
+    ]
+    return fingerprint({
+        "format": "topology-v2",
+        "node_ids": sorted(item for item in spine["node_ids"] if item in records),
+        "edges": edges,
+        "roots": sorted(spine["root_node_ids"]),
+        "leaves": sorted(spine["leaf_node_ids"]),
+    })
+
+
+def legacy_spine_topology_fingerprint(spine: dict[str, Any], records: dict[str, dict[str, Any]]) -> str:
+    """Retain read compatibility for pre-4.5.4 unversioned checkpoints."""
     nodes = [records[item] for item in sorted(spine["node_ids"]) if item in records]
     edges = [records[item] for item in sorted(spine["edge_ids"]) if item in records]
     return fingerprint({
@@ -920,7 +948,11 @@ def spine_errors(
             errors.append(f"{label}: completed_native_count must equal expected_node_count")
         if checkpoint["cursor_checksum"] != checkpoint_checksum(checkpoint):
             errors.append(f"{label}: checkpoint cursor checksum is missing or stale")
-        expected_fingerprint = spine_topology_fingerprint(spine, records)
+        expected_fingerprint = (
+            spine_topology_fingerprint(spine, records)
+            if spine.get("topology_fingerprint_version") == "topology-v2"
+            else legacy_spine_topology_fingerprint(spine, records)
+        )
         if spine["topology_fingerprint"] != expected_fingerprint:
             errors.append(f"{label}: topology fingerprint is missing or stale")
     if spine["state"] == "verified_complete":
@@ -1632,6 +1664,7 @@ def record_database_deep_map_spine(project_dir: str | Path, update_file: str | P
         "expected_edge_count", "edge_ids", "verified_edge_count", "root_node_ids",
         "leaf_node_ids", "topology_fingerprint", "completion_basis", "evidence", "blockers", "checkpoint",
     )}
+    spine["topology_fingerprint_version"] = "topology-v2"
     spine["verified_node_count"] = sum(
         records[item].get("verification", {}).get("status") == "verified"
         for item in spine["node_ids"]
@@ -1940,6 +1973,7 @@ def record_database_deep_map_execution_batch(
                 "leaf_node_ids", "topology_fingerprint", "completion_basis", "evidence",
                 "blockers", "checkpoint",
             )}
+            spine["topology_fingerprint_version"] = "topology-v2"
             spine["verified_node_count"] = sum(
                 records[item].get("verification", {}).get("status") == "verified"
                 for item in spine["node_ids"]

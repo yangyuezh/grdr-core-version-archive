@@ -21,6 +21,7 @@ from database_deep_map import (  # noqa: E402
     fingerprint,
     prepare_database_deep_map_storage,
     read_record_batch,
+    spine_topology_fingerprint,
     spine_errors,
     record_database_deep_map_stage,
     stage_database_deep_map_records,
@@ -78,6 +79,33 @@ class DatabaseStorageTests(unittest.TestCase):
             "checkpoint": {"enumeration_rule": None, "completed_native_count": 0, "last_native_id": None, "next_native_id": None, "snapshot": None, "cursor_checksum": None},
         }
         self.assertEqual(spine_errors(unit, "variable_bridge", spine, records), [])
+
+    def test_spine_fingerprint_binds_topology_not_large_record_payloads(self) -> None:
+        node_ids = ["grdr:variable:one", "grdr:construct:one"]
+        edge_id = "grdr:relationship:one"
+        records = {
+            node_ids[0]: {"id": node_ids[0], "large_definition": "x" * 100000},
+            node_ids[1]: {"id": node_ids[1], "large_definition": "y" * 100000},
+            edge_id: {
+                "id": edge_id,
+                "subject_id": node_ids[0],
+                "predicate": "measures",
+                "object_id": node_ids[1],
+                "large_evidence": "z" * 100000,
+            },
+        }
+        spine = {
+            "node_ids": node_ids,
+            "edge_ids": [edge_id],
+            "root_node_ids": [node_ids[0]],
+            "leaf_node_ids": [node_ids[1]],
+        }
+        initial = spine_topology_fingerprint(spine, records)
+        records[node_ids[0]]["large_definition"] = "changed"
+        records[edge_id]["large_evidence"] = "changed"
+        self.assertEqual(initial, spine_topology_fingerprint(spine, records))
+        records[edge_id]["object_id"] = node_ids[0]
+        self.assertNotEqual(initial, spine_topology_fingerprint(spine, records))
 
     @staticmethod
     def _close_execution(target: Path, dataset_id: str | None = None) -> None:
