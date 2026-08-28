@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.5.2] - 2026-08-28
+
+### Fixed
+
+- Replace quadratic duplicate detection in large staged-record batches with a linear-time set scan while retaining exact duplicate rejection.
+- Replace repeated list membership scans in execution-spine endpoint and connectivity validation with set membership, so full topology audits scale linearly with graph size.
+- Bound successful staging command output for batches above 1,000 records to a deterministic sample and complete ID fingerprint instead of emitting every canonical ID.
+
+### Validation
+
+- Add large synthetic regression cases for duplicate detection and spine membership.
+- Validate the repaired execution path against an OECD deep map containing 331,002 canonical candidates and 250,912 relationships; the six content stages, three spines, and 31 shape-specific checks completed with zero audit errors or warnings. OECD-specific records remain external to database-independent Core.
+
 ## [4.5.1] - 2026-08-26
 
 ### Fixed

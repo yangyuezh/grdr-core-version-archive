@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.1`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.1)**
+> **Current stable release / 当前稳定版本：[`v4.5.2`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.2)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.1<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.2<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -497,4 +497,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.1` closes the Storage acceptance gap between Core Agent Runtime and source Runtime 2.0. In addition to full-variable self-tests and Variable-to-route coverage, every nonempty source must now pass a real Core-driven parameterized `latest` fetch, and mirrored sources must also pass an `offline` fetch; the nonempty rows, selected routes, and output fingerprints are sealed in `invocation_acceptance_audit.json`. Version `4.5.0` remains the feature baseline that introduced the external, rebuildable Global Index & Routing Layer, and Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.
+Version `4.5.2` makes high-cardinality deep maps practical by replacing quadratic duplicate and graph-membership checks with linear-time validation and by bounding command output for very large staged batches. Version `4.5.1` closed the Storage acceptance gap between Core Agent Runtime and source Runtime 2.0: every nonempty source must pass a real Core-driven parameterized `latest` fetch, and mirrored sources must also pass an `offline` fetch; the results are sealed in `invocation_acceptance_audit.json`. Version `4.5.0` remains the feature baseline that introduced the external, rebuildable Global Index & Routing Layer, and Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.

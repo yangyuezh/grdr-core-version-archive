@@ -20,6 +20,8 @@ from database_deep_map import (  # noqa: E402
     audit_database_deep_map,
     fingerprint,
     prepare_database_deep_map_storage,
+    read_record_batch,
+    spine_errors,
     record_database_deep_map_stage,
     stage_database_deep_map_records,
     start_database_deep_map,
@@ -42,6 +44,41 @@ from database_storage import (  # noqa: E402
 
 
 class DatabaseStorageTests(unittest.TestCase):
+    def test_large_record_batch_duplicate_detection_is_linear_and_exact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "large-candidates.jsonl"
+            rows = [{"id": f"grdr:dataset:synthetic-{index}"} for index in range(25000)]
+            rows.append({"id": "grdr:dataset:synthetic-24999"})
+            target.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "grdr:dataset:synthetic-24999"):
+                read_record_batch(target)
+
+    def test_large_spine_endpoint_membership_is_linear(self) -> None:
+        node_ids = [f"grdr:variable:synthetic-{index}" for index in range(10000)]
+        edge_ids = [f"grdr:relationship:synthetic-{index}" for index in range(9999)]
+        records = {
+            node_id: {"id": node_id, "dataset_ids": [], "verification": {"status": "verified"}}
+            for node_id in node_ids
+        }
+        records.update({
+            edge_id: {
+                "id": edge_id,
+                "subject_id": node_ids[index],
+                "object_id": node_ids[index + 1],
+                "verification": {"status": "verified"},
+            }
+            for index, edge_id in enumerate(edge_ids)
+        })
+        unit = {"id": "grdr:deep-map-unit:synthetic", "dataset_id": None, "stages": {}}
+        spine = {
+            "state": "in_progress", "expected_node_count": None, "node_ids": node_ids,
+            "verified_node_count": len(node_ids), "expected_edge_count": None, "edge_ids": edge_ids,
+            "verified_edge_count": len(edge_ids), "root_node_ids": [], "leaf_node_ids": [],
+            "topology_fingerprint": None, "completion_basis": None, "evidence": [], "blockers": [],
+            "checkpoint": {"enumeration_rule": None, "completed_native_count": 0, "last_native_id": None, "next_native_id": None, "snapshot": None, "cursor_checksum": None},
+        }
+        self.assertEqual(spine_errors(unit, "variable_bridge", spine, records), [])
+
     @staticmethod
     def _close_execution(target: Path, dataset_id: str | None = None) -> None:
         evidence = [{

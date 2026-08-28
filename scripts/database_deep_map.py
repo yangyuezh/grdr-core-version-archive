@@ -468,7 +468,14 @@ def read_record_batch(path: Path) -> list[dict[str, Any]]:
     if not isinstance(values, list) or not all(isinstance(item, dict) for item in values):
         raise ValueError("staged record batch must be a JSON object, JSON array, or JSONL objects")
     record_ids = [item.get("id") for item in values]
-    duplicates = sorted({item for item in record_ids if record_ids.count(item) > 1}, key=str)
+    seen: set[Any] = set()
+    duplicates: set[Any] = set()
+    for record_id in record_ids:
+        if record_id in seen:
+            duplicates.add(record_id)
+        else:
+            seen.add(record_id)
+    duplicates = sorted(duplicates, key=str)
     if duplicates:
         raise ValueError("staged record batch contains duplicate IDs: " + ", ".join(duplicates))
     return values
@@ -821,6 +828,7 @@ def spine_errors(
         "variable_bridge": ("grdr:data-structure:", "grdr:data-element:", "grdr:variable:", "grdr:construct:", "grdr:semantic-node:"),
     }[spine_name]
     node_ids = spine["node_ids"]
+    node_id_set = set(node_ids)
     edge_ids = spine["edge_ids"]
     expected_nodes = spine["expected_node_count"]
     expected_edges = spine["expected_edge_count"]
@@ -842,10 +850,10 @@ def spine_errors(
         if record is None or not edge_id.startswith("grdr:relationship:"):
             errors.append(f"{label}: unknown canonical relationship {edge_id}")
             continue
-        if record.get("subject_id") not in node_ids or record.get("object_id") not in node_ids:
+        if record.get("subject_id") not in node_id_set or record.get("object_id") not in node_id_set:
             errors.append(f"{label}: edge {edge_id} has an endpoint outside the declared spine nodes")
     for boundary_name in ("root_node_ids", "leaf_node_ids"):
-        unknown = sorted(set(spine[boundary_name]) - set(node_ids))
+        unknown = sorted(set(spine[boundary_name]) - node_id_set)
         if unknown:
             errors.append(f"{label}: {boundary_name} contains nodes outside node_ids: {', '.join(unknown)}")
     actual_verified_nodes = sum(
@@ -898,7 +906,7 @@ def spine_errors(
             current = pending.pop()
             for neighbor in adjacency.get(current, set()) - reachable:
                 reachable.add(neighbor); pending.append(neighbor)
-        disconnected = sorted(set(node_ids) - reachable)
+        disconnected = sorted(node_id_set - reachable)
         if disconnected:
             errors.append(f"{label}: nodes are disconnected from declared roots: {', '.join(disconnected)}")
         if not spine["completion_basis"] or not spine["evidence"]:
@@ -1822,7 +1830,13 @@ def stage_database_deep_map_records(project_dir: str | Path, records_file: str |
     return {
         "operation": "stage_database_deep_map_records",
         "project_id": project["id"],
-        "staged_record_ids": [item["id"] for item in batch],
+        "staged_record_ids": [item["id"] for item in batch] if len(batch) <= 1000 else [],
+        "staged_record_id_sample": (
+            [item["id"] for item in batch]
+            if len(batch) <= 40
+            else [*[item["id"] for item in batch[:20]], *[item["id"] for item in batch[-20:]]]
+        ),
+        "staged_record_ids_fingerprint": fingerprint(sorted(item["id"] for item in batch)),
         "staging_record_count": len(manifest["records"]),
         "manifest_fingerprint": staging_manifest_fingerprint(manifest),
         "audit": audit,
