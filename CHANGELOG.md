@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.5.3] - 2026-08-28
+
+### Fixed
+
+- Resolve the Storage contract contradiction exposed by OECD Data Explorer: a current-only large database may use `no_mirror` without falsely labeling its mutable official API as a frozen or version-pinned observation route.
+- Keep complete `latest` online coverage and Core-driven parameterized invocation mandatory for every registered Variable.
+- Permit an empty source-level `reproducible` policy only when `no_mirror` is paired with an enabled on-demand research-project snapshot cache; record the limitation as `research_snapshot_required`.
+
+### Semantics and validation
+
+- Persist an explicit reproducibility status and evidence basis in online-access manifests, Storage snapshot profiles, generated source documentation, and package validation.
+- Preserve existing source-level reproducible and offline routes whenever a frozen, versioned, local, mounted, or GRDR Release observation path actually exists.
+- Add regression coverage for a current-only, no-mirror source and document that its first bounded `latest` result must be sealed before reproducible research use.
+
 ## [4.5.2] - 2026-08-28
 
 ### Fixed

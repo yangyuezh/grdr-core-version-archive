@@ -13,7 +13,8 @@
     "official_access",
     "routes",
     "coverage",
-    "route_policies"
+    "route_policies",
+    "reproducibility"
   ],
   "properties": {
     "schema_version": {"const": "1.0.0"},
@@ -46,8 +47,17 @@
       "required": ["latest", "reproducible", "offline"],
       "properties": {
         "latest": {"$ref": "#/$defs/route_order"},
-        "reproducible": {"$ref": "#/$defs/route_order"},
+        "reproducible": {"$ref": "#/$defs/optional_route_order"},
         "offline": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/route_class"}}
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "basis"],
+      "properties": {
+        "status": {"enum": ["source_route_available", "research_snapshot_required"]},
+        "basis": {"type": "string", "minLength": 1}
       }
     }
   },
@@ -73,6 +83,11 @@
     "route_order": {
       "type": "array",
       "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/route_class"}
+    },
+    "optional_route_order": {
+      "type": "array",
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/route_class"}
     }

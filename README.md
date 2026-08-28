@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.2`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.2)**
+> **Current stable release / 当前稳定版本：[`v4.5.3`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.3)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.2<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.3<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -49,7 +49,7 @@ flowchart TB
         SEM_OV["<b>Skill 6 · Semantic Resolver</b><br/>recall → R→B → B→A → fit → invocation"]:::semantic
         RUN_OV["Agent Runtime<br/><i>execution code, not an additional Skill</i><br/>global index · cross-source router · verify · invoke"]:::runtime
         SOURCE_RUN_OV["Source Runtime 2.0 per database<br/>source-native resolve · fetch · normalize"]:::runtime
-        OUT_OV["Verified observations<br/>latest · reproducible · offline route policies<br/>+ route trace + provenance + uncertainty"]:::result
+        OUT_OV["Verified observations<br/>latest · reproducible when available · offline when mirrored<br/>+ route trace + provenance + uncertainty"]:::result
         BUILD_OV --> SEM_OV --> RUN_OV --> SOURCE_RUN_OV --> OUT_OV
     end
 
@@ -187,7 +187,7 @@ flowchart TB
             S_LARGE["Large-data placement<br/>mounted object store / large disk<br/>partition inventory + SHA-256"]:::artifact
             S_UPSTREAM["Official online routes<br/>API · bulk-download adapter · browser-automation adapter<br/>tested route coverage + explicit availability state"]:::external
             S_CACHE["Use-plane derivative after Storage<br/>on-demand research-project data snapshot<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
-            S_ONLINE_MANIFEST["Online access manifest + audit<br/>latest / reproducible / offline route policies<br/>route result + every Variable → one or more route IDs"]:::verify
+            S_ONLINE_MANIFEST["Online access manifest + audit<br/>latest + explicit reproducibility status + offline policy<br/>route result + every Variable → one or more route IDs"]:::verify
             S_MANIFEST["Location-aware replication manifest<br/>every copied logical file → exact locations + SHA-256<br/><b>knowledge never contains raw observations</b><br/>no logical file appears in two packages accidentally"]:::verify
             S_VERIFY["Read-back publication verification<br/>repository · tag → exact commit · every asset hash<br/>upload + read back final Storage receipt"]:::verify
             S_RECEIPT["Receipt verified remotely, then sealed locally<br/><b>versioned_database_snapshot</b>"]:::handoff
@@ -301,7 +301,7 @@ Agent Runtime 支持三种明确的路由策略：
 
 每次调用都把候选顺序、失败路线和最终选中路线写入结果；第一条路线失败时 Runtime 自动尝试下一条，而不是静默改用来源不明的数据。
 
-`reproducible` 路线也是完成条件。若快照选择 `no_mirror`，而官方接口只能返回不断变化且无法指定版本的当前数据，就必须增加可核验的冻结在线快照或官方版本化路线；否则该数据库可以继续登记和建设，但不能宣称 Storage 完成。
+`latest` 路线及其全部 Variable 覆盖始终是完成条件。若存在冻结、版本化或镜像路线，`reproducible` 会直接给出来源级复现路径。若快照选择 `no_mirror` 且官方接口只能返回当前数据，Storage 可以完成，但必须将 `reproducibility.status` 明确记录为 `research_snapshot_required`，不得虚构来源级冻结路线；研究时先按 `latest` 取数并封存研究项目数据快照，之后依靠该快照复现。此例外只适用于已启用按需研究快照的 `no_mirror`，不削弱知识完整性、在线全变量覆盖或真实调用验收。
 
 ##### 三个工程标准分别解决什么
 
@@ -497,4 +497,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.2` makes high-cardinality deep maps practical by replacing quadratic duplicate and graph-membership checks with linear-time validation and by bounding command output for very large staged batches. Version `4.5.1` closed the Storage acceptance gap between Core Agent Runtime and source Runtime 2.0: every nonempty source must pass a real Core-driven parameterized `latest` fetch, and mirrored sources must also pass an `offline` fetch; the results are sealed in `invocation_acceptance_audit.json`. Version `4.5.0` remains the feature baseline that introduced the external, rebuildable Global Index & Routing Layer, and Version 4.4's separation of Plan-locked knowledge scope, mandatory tested online callability, and capacity-dependent observation replication remains unchanged.
+Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.

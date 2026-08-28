@@ -675,7 +675,7 @@ else:
                     },
                     "routes": [{
                         **spec["observation_policy"]["online_access"]["routes"][0],
-                        "freshness": "version_pinned",
+                        "freshness": "current_upstream",
                     }],
                 },
                 "cache": {
@@ -702,9 +702,13 @@ else:
                 no_mirror_package["snapshot_profile"]["online_access"]["route_policies"],
                 {
                     "latest": ["official_online"],
-                    "reproducible": ["official_online"],
+                    "reproducible": [],
                     "offline": [],
                 },
+            )
+            self.assertEqual(
+                no_mirror_package["snapshot_profile"]["online_access"]["reproducibility"]["status"],
+                "research_snapshot_required",
             )
             local_cache = Path(no_mirror_package["local_snapshot_cache_path"])
             shutil.rmtree(local_cache)

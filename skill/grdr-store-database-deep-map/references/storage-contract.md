@@ -36,9 +36,9 @@ Raw observation files must never enter `knowledge/`. Exclude every observation i
 - Every declared route must pass the Runtime's `self-test-online` operation.
 - The online audit must enumerate exactly the indexed Variables and give every Variable one or more tested route IDs.
 - `unresolved_online_variable_count` must be zero. If neither an official route nor a GRDR Release route provides complete coverage, Storage cannot complete.
-- Route policies must define `latest`, `reproducible`, and `offline`; Runtime records each attempted route and selected fallback.
+- Route policies must define `latest`, `reproducible`, and `offline`; Runtime records each attempted route and selected fallback. `latest` must be nonempty. `reproducible` may be empty only for a current-only `no_mirror` source with enabled on-demand research-project snapshots and an explicit `research_snapshot_required` status.
 - Core must independently execute at least one real registered Variable through the public country/period `fetch-variable` arguments under `latest`; if an offline route exists, it must also execute an `offline` probe. Each probe must return the declared minimum nonzero row count and at least one output artifact, and its route and output fingerprint are sealed in `invocation_acceptance_audit.json`.
-- A no-mirror source with only an unversioned current official route has no reproducible route and cannot complete until it adds a frozen online snapshot or a version-pinned/frozen official route.
+- A no-mirror source with only an unversioned current official route must not manufacture a source-wide reproducible route. It may complete with `research_snapshot_required`; the first bounded `latest` result must be sealed by the research project before reproducible analysis.
 
 ## Replication obligations
 

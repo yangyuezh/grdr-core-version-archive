@@ -41,7 +41,7 @@ Every snapshot must declare online access regardless of replication mode:
 
 Supported methods are `official_api`, `official_bulk_download`, `official_browser_automation`, and `grdr_release_snapshot`. Authority, freshness, and verification must agree with the route. If the official source is unavailable, state `official_access.status: unavailable` and provide a verified GRDR Release route that covers every registered Variable. Storage calls Runtime 2.0 `self-test-online`; it rejects any failed route or Variable without a ready route ID.
 
-Both `latest` and `reproducible` policies must be nonempty. A current-only unversioned official API can satisfy `latest`, but not `reproducible`; pair it with a frozen GRDR Release route, a copied mirror, or a version-pinned/frozen official route.
+`latest` must always be nonempty. Prefer a nonempty source-level `reproducible` policy backed by a frozen GRDR Release route, copied mirror, or version-pinned/frozen official route. When `no_mirror` is intentional and the official source is current-only, keep `reproducible` empty, record `research_snapshot_required`, enable the on-demand research-project cache, and seal the first bounded `latest` result before treating a study as reproducible. Never mark a mutable current route as version-pinned merely to pass Storage.
 
 ## GitHub replication capacity
 

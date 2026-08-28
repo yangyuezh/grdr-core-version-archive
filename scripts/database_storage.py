@@ -429,8 +429,28 @@ def build_online_access_manifest(
     ):
         raise ValueError("no_mirror cannot claim a GRDR Release observation route")
     policies = route_policies(spec)
-    if not policies["latest"] or not policies["reproducible"]:
-        raise ValueError("online access must provide both latest and reproducible route policies")
+    if not policies["latest"]:
+        raise ValueError("online access must provide a latest route policy")
+    cache = spec["observation_policy"]["cache"]
+    if policies["reproducible"]:
+        reproducibility = {
+            "status": "source_route_available",
+            "basis": "A frozen, version-pinned, local, mounted, or GRDR Release observation route is available at source-snapshot scope.",
+        }
+    elif (
+        replication["mode"] == "no_mirror"
+        and cache["mode"] == "on_demand"
+        and cache["research_project_snapshots"]
+        and cache["root"] == "research_project"
+    ):
+        reproducibility = {
+            "status": "research_snapshot_required",
+            "basis": "The source exposes only current upstream observations and this GRDR snapshot intentionally does not mirror them. Reproducibility begins when a latest-policy research query is sealed into its research-project data snapshot; a source-wide reproducible route is not claimed.",
+        }
+    else:
+        raise ValueError(
+            "online access without a reproducible source route requires no_mirror plus enabled on-demand research-project snapshots"
+        )
     manifest = {
         "schema_version": "1.0.0",
         "source_id": spec["source_id"],
@@ -444,6 +464,7 @@ def build_online_access_manifest(
             "expected_variable_count": variable_count,
         },
         "route_policies": policies,
+        "reproducibility": reproducibility,
     }
     errors = validate_schema(manifest, "online_access_manifest.schema.json", ONLINE_ACCESS_FILE)
     if errors:
@@ -814,6 +835,7 @@ def snapshot_profile(
             "unresolved_online_variable_count": online_runtime_audit["unresolved_online_variable_count"],
             "routes": online_access["routes"],
             "route_policies": online_access["route_policies"],
+            "reproducibility": online_access["reproducibility"],
         },
         "observation_placement": {
             "locations": sorted(replication["placements"]),
@@ -1096,6 +1118,7 @@ It references GRDR Core `{package['core_version']}` and does not copy the Core S
 - Observation placement: {', '.join(package['snapshot_profile']['observation_placement']['locations'])}
 - Online access: `{package['snapshot_profile']['online_access']['status']}`; {package['snapshot_profile']['online_access']['online_callable_variable_count']}/{package['snapshot_profile']['online_access']['expected_variable_count']} variables callable
 - Default latest route order: {', '.join(package['snapshot_profile']['online_access']['route_policies']['latest'])}
+- Reproducibility: `{package['snapshot_profile']['online_access']['reproducibility']['status']}` — {package['snapshot_profile']['online_access']['reproducibility']['basis']}
 - Agent runtime: `{package['runtime']['protocol_version']}` via `agent/{package['runtime']['entrypoint']}`
 - Runtime variable coverage: {package['runtime_audit']['resolvable_variable_count']}/{package['runtime_audit']['variable_count']}
 - Parameterized Core-to-Runtime acceptance probes: {package['invocation_acceptance_audit']['probe_count']}
