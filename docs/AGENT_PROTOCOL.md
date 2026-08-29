@@ -132,7 +132,7 @@ start-database-deep-map
   → inherit knowledge scope
   → build and test online routes for every registered Variable
   → independently choose full, partitioned, or no observation replication
-  → build source repository + callable GitHub Release; optionally materialize a local runtime cache
+  → build source repository + callable GitHub Release; auto-materialize a lightweight Agent cache and expand the full Release only when requested
   → verify source Runtime 2.0 resolves every indexed Variable offline and online
   → upload and read back the Storage receipt
   → only then seal completion and the central source card

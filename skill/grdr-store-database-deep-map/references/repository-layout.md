@@ -34,6 +34,26 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 
 ## Optional local snapshot cache
 
+Default lightweight `agent` scope:
+
+```text
+<cache-root>/sources/<slug>/snapshots/<snapshot-id>/
+├── agent/
+│   ├── grdr-agent-index.sqlite
+│   ├── runtime.json
+│   ├── <source-runtime>.py
+│   ├── runtime_audit.json
+│   ├── online_access.json
+│   ├── online_runtime_audit.json
+│   └── invocation_acceptance_audit.json
+└── receipts/
+    ├── cache_profile.json
+    ├── manifest.json
+    └── storage_receipt.json
+```
+
+Explicit `full` scope additionally materializes the GitHub-hosted knowledge and observations:
+
 ```text
 <cache-root>/sources/<slug>/snapshots/<snapshot-id>/
 ├── knowledge/
@@ -48,12 +68,13 @@ Knowledge and Agent assets are mandatory. Observation assets are mode- and place
 │   └── invocation_acceptance_audit.json
 ├── observations/<partition>/...       # only when present in the downloaded Release
 └── receipts/
+    ├── cache_profile.json
     ├── manifest.json
     ├── storage_publication_verification.json
     └── storage_receipt.json
 ```
 
-This directory is materialized from verified Release assets when local execution needs it. It may be deleted and rebuilt. Its absence never makes a published source snapshot incomplete. The receipt and manifest are provenance sidecars and are excluded from the logical inventory.
+The Agent scope is sufficient for global indexing, graph traversal, route selection, and official online invocation. Full scope is required only when locally expanded knowledge or GitHub-hosted observations are needed. Both are materialized from verified Release assets, may be deleted and rebuilt, and never affect snapshot completion. Receipt, manifest, and cache profile are provenance sidecars excluded from the logical inventory.
 
 ## Mounted large-data store
 

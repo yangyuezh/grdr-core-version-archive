@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.4`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.4)**
+> **Current stable release / 当前稳定版本：[`v4.5.5`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.5)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.4<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.5<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -183,7 +183,7 @@ flowchart TB
 
             S_REPO["Private source Git repository<br/>Core version reference · config · adapters · runtime code<br/>Plan · manifests · README · tests · archive receipts"]:::artifact
             S_RELEASE["GitHub Release · compressed distribution<br/><b>knowledge/ + agent/ always</b><br/>observations only when explicitly placed here"]:::artifactStrong
-            S_LOCAL_CACHE["Optional local runtime cache<br/>materialized from verified Release assets<br/><b>disposable · rebuildable · never required for completion</b>"]:::artifact
+            S_LOCAL_CACHE["Two-scope derived local cache<br/><b>agent</b>: lightweight index + Runtime (default)<br/><b>full</b>: knowledge + Agent + Release observations (explicit)<br/><i>disposable · rebuildable · never canonical</i>"]:::artifact
             S_LARGE["Large-data placement<br/>mounted object store / large disk<br/>partition inventory + SHA-256"]:::artifact
             S_UPSTREAM["Official online routes<br/>API · bulk-download adapter · browser-automation adapter<br/>tested route coverage + explicit availability state"]:::external
             S_CACHE["Use-plane derivative after Storage<br/>on-demand research-project data snapshot<br/>source/snapshot/Variable/arguments/hashes"]:::artifact
@@ -199,7 +199,7 @@ flowchart TB
             S_CAPACITY --> S_MODES
             S_PACKAGE --> S_REPO
             S_PACKAGE --> S_RELEASE
-            S_RELEASE -. "materialize when local execution needs it" .-> S_LOCAL_CACHE
+            S_RELEASE -. "auto-materialize Agent shard; full only on request" .-> S_LOCAL_CACHE
             S_MODES -. "optional observation placement" .-> S_RELEASE
             S_MODES --> S_LARGE
             S_ONLINE --> S_UPSTREAM
@@ -318,7 +318,7 @@ Agent Runtime 支持三种明确的路由策略：
 `knowledge/` 与 `observations/` 在逻辑上必须彻底分离，但通过 Source ID、Snapshot ID、Dataset／Variable ID、位置清单和 SHA-256 精确连接。在线路线另由 `online_access.json` 连接到同一个 Variable。Agent 的标准调用顺序是：检索知识索引 → 解析变量和访问计划 → 按路由策略依次尝试在线或复制路线 → 获取数值 → 必要时封存研究项目数据快照。
 
 - 原始观测文件不得同时混入知识包和观测包；跨逻辑包出现相同内容哈希时，Storage 必须失败。
-- 同一观测资产可以在 GitHub Release 或明确声明的挂载对象存储中保留经过核验的规范镜像；本地缓存只由 Release 物化，可随时删除重建。物理副本数量不会改变数据本身的统计准确性。
+- 同一观测资产可以在 GitHub Release 或明确声明的挂载对象存储中保留经过核验的规范镜像；本地缓存只由 Release 物化，可随时删除重建。默认 `agent` scope 只保留源级 SQLite、Runtime、路线审计与回执；显式 `full` scope 才展开知识和 GitHub 观测资产。物理副本数量不会改变数据本身的统计准确性。
 - `location-aware manifest` 必须记录每个逻辑文件的实际位置和哈希，使 Agent 能确认不同位置对应同一快照，而不是两个互相冲突的版本。
 - `online_access.json` 与 `online_runtime_audit.json` 必须分别证明路线定义和实际变量覆盖；它们不能由本地镜像清单替代。
 - 研究项目缓存是带查询范围和来源证据的派生快照，不得冒充数据库的规范观测镜像。
@@ -393,7 +393,7 @@ flowchart TB
 
 #### Global Index & Routing Layer（Agent Runtime 子系统，不是第七个 Skill）
 
-这一层位于研究语义解析和各数据库 Source Runtime 2.0 之间。它不改变 Plan → Execute → Storage，也不保存观测数据或替代源快照。实际索引位于外部 `GRDR_STATE_ROOT/indexes/`；Core 只保存 SQLite Schema、构建／查询／审计程序和测试。索引删除后可从中央 Registry 与已物化的最新源快照重建。
+这一层位于研究语义解析和各数据库 Source Runtime 2.0 之间。它不改变 Plan → Execute → Storage，也不保存观测数据或替代源快照。实际索引位于外部 `GRDR_STATE_ROOT/indexes/`；Core 只保存 SQLite Schema、构建／查询／审计程序和测试。索引删除后可从中央 Registry 与轻量 Agent 分片重建；缺失分片在索引更新时从已核验 Release 自动物化，不需要同时下载知识包或观测镜像。
 
 | 能力 | 实际实现 | 边界 |
 |---|---|---|
@@ -409,7 +409,7 @@ GRDR_STATE_ROOT/
 ├── registry/source_archives.jsonl        # Storage 写入的规范入口卡片
 ├── indexes/grdr-global-index.sqlite      # 派生全局发现与路由索引
 ├── indexes/grdr-global-index-manifest.json
-└── cache/                                # 可选的 Release 展开缓存
+└── cache/                                # 默认轻量 Agent 分片；可显式完整展开
 ```
 
 `search-sources`、`search-datasets`、`search-variables` 和 `prepare-semantic-candidates` 优先使用全局索引；变量解析与调用先用全局路由锁定 Source，再由对应 Runtime 2.0 执行。如果派生索引不可用，Core 保留旧的中央／分布式扫描回退路径，不会把索引故障伪装成“没有数据”。
@@ -449,6 +449,12 @@ python3 scripts/configure_core.py
 
 # Optionally choose a disposable local snapshot-cache directory.
 python3 scripts/configure_core.py --snapshot-cache-root /absolute/path/to/cache
+
+# Default: only the verified Agent index and Runtime needed for search/online calls.
+.venv/bin/python scripts/grdr.py materialize-source-snapshot <source-id> --scope agent
+
+# Explicit: also expand GitHub-hosted knowledge and observations for local/offline use.
+.venv/bin/python scripts/grdr.py materialize-source-snapshot <source-id> --scope full
 
 # Optional deployment policy; change these values later as storage hardware changes.
 python3 scripts/configure_core.py --github-observation-max-gib 5
@@ -497,4 +503,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.
+Version `4.5.5` separates the lightweight Agent cache required for search and online invocation from an explicitly requested full Release expansion, so large observation mirrors never need to occupy local disk merely to keep a Source globally routable. Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.

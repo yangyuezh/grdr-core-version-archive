@@ -3,12 +3,16 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import shutil
 import sqlite3
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
+
+import jsonschema
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -329,6 +333,173 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         invoked = runtime.invoke_source_runtime([self.card], matches[0]["id"], "resolve-variable", self.root)
         self.assertEqual(invoked["result"]["status"], "ok")
         self.assertEqual(invoked["observation_route"]["selected_route"], "official_upstream")
+
+    def test_verified_agent_only_cache_omits_large_payloads(self) -> None:
+        knowledge = self.snapshot / "knowledge"
+        knowledge.mkdir()
+        payload = knowledge / "large-source-knowledge.jsonl"
+        payload.write_text('{"id":"knowledge"}\n', encoding="utf-8")
+        manifest_path = self.snapshot / "receipts" / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        knowledge_record = runtime.snapshot_inventory(self.snapshot)[-1]
+        manifest["logical_files"].append({**knowledge_record, "locations": ["elements"]})
+        manifest["logical_files"].sort(key=lambda item: item["path"])
+        manifest["logical_content_fingerprint"] = runtime.fingerprint(manifest["logical_files"])
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.card["archive_fingerprint"] = manifest["logical_content_fingerprint"]
+        receipt = {"logical_content_fingerprint": manifest["logical_content_fingerprint"]}
+        receipt["receipt_fingerprint"] = runtime.fingerprint(receipt)
+        (self.snapshot / "receipts" / "storage_receipt.json").write_text(
+            json.dumps(receipt), encoding="utf-8"
+        )
+        (self.snapshot / "receipts" / "cache_profile.json").write_text(
+            json.dumps({
+                "schema_version": "1.0.0",
+                "scope": "agent",
+                "source_id": self.card["source_id"],
+                "snapshot_id": self.card["latest_snapshot"],
+                "logical_content_fingerprint": self.card["archive_fingerprint"],
+                "components": ["agent"],
+                "materialized_at": "2026-08-29T00:00:00Z",
+            }),
+            encoding="utf-8",
+        )
+        payload.unlink()
+        knowledge.rmdir()
+
+        status = runtime.local_snapshot_status(
+            self.card, self.root, verify=True, force_verify=True
+        )
+        self.assertTrue(status["runtime_ready"])
+        self.assertEqual(status["cache_scope"], "agent")
+        self.assertTrue(status["agent_inventory_verified"])
+        self.assertTrue(status["cache_inventory_verified"])
+        self.assertFalse(status["knowledge_cache_complete"])
+        self.assertFalse(status["logical_parity_verified"])
+
+        entrypoint = self.snapshot / "agent" / "synthetic_runtime.py"
+        entrypoint.write_text(entrypoint.read_text(encoding="utf-8") + "# tampered\n", encoding="utf-8")
+        invalid = runtime.local_snapshot_status(
+            self.card, self.root, verify=True, force_verify=True
+        )
+        self.assertFalse(invalid["runtime_ready"])
+        self.assertTrue(any("Agent inventory" in item for item in invalid["errors"]))
+
+    def test_materialization_defaults_to_agent_only_release_asset(self) -> None:
+        release_dir = self.root / "release"
+        release_dir.mkdir()
+        knowledge = self.snapshot / "knowledge"
+        knowledge.mkdir()
+        (knowledge / "source-knowledge.jsonl").write_text(
+            '{"id":"knowledge"}\n',
+            encoding="utf-8",
+        )
+        agent_asset = release_dir / "synthetic-r1-agent-runtime.tar.gz"
+        with tarfile.open(agent_asset, "w:gz") as archive:
+            archive.add(self.snapshot / "agent", arcname="agent")
+        knowledge_asset = release_dir / "synthetic-r1-knowledge.tar.gz"
+        with tarfile.open(knowledge_asset, "w:gz") as archive:
+            archive.add(knowledge, arcname="knowledge")
+        logical_files = [
+            {**item, "locations": ["github_release"]}
+            for item in runtime.snapshot_inventory(self.snapshot)
+        ]
+        logical_fingerprint = runtime.fingerprint(logical_files)
+        manifest = {
+            "schema_version": "4.1.0",
+            "source_id": self.card["source_id"],
+            "snapshot_id": self.card["latest_snapshot"],
+            "logical_files": logical_files,
+            "logical_content_fingerprint": logical_fingerprint,
+            "release_assets": [
+                {
+                    "component": "agent",
+                    "name": agent_asset.name,
+                    "sha256": runtime.sha256_file(agent_asset),
+                    "size_bytes": agent_asset.stat().st_size,
+                    "logical_paths": [
+                        item["path"]
+                        for item in logical_files
+                        if item["component"] == "agent"
+                    ],
+                },
+                {
+                    "component": "knowledge",
+                    "name": knowledge_asset.name,
+                    "sha256": runtime.sha256_file(knowledge_asset),
+                    "size_bytes": knowledge_asset.stat().st_size,
+                    "logical_paths": [
+                        item["path"]
+                        for item in logical_files
+                        if item["component"] == "knowledge"
+                    ],
+                },
+            ],
+            "snapshot_profile": self.card["snapshot_profile"],
+            "external_observation_locations": [],
+        }
+        (release_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        receipt = {"logical_content_fingerprint": logical_fingerprint}
+        receipt["receipt_fingerprint"] = runtime.fingerprint(receipt)
+        (release_dir / "storage_receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+        card = {**self.card, "archive_fingerprint": logical_fingerprint}
+        target_root = self.root / "target-cache"
+        requested: list[str] = []
+
+        def fake_download(_repository, _tag, destination, patterns):
+            requested.extend(patterns)
+            for name in patterns:
+                shutil.copy2(release_dir / name, destination / name)
+
+        with patch.object(runtime, "_download_release_assets", side_effect=fake_download):
+            result = runtime.materialize_source_snapshot(card, target_root)
+
+        self.assertEqual(result["status"], "materialized")
+        self.assertEqual(result["cache_scope"], "agent")
+        self.assertTrue(result["runtime_ready"])
+        self.assertEqual(
+            requested,
+            ["manifest.json", "storage_receipt.json", agent_asset.name],
+        )
+        materialized = runtime.snapshot_path(card, target_root)
+        self.assertTrue((materialized / "agent" / "grdr-agent-index.sqlite").is_file())
+        self.assertFalse((materialized / "knowledge").exists())
+        self.assertFalse((materialized / "observations").exists())
+        profile = json.loads(
+            (materialized / "receipts" / "cache_profile.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        schema = json.loads(
+            (ROOT / "schemas" / "local_cache_profile.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        jsonschema.Draft202012Validator(
+            schema,
+            format_checker=jsonschema.FormatChecker(),
+        ).validate(profile)
+
+        requested.clear()
+        with patch.object(runtime, "_download_release_assets", side_effect=fake_download):
+            upgraded = runtime.materialize_source_snapshot(
+                card,
+                target_root,
+                scope="full",
+            )
+        self.assertEqual(upgraded["status"], "materialized")
+        self.assertEqual(upgraded["cache_scope"], "full")
+        self.assertTrue(upgraded["logical_parity_verified"])
+        self.assertTrue((materialized / "knowledge" / "source-knowledge.jsonl").is_file())
+        self.assertEqual(
+            requested,
+            [
+                "manifest.json",
+                "storage_receipt.json",
+                agent_asset.name,
+                knowledge_asset.name,
+            ],
+        )
 
     def test_latest_reproducible_and_offline_route_order_is_explicit(self) -> None:
         access_path = self.snapshot / "agent" / "online_access.json"

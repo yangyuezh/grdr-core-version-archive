@@ -37,12 +37,12 @@ Resource, Evidence, Verification, adapters, authentication, license, rate limits
 
 - One deeply stored Source owns one private source repository.
 - One snapshot owns one GitHub Release containing complete knowledge, Agent Runtime, manifest, receipt, and only those observations explicitly assigned to GitHub.
-- Agent Runtime may materialize a verified Release into an expanded local cache. The cache is disposable, rebuildable, and not owned by the canonical snapshot.
+- Agent Runtime normally materializes only the verified Agent asset, manifest, and receipt into a lightweight local cache. This is sufficient for global indexing, semantic traversal, routing, and official online invocation. A complete expansion of GitHub-hosted knowledge and observations is explicit and reserved for local/offline use. Both cache scopes are disposable, rebuildable, and not owned by the canonical snapshot.
 - Large observation bytes may instead live on a mounted object store or remain only at the official upstream; this replication decision does not remove the online-callability requirement.
 - A location-aware manifest maps every logical file to its canonical locations and SHA-256. Observation parity is checked only across locations that claim a normative copy; a local cache is checked against the Release manifest when present.
 - Raw observation files are excluded from `knowledge/`; identical content across `knowledge/` and `observations/` is a hard failure.
 - External central state owns the latest-snapshot card used for cross-source discovery.
-- Agent Runtime derives one global index from central records and the latest locally callable source shards. It stores only search summaries, exact entity locators, Variable-to-Construct links, and Variable-to-route links; it is never canonical and may be deleted and rebuilt.
+- Agent Runtime derives one global index from central records and the latest locally callable Agent shards. Missing shards are automatically materialized in lightweight `agent` scope from verified Releases during index refresh. The index stores only search summaries, exact entity locators, Variable-to-Construct links, and Variable-to-route links; it is never canonical and may be deleted and rebuilt.
 - Source repositories reference a Core version; they never copy Core Skills.
 - External runtime configuration owns the adjustable GitHub-observation total threshold. GitHub's under-2-GiB per-asset limit is always enforced. The snapshot records the exact policy and measured bytes used for its decision.
 
@@ -82,7 +82,7 @@ Before applying a source route policy, Agent Runtime performs two-stage cross-so
 
 A no-mirror snapshot backed only by an unversioned current API has no source-wide reproducible route. It may complete only when all Variables remain callable through `latest`, the on-demand research-project cache is enabled, and the manifest states `research_snapshot_required`. The first research fetch must then be sealed into that research project's data snapshot; Storage must not relabel the current API as version-pinned. If a frozen or version-pinned source route exists, ordinary source-level `reproducible` routing remains available.
 
-On first materialization, after file changes, and during explicit audit, Agent Runtime verifies the complete manifest-bound inventory. It persists a filesystem-bound verification receipt so unchanged snapshots do not repeat full-file hashing on every new CLI process. During invocation it prefilters routes with the Variable-to-route map, passes the selected route context to the source-specific Runtime, performs bounded retry only for transient online failures, records every attempt, and falls back only to another declared and verified route. A missing canonical location that claims a copy is an error; an absent optional cache is normal.
+On first materialization, after file changes, and during explicit audit, Agent Runtime verifies the complete inventory for the declared cache scope. `agent` scope must match every Agent logical file and contain no knowledge or observation payload; `full` scope must match the complete GitHub location inventory. The cache profile is bound to Source, snapshot, and logical fingerprint. A filesystem-bound verification receipt prevents unchanged shards from being rehashed on every new CLI process. During invocation Runtime prefilters routes with the Variable-to-route map, passes the selected route context to the source-specific Runtime, performs bounded retry only for transient online failures, records every attempt, and falls back only to another declared and verified route. A missing canonical location that claims a copy is an error; an absent derived cache is rebuildable.
 
 ## On-demand research data
 

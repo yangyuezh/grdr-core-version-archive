@@ -69,7 +69,7 @@ Preparation must produce:
 
 - ordinary source-repository files: configuration, adapters, locked Plan, snapshot manifest, canonical archive receipt, README, and tests;
 - Release assets: complete knowledge archive, one Agent runtime archive containing the SQLite index, Runtime 2.0 descriptor, executable entrypoint, offline runtime audit, online access manifest, online runtime audit, and Core-to-Runtime invocation acceptance audit; optional observation archives only when GitHub is an observation placement; and `manifest.json`;
-- optional local runtime cache: a rebuildable expansion of verified Release assets; it is not canonical and is not required for completion;
+- optional local runtime cache: a lightweight verified Agent shard by default, with complete Release expansion only on explicit request; neither scope is canonical or required for completion;
 - optional mounted large-data copies plus verified official or GRDR Release online routes;
 - `storage_package.json` bound to the locked knowledge scope, completeness claim, location-aware file inventory, canonical archive receipt, and every checksum.
 

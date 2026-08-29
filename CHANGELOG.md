@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.5.5] - 2026-08-29
+
+### Changed
+
+- Split derived local materialization into a default lightweight `agent` scope and an explicit `full` scope. Agent scope downloads only the source SQLite, Runtime files, online-route audits, manifest, receipt, and a cache profile; it never downloads knowledge or observation payloads.
+- Make global-index refresh automatically restore a missing lightweight Agent shard from the verified GitHub Release, keeping a Source searchable, routable, and officially callable without retaining its full local database mirror.
+- Add `materialize-source-snapshot --scope agent|full`; preserve legacy complete caches as `full` and allow an Agent cache to be explicitly upgraded to a complete expansion.
+
+### Integrity and validation
+
+- Bind every Schema-valid derived cache profile to Source, snapshot, and logical-content fingerprint; verify exact Agent inventory for lightweight caches and exact complete GitHub inventory for full caches.
+- Keep full knowledge and observation requirements unchanged in canonical GitHub Releases and Storage receipts. The new cache scopes affect only disposable use-plane bytes.
+- Add regression coverage for Agent-only verification, payload omission, tamper rejection, and selective Release-asset download.
+
 ## [4.5.4] - 2026-08-28
 
 ### Fixed

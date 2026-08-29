@@ -2,7 +2,7 @@
 
 ## Fixed topology
 
-One deeply read Source owns one private source repository. One dated or versioned snapshot owns one GitHub Release and one location-aware manifest. An expanded local snapshot may be materialized as a disposable runtime cache, but it is not canonical storage and is never required for completion. Immutable GRDR Core stores only shared schemas, Skills, programs, empty templates, and search infrastructure. External GRDR state stores the latest source-archive index card and canonical records.
+One deeply read Source owns one private source repository. One dated or versioned snapshot owns one GitHub Release and one location-aware manifest. Agent Runtime normally materializes only the verified Agent shard as a disposable local cache; a complete GitHub Release expansion is explicit. Neither cache scope is canonical storage or required for Storage completion. Immutable GRDR Core stores only shared schemas, Skills, programs, empty templates, and search infrastructure. External GRDR state stores the latest source-archive index card and canonical records.
 
 The source repository declares its Core version. It must not fork or copy Core Skills.
 
@@ -46,7 +46,7 @@ Raw observation files must never enter `knowledge/`. Exclude every observation i
 - `partitioned_mirror`: require nonzero inputs, a Schema-valid partition manifest, and exact agreement among partition boundaries, names, file paths, sizes, SHA-256 values, and declared file and partition denominators.
 - `no_mirror`: require zero observation inputs and zero replication placements. It does not relax online-access obligations.
 
-GitHub observation archives are optional. A mounted object-store copy must be copied and hashed before completion. Local snapshot caches and research-project captures are derived use-plane artifacts and never mutate the canonical source snapshot.
+GitHub observation archives are optional. A mounted object-store copy must be copied and hashed before completion. Agent-only caches, full local expansions, and research-project captures are derived use-plane artifacts and never mutate the canonical source snapshot.
 
 ## Transaction order
 

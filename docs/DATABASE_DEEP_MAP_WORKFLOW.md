@@ -133,7 +133,7 @@ research question
 → Global Index（中央记录 + 最新可调用源分片的派生索引）
 → 两阶段检索：全局候选召回 → 只打开选中的源级Agent SQLite
 → route-variable（Variable → Source → Snapshot → route IDs）
-→ source-snapshot-status / materialize-source-snapshot
+→ source-snapshot-status / materialize-source-snapshot --scope agent|full
 → resolve-variable-access
 → fetch-variable --route-policy latest|reproducible|offline
 → 按策略尝试官方在线／GRDR Release／已物化本地缓存／挂载镜像

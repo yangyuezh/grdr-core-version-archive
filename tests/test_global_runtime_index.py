@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import jsonschema
 
@@ -323,6 +325,37 @@ class GlobalRuntimeIndexTests(unittest.TestCase):
             index_path=self.index_path,
         )
         self.assertEqual(second["status"], "passed", second)
+
+    def test_missing_snapshot_auto_materializes_agent_scope(self) -> None:
+        backup = self.root / "snapshot-backup"
+        shutil.copytree(self.snapshot, backup)
+        shutil.rmtree(self.snapshot)
+        with patch.object(
+            distributed,
+            "materialize_source_snapshot",
+            side_effect=distributed.DistributedRuntimeError("offline"),
+        ):
+            unavailable = self.update(rebuild=True)
+        self.assertEqual(unavailable["status"], "degraded", unavailable)
+
+        def restore_agent_cache(card, root, *, scope):
+            self.assertEqual(scope, "agent")
+            shutil.copytree(backup, distributed.snapshot_path(card, root))
+            return {"status": "materialized"}
+
+        with patch.object(
+            distributed,
+            "materialize_source_snapshot",
+            side_effect=restore_agent_cache,
+        ) as materialize:
+            recovered = self.update()
+
+        self.assertEqual(recovered["status"], "ready", recovered)
+        self.assertEqual(
+            recovered["last_update_actions"]["sources_updated"],
+            [{"source_id": self.card["source_id"], "status": "ready"}],
+        )
+        materialize.assert_called_once_with(self.card, self.root, scope="agent")
 
 
 if __name__ == "__main__":

@@ -952,7 +952,11 @@ def materialize_source_snapshot(args: argparse.Namespace) -> None:
         emit({"operation": "materialize_source_snapshot", "error": "source_archive_not_found", "source_id": args.source_id})
         raise SystemExit(2)
     try:
-        result = distributed.materialize_source_snapshot(card, args.elements_root)
+        result = distributed.materialize_source_snapshot(
+            card,
+            args.elements_root,
+            scope=args.scope,
+        )
     except distributed.DistributedRuntimeError as exc:
         emit({"operation": "materialize_source_snapshot", "error": "materialization_failed", "message": str(exc)})
         raise SystemExit(1) from exc
@@ -2066,9 +2070,18 @@ def parser() -> argparse.ArgumentParser:
     snapshot_status.add_argument("--verify", action="store_true")
     snapshot_status.set_defaults(handler=source_snapshot_status)
 
-    materialize_snapshot = commands.add_parser("materialize-source-snapshot", help="Download and verify GitHub-hosted knowledge, Agent, and available observations into the optional local cache")
+    materialize_snapshot = commands.add_parser(
+        "materialize-source-snapshot",
+        help="Download and verify either the lightweight Agent shard or the complete GitHub-hosted snapshot into the optional local cache",
+    )
     materialize_snapshot.add_argument("source_id")
     add_cache_root_argument(materialize_snapshot)
+    materialize_snapshot.add_argument(
+        "--scope",
+        choices=["agent", "full"],
+        default="agent",
+        help="Cache only the callable Agent shard by default; use full for all GitHub-hosted knowledge and observations",
+    )
     materialize_snapshot.set_defaults(handler=materialize_source_snapshot)
 
     resolve_access = commands.add_parser("resolve-variable-access", help="Resolve one distributed Variable through an explicit latest, reproducible, or offline observation route policy")

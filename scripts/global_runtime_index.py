@@ -658,6 +658,9 @@ def _ingest_source_snapshot(
         import distributed_runtime as distributed
 
         status = distributed.local_snapshot_status(card, cache_root, verify=verify)
+        if not status.get("runtime_ready") and not status.get("available_local"):
+            distributed.materialize_source_snapshot(card, cache_root, scope="agent")
+            status = distributed.local_snapshot_status(card, cache_root, verify=verify)
         if not status.get("runtime_ready"):
             raise GlobalIndexError("; ".join(status.get("errors", [])) or "runtime unavailable")
         snapshot = Path(status["snapshot_path"])
@@ -937,7 +940,7 @@ def update_global_index(
                     prior is None
                     or prior["card_signature"] != card_signature(card)
                     or (prior["status"] == "ready" and not expected_path_exists)
-                    or (prior["status"] != "ready" and expected_path_exists)
+                    or prior["status"] != "ready"
                 )
                 if changed:
                     source_status, _inserted, _detail = _ingest_source_snapshot(

@@ -22,6 +22,8 @@ from typing import Any, Iterable
 from grdr_paths import snapshot_cache_root as configured_snapshot_cache_root
 
 LOGICAL_COMPONENTS = {"knowledge", "agent", "observations"}
+CACHE_SCOPES = {"agent", "full"}
+CACHE_PROFILE_SCHEMA_VERSION = "1.0.0"
 _VERIFIED_SNAPSHOT_CACHE: dict[tuple[str, str, str, str], tuple[str, dict[str, Any]]] = {}
 
 
@@ -209,6 +211,21 @@ def manifest_records_for_location(
     ]
 
 
+def local_cache_scope(snapshot: Path) -> tuple[str, dict[str, Any] | None]:
+    """Return the declared derived-cache scope; legacy caches are complete caches."""
+
+    profile_path = snapshot / "receipts" / "cache_profile.json"
+    if not profile_path.is_file():
+        return "full", None
+    profile = read_json(profile_path)
+    if profile.get("schema_version") != CACHE_PROFILE_SCHEMA_VERSION:
+        raise DistributedRuntimeError("local cache profile schema version is unsupported")
+    scope = profile.get("scope")
+    if scope not in CACHE_SCOPES:
+        raise DistributedRuntimeError("local cache profile has an invalid scope")
+    return str(scope), profile
+
+
 def local_snapshot_status(
     card: dict[str, Any],
     root: str | Path | None = None,
@@ -223,6 +240,11 @@ def local_snapshot_status(
         "snapshot_path": str(snapshot),
         "online_release": card["release"],
         "available_local": snapshot.is_dir(),
+        "cache_scope": None,
+        "agent_inventory_verified": False,
+        "cache_inventory_verified": False,
+        "knowledge_cache_complete": False,
+        "observation_cache_complete": False,
         "runtime_ready": False,
         "logical_parity_verified": False,
         "location_inventory_verified": False,
@@ -233,6 +255,12 @@ def local_snapshot_status(
     if not snapshot.is_dir():
         status["errors"].append("local snapshot cache is not materialized")
         return status
+    try:
+        cache_scope, cache_profile = local_cache_scope(snapshot)
+    except DistributedRuntimeError as exc:
+        status["errors"].append(str(exc))
+        return status
+    status["cache_scope"] = cache_scope
     try:
         _, index, entrypoint = runtime_paths(card, root)
     except DistributedRuntimeError as exc:
@@ -294,6 +322,14 @@ def local_snapshot_status(
             status["errors"].append("local cache manifest identity differs from the central source card")
         if manifest.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
             status["errors"].append("local cache manifest fingerprint differs from the central source card")
+        if cache_profile is not None:
+            if (
+                cache_profile.get("source_id") != card["source_id"]
+                or cache_profile.get("snapshot_id") != card["latest_snapshot"]
+            ):
+                status["errors"].append("local cache profile identity differs from the central source card")
+            if cache_profile.get("logical_content_fingerprint") != card.get("archive_fingerprint"):
+                status["errors"].append("local cache profile fingerprint differs from the central source card")
         profile = manifest.get("snapshot_profile")
         if isinstance(profile, dict):
             status["snapshot_profile"] = profile
@@ -336,6 +372,12 @@ def local_snapshot_status(
         status["online_runtime_audit"] = online_audit
     if verify:
         records = snapshot_inventory(snapshot)
+        if cache_profile is not None:
+            actual_components = sorted({item["component"] for item in records})
+            if cache_profile.get("components") != actual_components:
+                status["errors"].append(
+                    "local cache profile components differ from the physical cache inventory"
+                )
         if manifest is None:
             actual = fingerprint(records)
             status["computed_logical_fingerprint"] = actual
@@ -351,14 +393,14 @@ def local_snapshot_status(
                 else "elements"
             )
             expected = manifest_records_for_location(manifest, expected_location)
-            actual_knowledge_agent = [
-                item for item in records if item["component"] in {"knowledge", "agent"}
-            ]
-            expected_knowledge_agent = [
-                item for item in expected if item["component"] in {"knowledge", "agent"}
-            ]
-            if actual_knowledge_agent != expected_knowledge_agent:
-                status["errors"].append("local-cache knowledge or Agent inventory differs from the snapshot manifest")
+            actual_agent = [item for item in records if item["component"] == "agent"]
+            expected_agent = [item for item in expected if item["component"] == "agent"]
+            status["agent_inventory_verified"] = actual_agent == expected_agent
+            if not status["agent_inventory_verified"]:
+                status["errors"].append("local-cache Agent inventory differs from the snapshot manifest")
+            actual_knowledge = [item for item in records if item["component"] == "knowledge"]
+            expected_knowledge = [item for item in expected if item["component"] == "knowledge"]
+            status["knowledge_cache_complete"] = actual_knowledge == expected_knowledge
             actual_observations = [
                 item for item in records if item["component"] == "observations"
             ]
@@ -366,15 +408,34 @@ def local_snapshot_status(
                 item for item in expected if item["component"] == "observations"
             ]
             status["observation_location_verified"] = actual_observations == expected_observations
-            if not status["observation_location_verified"]:
-                status["errors"].append(
-                    "local-cache observation inventory differs from the location-aware snapshot manifest."
+            status["observation_cache_complete"] = status["observation_location_verified"]
+            if cache_scope == "agent":
+                unexpected = [item for item in records if item["component"] != "agent"]
+                if unexpected:
+                    status["errors"].append("agent-only cache contains undeclared knowledge or observation files")
+                status["cache_inventory_verified"] = (
+                    status["agent_inventory_verified"] and not unexpected
                 )
-            status["location_inventory_verified"] = (
-                actual_knowledge_agent == expected_knowledge_agent
-                and status["observation_location_verified"]
-            )
-            status["logical_parity_verified"] = status["location_inventory_verified"]
+                status["location_inventory_verified"] = status["cache_inventory_verified"]
+                status["logical_parity_verified"] = False
+                status["warnings"].append(
+                    "Agent-only cache intentionally omits knowledge and observation payloads; "
+                    "online Runtime and global routing remain available."
+                )
+            else:
+                if not status["knowledge_cache_complete"]:
+                    status["errors"].append("local-cache knowledge inventory differs from the snapshot manifest")
+                if not status["observation_location_verified"]:
+                    status["errors"].append(
+                        "local-cache observation inventory differs from the location-aware snapshot manifest."
+                    )
+                status["cache_inventory_verified"] = (
+                    status["agent_inventory_verified"]
+                    and status["knowledge_cache_complete"]
+                    and status["observation_location_verified"]
+                )
+                status["location_inventory_verified"] = status["cache_inventory_verified"]
+                status["logical_parity_verified"] = status["cache_inventory_verified"]
             status["computed_local_cache_inventory_fingerprint"] = fingerprint(records)
         status["runtime_ready"] = not status["errors"]
         status["verification_cache_hit"] = False
@@ -1393,15 +1454,47 @@ def safe_extract(archive_path: Path, destination: Path) -> None:
         archive.extractall(destination)
 
 
-def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = None) -> dict[str, Any]:
+def _download_release_assets(
+    repository: str,
+    release_tag: str,
+    destination: Path,
+    patterns: Iterable[str],
+) -> None:
+    command = [
+        "gh", "release", "download", release_tag,
+        "--repo", repository,
+        "--dir", str(destination),
+    ]
+    for pattern in patterns:
+        command.extend(["--pattern", pattern])
+    completed = subprocess.run(command, capture_output=True, text=True)
+    if completed.returncode:
+        raise DistributedRuntimeError(
+            (completed.stderr or completed.stdout).strip()
+            or "GitHub Release download failed"
+        )
+
+
+def materialize_source_snapshot(
+    card: dict[str, Any],
+    root: str | Path | None = None,
+    *,
+    scope: str = "agent",
+) -> dict[str, Any]:
     if not isinstance(card.get("runtime"), dict):
         raise DistributedRuntimeError("the indexed snapshot predates the callable runtime artifact format")
+    if scope not in CACHE_SCOPES:
+        raise DistributedRuntimeError(f"unknown local cache scope: {scope}")
     destination = snapshot_path(card, root)
+    replace_existing = False
     if destination.exists():
         status = local_snapshot_status(card, root, verify=True, force_verify=True)
         if not status["runtime_ready"]:
             raise DistributedRuntimeError("existing local snapshot cache differs from the central card")
-        return {"status": "already_materialized", **status}
+        if scope == "full" and status.get("cache_scope") != "full":
+            replace_existing = True
+        else:
+            return {"status": "already_materialized", **status}
     repository = card["repository"].removeprefix("https://github.com/").rstrip("/")
     release_tag = card["release"].rsplit("/tag/", 1)[-1]
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -1409,13 +1502,12 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
         workspace = Path(temporary)
         downloads = workspace / "downloads"
         downloads.mkdir()
-        completed = subprocess.run(
-            ["gh", "release", "download", release_tag, "--repo", repository, "--dir", str(downloads)],
-            capture_output=True,
-            text=True,
+        _download_release_assets(
+            repository,
+            release_tag,
+            downloads,
+            ("manifest.json", "storage_receipt.json"),
         )
-        if completed.returncode:
-            raise DistributedRuntimeError((completed.stderr or completed.stdout).strip() or "GitHub Release download failed")
         manifest_path = downloads / "manifest.json"
         if not manifest_path.is_file():
             raise DistributedRuntimeError("GitHub Release has no manifest.json")
@@ -1424,9 +1516,24 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
             raise DistributedRuntimeError("GitHub Release manifest identity differs from the central card")
         if manifest.get("logical_content_fingerprint") != card["archive_fingerprint"]:
             raise DistributedRuntimeError("GitHub Release manifest fingerprint differs from the central card")
+        selected_assets = [
+            asset
+            for asset in manifest["release_assets"]
+            if scope == "full" or asset.get("component") == "agent"
+        ]
+        if not selected_assets or not any(
+            asset.get("component") == "agent" for asset in selected_assets
+        ):
+            raise DistributedRuntimeError("GitHub Release manifest has no Agent Runtime asset")
+        _download_release_assets(
+            repository,
+            release_tag,
+            downloads,
+            tuple(asset["name"] for asset in selected_assets),
+        )
         expanded_release = workspace / "expanded-release"
         expanded_release.mkdir()
-        for asset in manifest["release_assets"]:
+        for asset in selected_assets:
             path = downloads / asset["name"]
             if not path.is_file() or sha256_file(path) != asset["sha256"] or path.stat().st_size != asset["size_bytes"]:
                 raise DistributedRuntimeError(f"GitHub Release asset failed SHA-256 verification: {asset['name']}")
@@ -1439,9 +1546,13 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
             else:
                 raise DistributedRuntimeError(f"unsupported Release asset representation: {asset['name']}")
         actual_release = snapshot_inventory(expanded_release)
-        expected_release = manifest_records_for_location(manifest, "github_release")
+        expected_release = [
+            item
+            for item in manifest_records_for_location(manifest, "github_release")
+            if scope == "full" or item.get("component") == "agent"
+        ]
         if actual_release != expected_release:
-            raise DistributedRuntimeError("expanded GitHub Release differs from its declared location inventory")
+            raise DistributedRuntimeError("expanded GitHub Release differs from its declared cache-scope inventory")
         logical = workspace / "logical"
         logical.mkdir()
         cache_location = (
@@ -1465,7 +1576,33 @@ def materialize_source_snapshot(card: dict[str, Any], root: str | Path | None = 
         receipts.mkdir()
         shutil.copy2(receipt, receipts / receipt.name)
         shutil.copy2(manifest_path, receipts / "manifest.json")
-        shutil.move(str(logical), str(destination))
+        atomic_write_text(
+            receipts / "cache_profile.json",
+            json.dumps(
+                {
+                    "schema_version": CACHE_PROFILE_SCHEMA_VERSION,
+                    "scope": scope,
+                    "source_id": card["source_id"],
+                    "snapshot_id": card["latest_snapshot"],
+                    "logical_content_fingerprint": card["archive_fingerprint"],
+                    "components": sorted({item["component"] for item in actual_release}),
+                    "materialized_at": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            ) + "\n",
+        )
+        if replace_existing:
+            previous = workspace / "previous-cache"
+            os.replace(destination, previous)
+            try:
+                os.replace(logical, destination)
+            except Exception:
+                os.replace(previous, destination)
+                raise
+        else:
+            os.replace(logical, destination)
     status = local_snapshot_status(card, root, verify=True, force_verify=True)
     if not status["runtime_ready"]:
         shutil.rmtree(destination, ignore_errors=True)

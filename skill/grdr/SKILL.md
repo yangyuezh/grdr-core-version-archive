@@ -14,7 +14,7 @@ Treat GRDR as an immutable Core plus external mutable registry state:
 - Agent Research Data Infrastructure;
 - a source-matching and data-gap reasoning system;
 - a continuously expanding cross-disciplinary knowledge base.
-- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, complete online-access audit, independent observation-replication policy, and source-specific Runtime; a local expanded snapshot is only an optional rebuildable cache.
+- a distributed snapshot system in which every selected, fully deep-read database has its own versioned source repository, GitHub Release, complete online-access audit, independent observation-replication policy, and source-specific Runtime; the default local cache contains only the verified lightweight Agent shard, while a complete Release expansion is explicit and rebuildable.
 - an independent Agent Runtime that searches, resolves, and invokes those snapshots using explicit latest, reproducible, or offline route policies.
 - an external, rebuildable Global Index & Routing Layer inside Agent Runtime that incrementally indexes central records and latest source shards, performs two-stage retrieval, and dispatches selected Variables to source Runtime 2.0; it is execution code, not a seventh Skill or canonical database state.
 
@@ -41,6 +41,8 @@ Optionally configure a disposable expanded-snapshot cache. GitHub Releases remai
 ```bash
 python3 "$GRDR_ROOT/scripts/configure_core.py" --snapshot-cache-root /absolute/path/to/cache
 ```
+
+Runtime and global indexing default to a verified `agent` cache scope containing only the source SQLite, Runtime files, route audits, manifest, and receipt. Use `materialize-source-snapshot <source-id> --scope full` only when local knowledge or GitHub-hosted observations are actually needed. Missing Agent shards may be automatically rebuilt during global-index refresh; never treat their derived bytes as canonical storage.
 
 Before modifying records, read `docs/NORTH_STAR.md`, the relevant schema, and [references/curation-standard.md](references/curation-standard.md).
 
