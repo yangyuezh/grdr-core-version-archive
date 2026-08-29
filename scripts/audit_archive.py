@@ -156,9 +156,9 @@ def render() -> dict[str, bytes]:
         ),
         "coverage": {
             "requested_from": "1.0.0",
-            "requested_through": "4.5.5",
+            "requested_through": "4.5.6",
             "earliest_preserved": "0.1.0",
-            "latest_preserved": "4.5.5",
+            "latest_preserved": "4.5.6",
             "formal_4_0_0_release_found": False,
             "v4_0_0_candidate_preserved": True,
         },

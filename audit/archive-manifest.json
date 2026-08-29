@@ -1,22 +1,22 @@
 {
   "archive_role": "software_version_audit",
-  "canonical_release_count": 24,
-  "canonical_version_node_count": 32,
+  "canonical_release_count": 25,
+  "canonical_version_node_count": 33,
   "coverage": {
     "earliest_preserved": "0.1.0",
     "formal_4_0_0_release_found": false,
-    "latest_preserved": "4.5.5",
+    "latest_preserved": "4.5.6",
     "requested_from": "1.0.0",
-    "requested_through": "4.5.5",
+    "requested_through": "4.5.6",
     "v4_0_0_candidate_preserved": true
   },
-  "expected_archival_release_count": 39,
+  "expected_archival_release_count": 40,
   "historical_variant_count": 3,
   "post_release_docs_count": 3,
   "pre_1_0_provenance_count": 8,
-  "record_count": 39,
+  "record_count": 40,
   "schema_version": "1.1.0",
-  "version_ledger_csv_sha256": "62f2d6c8f5b68f2afa5d66a0f9005db9a31617390151a33226a1efff291977a8",
-  "version_ledger_sha256": "9fdb5b6c214b05a74c7c76589bad0af65f203e156ba9e074ad93f467e195eb60",
-  "version_map_sha256": "7d1723397cad4524f21c037256accd5a163785eac536cdf773a7ea089466f201"
+  "version_ledger_csv_sha256": "7f4269a405f646939b1cbf81ab35474567bafda9bc4696c62c6f7ca5a765e6f9",
+  "version_ledger_sha256": "ab36f493e31add505c2d47f4311c6d17c58269030e74f72a5f32fa7fc26f7cd4",
+  "version_map_sha256": "ea8ab5dffaac36cd049703f88eb15cfc10fb27bcaa17cdf488cdf98340dccc41"
 }
