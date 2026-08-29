@@ -1533,8 +1533,16 @@ def archive_members(path: Path) -> dict[str, dict[str, Any]]:
 
 def publication_asset_records(package: dict[str, Any]) -> list[dict[str, Any]]:
     assets = list(package["release_assets"])
-    manifest = Path(package["release_assets_path"]) / "manifest.json"
-    assets.append(asset_record(manifest, "manifest", []))
+    manifest_bytes = (
+        json.dumps(package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    assets.append({
+        "name": "manifest.json",
+        "component": "manifest",
+        "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+        "size_bytes": len(manifest_bytes),
+        "logical_paths": [],
+    })
     return sorted(assets, key=lambda item: item["name"])
 
 
@@ -1979,6 +1987,7 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
                     or read_json(cached_invocation_audit) != package.get("invocation_acceptance_audit")
                 ):
                     errors.append("cached Runtime invocation acceptance audit is missing or differs from the storage package")
+    publication_present = (target / STORAGE_PUBLICATION_FILE).is_file()
     assets_path = Path(package["release_assets_path"])
     expected_release_files = (
         package["logical_files"]
@@ -1989,30 +1998,35 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
         item["path"]: {"sha256": item["sha256"], "size_bytes": item["size_bytes"]}
         for item in expected_release_files
     }
-    covered: dict[str, dict[str, Any]] = {}
-    for asset in package["release_assets"]:
-        path = assets_path / asset["name"]
-        if not path.is_file():
-            errors.append(f"release asset is missing: {path}")
-            continue
-        if sha256_file(path) != asset["sha256"] or path.stat().st_size != asset["size_bytes"]:
-            errors.append(f"release asset checksum or size mismatch: {asset['name']}")
-            continue
-        if asset["component"] in {"knowledge", "agent", "observations"}:
-            members = archive_members(path)
-            if sorted(members) != sorted(asset["logical_paths"]):
-                errors.append(f"release asset logical members differ from manifest: {asset['name']}")
-            overlap = set(covered) & set(members)
-            if overlap:
-                errors.append(
-                    f"Release assets duplicate logical files: {', '.join(sorted(overlap))}"
-                )
-            covered.update(members)
-    if covered != expected_logical:
-        errors.append("GitHub Release assets differ from their declared location inventory")
-    manifest_path = assets_path / "manifest.json"
-    if not manifest_path.is_file() or read_json(manifest_path) != package:
-        errors.append("release manifest is missing or differs from storage_package.json")
+    if not assets_path.is_dir() and publication_present:
+        warnings.append(
+            "Local Release build cache is absent; verified GitHub publication remains canonical."
+        )
+    else:
+        covered: dict[str, dict[str, Any]] = {}
+        for asset in package["release_assets"]:
+            path = assets_path / asset["name"]
+            if not path.is_file():
+                errors.append(f"release asset is missing: {path}")
+                continue
+            if sha256_file(path) != asset["sha256"] or path.stat().st_size != asset["size_bytes"]:
+                errors.append(f"release asset checksum or size mismatch: {asset['name']}")
+                continue
+            if asset["component"] in {"knowledge", "agent", "observations"}:
+                members = archive_members(path)
+                if sorted(members) != sorted(asset["logical_paths"]):
+                    errors.append(f"release asset logical members differ from manifest: {asset['name']}")
+                overlap = set(covered) & set(members)
+                if overlap:
+                    errors.append(
+                        f"Release assets duplicate logical files: {', '.join(sorted(overlap))}"
+                    )
+                covered.update(members)
+        if covered != expected_logical:
+            errors.append("GitHub Release assets differ from their declared location inventory")
+        manifest_path = assets_path / "manifest.json"
+        if not manifest_path.is_file() or read_json(manifest_path) != package:
+            errors.append("release manifest is missing or differs from storage_package.json")
     if local_cache is not None and local_cache.is_dir():
         agent_dir = local_cache / "agent"
         descriptor_path = agent_dir / RUNTIME_DESCRIPTOR_FILE
@@ -2083,7 +2097,6 @@ def audit_database_storage(project_dir: str | Path) -> dict[str, Any]:
     for path in required_repo_files:
         if not path.is_file():
             errors.append(f"source repository file is missing: {path}")
-    publication_present = (target / STORAGE_PUBLICATION_FILE).is_file()
     if publication_present:
         publication = read_json(target / STORAGE_PUBLICATION_FILE)
         errors.extend(validate_schema(publication, "database_storage_publication.schema.json", STORAGE_PUBLICATION_FILE))

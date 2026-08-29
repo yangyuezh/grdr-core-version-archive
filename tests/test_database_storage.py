@@ -780,6 +780,15 @@ else:
             self.assertEqual(cacheless_audit["errors"], [])
             self.assertTrue(any("Optional local snapshot cache" in item for item in cacheless_audit["warnings"]))
 
+            release_build_cache = Path(no_mirror_package["release_assets_path"])
+            shutil.rmtree(release_build_cache)
+            prepublication_cacheless_audit = audit_database_storage(no_mirror_project)
+            self.assertTrue(any("release asset is missing" in item for item in prepublication_cacheless_audit["errors"]))
+            (no_mirror_project / "storage_publication.json").write_text("{}\n", encoding="utf-8")
+            postpublication_cacheless_audit = audit_database_storage(no_mirror_project)
+            self.assertFalse(any("release asset is missing" in item for item in postpublication_cacheless_audit["errors"]))
+            self.assertTrue(any("Local Release build cache" in item for item in postpublication_cacheless_audit["warnings"]))
+
             local_cache = Path(audit["local_snapshot_cache_path"])
             stored_observation = local_cache / "observations" / "main" / observation.name
             stored_observation.write_text("tampered\n", encoding="utf-8")

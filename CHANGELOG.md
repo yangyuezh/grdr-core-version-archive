@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.5.7] - 2026-08-29
+
+### Fixed
+
+- Treat the ignored local Release-asset build directory as disposable after a GitHub publication has been verified, matching the existing optional local snapshot-cache contract.
+- Keep pre-publication preparation strict: missing local Release assets still block publication, while a completed snapshot may be audited from its fingerprinted publication evidence, Storage receipt, source repository, and central card after local build bytes are removed.
+
+### Validation
+
+- Add regression coverage that rejects a missing Release build cache before publication and accepts its absence only after publication evidence exists.
+- Preserve full checksum and archive-member verification whenever the local build cache remains present.
+
 ## [4.5.6] - 2026-08-29
 
 ### Changed

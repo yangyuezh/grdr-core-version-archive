@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.6`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.6)**
+> **Current stable release / 当前稳定版本：[`v4.5.7`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.7)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.6<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.7<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -503,4 +503,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.6` makes high-cardinality source registration independent of historical registry size: staging and archive audits load only the incoming records and their transitive reference closure, Schema validators are reused, and canonical promotion streams each affected JSONL collection through an atomic rollback-safe transaction. Version `4.5.5` separates the lightweight Agent cache required for search and online invocation from an explicitly requested full Release expansion, so large observation mirrors never need to occupy local disk merely to keep a Source globally routable. Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.
+Version `4.5.7` makes the ignored local Release-asset build directory disposable after verified GitHub publication, so GitHub can remain the canonical backup without retaining duplicate local observation archives. Version `4.5.6` makes high-cardinality source registration independent of historical registry size: staging and archive audits load only the incoming records and their transitive reference closure, Schema validators are reused, and canonical promotion streams each affected JSONL collection through an atomic rollback-safe transaction. Version `4.5.5` separates the lightweight Agent cache required for search and online invocation from an explicitly requested full Release expansion, so large observation mirrors never need to occupy local disk merely to keep a Source globally routable. Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.
