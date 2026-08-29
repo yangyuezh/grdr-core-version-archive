@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.5.6] - 2026-08-29
+
+### Changed
+
+- Make high-cardinality deep-map staging, audit, sealing, and canonical promotion scale with the incoming database instead of the complete historical registry.
+- Validate staged records through their transitive canonical-reference closure and retain exact cross-entity referential checks without materializing unrelated database records.
+- Stream affected canonical JSONL collections through an atomic, rollback-safe promotion transaction; unchanged historical collections are neither loaded nor rewritten.
+- Reuse compiled JSON Schema validators across large execution batches.
+
+### Validation
+
+- Proved the upgrade against the locked ILOSTAT deep map: 91,610 candidate records, 1,958 work units, 11,748 stage closures, 5,874 topology closures, and 46,999 route checks passed with zero audit errors.
+- Reduced the historical-registry audit path observed during ILOSTAT planning from roughly five minutes and 20 GB peak memory to about five seconds and 338 MB; the complete 91,610-record staging transaction completed in about 82 seconds at 2.36 GB peak memory.
+- Add regression coverage that fails if staging or Storage calls the legacy whole-registry materializer, plus a streamed update-and-append merge test.
+
 ## [4.5.5] - 2026-08-29
 
 ### Changed

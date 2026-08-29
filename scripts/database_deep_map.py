@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import datetime as dt
+from functools import lru_cache
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -125,6 +127,24 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def read_jsonl_selected(path: Path, record_ids: set[str]) -> dict[str, dict[str, Any]]:
+    """Read only requested registry records without materializing the whole collection."""
+    if not record_ids or not path.is_file():
+        return {}
+    selected: dict[str, dict[str, Any]] = {}
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            record_id = record.get("id")
+            if record_id in record_ids:
+                selected[record_id] = record
+                if len(selected) == len(record_ids):
+                    break
+    return selected
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
@@ -444,6 +464,22 @@ def registry_index(target: Path | None = None) -> dict[str, dict[str, Any]]:
     return records
 
 
+def registry_index_for_ids(
+    record_ids: set[str],
+    target: Path | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Resolve a bounded record set, with staged records overriding canonical ones."""
+    wanted = {item for item in record_ids if isinstance(item, str) and item}
+    records: dict[str, dict[str, Any]] = {}
+    if target is not None:
+        directory = target / STAGING_DIR
+        for filename in REGISTRY_FILES:
+            records.update(read_jsonl_selected(directory / filename, wanted - set(records)))
+    for filename in REGISTRY_FILES:
+        records.update(read_jsonl_selected(REGISTRY_ROOT / filename, wanted - set(records)))
+    return records
+
+
 def registry_file_for_record(record: dict[str, Any]) -> str:
     record_id = record.get("id")
     if not isinstance(record_id, str):
@@ -485,14 +521,147 @@ def collection_name(filename: str) -> str:
     return filename.removesuffix(".jsonl")
 
 
-def validate_merged_registry(target: Path) -> list[str]:
-    from validate_registry import validate_integrity, validate_with_jsonschema
+def referenced_registry_ids(record: dict[str, Any]) -> set[str]:
+    """Return canonical entity IDs referenced anywhere in one registry record.
 
-    collections = {
+    The schemas evolve, so the closure walker deliberately follows every
+    recognized GRDR entity identifier instead of maintaining a second fragile
+    list of foreign-key field names.  The record's own ID is not a reference.
+    """
+
+    references: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+        elif isinstance(value, str) and any(value.startswith(prefix) for prefix in REGISTRY_PREFIXES):
+            references.add(value)
+
+    visit(record)
+    references.discard(record.get("id"))
+    return references
+
+
+def staged_registry_closure(target: Path) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
+    """Build only the staged records and their transitive canonical references."""
+
+    from validate_registry import collection_paths, validate_integrity, validate_with_jsonschema
+
+    staged = staged_collections(target)
+    staged_records = [record for records in staged.values() for record in records]
+    errors = validate_with_jsonschema({
         collection_name(filename): records
-        for filename, records in merged_collections(target).items()
+        for filename, records in staged.items()
+        if records
+    })
+    staged_ids = [record.get("id") for record in staged_records]
+    if len(staged_ids) != len(set(staged_ids)):
+        errors.append("staging files contain duplicate canonical IDs")
+
+    closure = {
+        record["id"]: record
+        for record in staged_records
+        if isinstance(record.get("id"), str)
     }
-    return validate_with_jsonschema(collections) + validate_integrity(collections)
+    attempted: set[str] = set(closure)
+    frontier = {
+        reference
+        for record in closure.values()
+        for reference in referenced_registry_ids(record)
+    } - attempted
+    while frontier:
+        resolved = registry_index_for_ids(frontier, target)
+        closure.update(resolved)
+        attempted.update(frontier)
+        frontier = {
+            reference
+            for record in resolved.values()
+            for reference in referenced_registry_ids(record)
+        } - attempted
+
+    collection_names = collection_paths(REGISTRY_ROOT)
+    collections = {name: [] for name in collection_names}
+    for record in closure.values():
+        try:
+            filename = registry_file_for_record(record)
+        except ValueError:
+            continue
+        collections[collection_name(filename)].append(record)
+    errors.extend(validate_integrity(collections))
+
+    # A source may have only one current profile.  This constraint is keyed by
+    # source_id rather than record ID, so check the small canonical profile file
+    # explicitly without materializing unrelated registry collections.
+    staged_profiles = staged.get("source_profiles.jsonl", [])
+    staged_profile_ids = {record["id"] for record in staged_profiles}
+    source_to_profile: dict[str, str] = {}
+    for profile in staged_profiles:
+        source_id = profile.get("source_id")
+        if source_id in source_to_profile:
+            errors.append(f"{profile.get('id')}: duplicate current profile for {source_id}")
+        source_to_profile[source_id] = profile.get("id")
+    profile_path = REGISTRY_ROOT / "source_profiles.jsonl"
+    if source_to_profile and profile_path.is_file():
+        with profile_path.open("r", encoding="utf-8") as handle:
+            for raw in handle:
+                if not raw.strip():
+                    continue
+                profile = json.loads(raw)
+                if profile.get("id") in staged_profile_ids:
+                    continue
+                source_id = profile.get("source_id")
+                if source_id in source_to_profile:
+                    errors.append(
+                        f"{source_to_profile[source_id]}: duplicate current profile for {source_id}"
+                    )
+    return collections, errors
+
+
+def validate_merged_registry(target: Path) -> list[str]:
+    """Validate a prospective transaction without loading the historical registry.
+
+    Unchanged canonical state has already passed global validation.  Therefore a
+    new transaction needs schema validation for staged records plus referential
+    validation for the staged transitive closure only.  Runtime and memory now
+    scale with the incoming database rather than every database ever registered.
+    """
+
+    _collections, errors = staged_registry_closure(target)
+    return errors
+
+
+def write_streamed_registry_merge(
+    canonical_path: Path,
+    output_path: Path,
+    changed_records: dict[str, dict[str, Any]],
+) -> None:
+    """Write one prospective registry file while retaining at most new rows in memory."""
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    seen: set[str] = set()
+    with output_path.open("w", encoding="utf-8") as output:
+        if canonical_path.is_file():
+            with canonical_path.open("r", encoding="utf-8") as canonical:
+                for raw in canonical:
+                    if not raw.strip():
+                        continue
+                    record = json.loads(raw)
+                    record_id = record.get("id")
+                    replacement = changed_records.get(record_id)
+                    if replacement is None:
+                        output.write(raw if raw.endswith("\n") else raw + "\n")
+                    else:
+                        output.write(json.dumps(replacement, ensure_ascii=False, separators=(",", ":")) + "\n")
+                        seen.add(record_id)
+        for record_id, record in changed_records.items():
+            if record_id not in seen:
+                output.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+        output.flush()
+        os.fsync(output.fileno())
 
 
 def execution_ledger_fingerprint(units: list[dict[str, Any]], checks: list[dict[str, Any]]) -> str:
@@ -746,7 +915,8 @@ def append_history(project: dict[str, Any], operation: str, summary: str) -> Non
     project["updated_at"] = timestamp
 
 
-def validate_schema(value: Any, schema_name: str, label: str) -> list[str]:
+@lru_cache(maxsize=None)
+def schema_validator(schema_name: str) -> Any:
     try:
         import jsonschema
     except ImportError as exc:
@@ -755,7 +925,11 @@ def validate_schema(value: Any, schema_name: str, label: str) -> list[str]:
             "python3 -m pip install -r requirements-validation.txt"
         ) from exc
     schema = json.loads((ROOT / "schemas" / schema_name).read_text(encoding="utf-8"))
-    validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+    return jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
+
+
+def validate_schema(value: Any, schema_name: str, label: str) -> list[str]:
+    validator = schema_validator(schema_name)
     errors = []
     for error in validator.iter_errors(value):
         location = ".".join(str(part) for part in error.path) or "<record>"
@@ -981,7 +1155,14 @@ def phase_errors(project: dict[str, Any], name: str, value: dict[str, Any]) -> l
     return errors
 
 
-def staging_errors(target: Path, project: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
+def staging_errors(
+    target: Path,
+    project: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    canonical: dict[str, dict[str, Any]] | None = None,
+    staged: dict[str, list[dict[str, Any]]] | None = None,
+) -> list[str]:
     errors = validate_schema(
         manifest,
         "database_deep_map_staging_manifest.schema.json",
@@ -991,13 +1172,13 @@ def staging_errors(target: Path, project: dict[str, Any], manifest: dict[str, An
         errors.append("staging manifest project_id does not match the project")
     if manifest.get("source_id") != project["source_id"]:
         errors.append("staging manifest source_id does not match the project")
-    staged = staged_collections(target)
+    staged = staged if staged is not None else staged_collections(target)
     staged_by_id = {
         record["id"]: (filename, record)
         for filename, records in staged.items()
         for record in records
     }
-    canonical = registry_index()
+    canonical = canonical if canonical is not None else registry_index_for_ids(set(staged_by_id))
     distributed_archive_present = completed_distributed_archive_exists(project["source_id"])
     manifest_ids = [item["id"] for item in manifest.get("records", [])]
     if len(manifest_ids) != len(set(manifest_ids)):
@@ -1047,13 +1228,39 @@ def audit_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     manifest = read_json(manifest_path) if manifest_path.is_file() else empty_staging_manifest(project, project["created_at"])
     contracts = load_contracts()
     route_ids = set(contract_index(contracts))
-    known_records = registry_index(target)
+    staged = staged_collections(target)
+    staged_ids = {
+        record["id"]
+        for collection in staged.values()
+        for record in collection
+    }
+    referenced_ids = {project["source_id"], *staged_ids}
+    for unit in units:
+        if unit.get("dataset_id"):
+            referenced_ids.add(unit["dataset_id"])
+        for stage in unit["stages"].values():
+            referenced_ids.update(stage["registered_ids"])
+        for spine in unit["spines"].values():
+            referenced_ids.update(spine["node_ids"])
+            referenced_ids.update(spine["edge_ids"])
+    canonical_records = registry_index_for_ids(referenced_ids)
+    known_records = dict(canonical_records)
+    for collection in staged.values():
+        known_records.update({record["id"]: record for record in collection})
     known_ids = set(known_records)
     errors = validate_schema(project, "database_deep_map_project.schema.json", PROJECT_FILE)
     if not manifest_path.is_file():
         errors.append(f"missing required {STAGING_MANIFEST_FILE}")
     else:
-        errors.extend(staging_errors(target, project, manifest))
+        errors.extend(
+            staging_errors(
+                target,
+                project,
+                manifest,
+                canonical=canonical_records,
+                staged=staged,
+            )
+        )
     plan_audit = audit_database_deep_map_plan(project.get("diagnostic_plan", {}))
     errors.extend(f"diagnostic_plan: {item}" for item in plan_audit["errors"])
     warnings = []
@@ -1312,7 +1519,15 @@ def start_database_deep_map(spec_file: str | Path, project_dir: str | Path | Non
     for field in ("source_id", "title", "database_profile", "scope", "units"):
         if field not in spec:
             raise ValueError(f"start specification requires {field}")
-    records = registry_index()
+    required_record_ids = {
+        spec["source_id"],
+        *(
+            item["dataset_id"]
+            for item in spec["units"]
+            if item.get("dataset_id")
+        ),
+    }
+    records = registry_index_for_ids(required_record_ids)
     source = records.get(spec["source_id"])
     if source is None or not spec["source_id"].startswith("grdr:source:"):
         raise ValueError(f"unknown canonical source_id {spec['source_id']}")
@@ -1515,7 +1730,7 @@ def upgrade_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
         return {"operation": "upgrade_database_deep_map", "status": "upgraded_to_dual_spine", "check_count": len(checks), "audit": audit}
     original_project = json.loads(json.dumps(project))
     original_units = json.loads(json.dumps(units))
-    records = registry_index(target)
+    records = registry_index_for_ids({project["source_id"]}, target)
     source = records.get(project["source_id"])
     if source is None:
         raise ValueError(f"cannot upgrade; unknown source {project['source_id']}")
@@ -1654,7 +1869,8 @@ def record_database_deep_map_spine(project_dir: str | Path, update_file: str | P
     unit = next((item for item in units if item["id"] == update["unit_id"]), None)
     if unit is None:
         raise ValueError(f"unknown unit_id {update['unit_id']}")
-    records = registry_index(target)
+    requested_ids = set([*update["node_ids"], *update["edge_ids"]])
+    records = registry_index_for_ids(requested_ids, target)
     unknown_ids = [item for item in [*update["node_ids"], *update["edge_ids"]] if item not in records]
     if unknown_ids:
         raise ValueError("spine update references unknown canonical IDs: " + ", ".join(sorted(unknown_ids)))
@@ -1800,7 +2016,7 @@ def stage_database_deep_map_records(project_dir: str | Path, records_file: str |
         grouped.setdefault(filename, []).append(record)
     original_files: dict[str, list[dict[str, Any]] | None] = {}
     directory = target / STAGING_DIR
-    canonical = registry_index()
+    canonical = registry_index_for_ids({record["id"] for record in batch})
     manifest_by_id = {item["id"]: item for item in manifest["records"]}
     timestamp = now()
     for filename, records in grouped.items():
@@ -1925,7 +2141,17 @@ def record_database_deep_map_execution_batch(
     original_checks = json.loads(json.dumps(checks))
     unit_by_id = {item["id"]: item for item in units}
     check_by_id = {item["id"]: item for item in checks}
-    records = registry_index(target)
+    requested_ids = {
+        record_id
+        for update in payload["stages"]
+        for record_id in update["registered_ids"]
+    }
+    requested_ids.update(
+        record_id
+        for update in payload["spines"]
+        for record_id in [*update["node_ids"], *update["edge_ids"]]
+    )
+    records = registry_index_for_ids(requested_ids, target)
     known_ids = set(records)
     timestamp = now()
 
@@ -2245,8 +2471,14 @@ def audit_database_deep_map_archive(project_dir: str | Path) -> dict[str, Any]:
     if manifest["state"] not in {"sealed", "archived"}:
         errors.append("staging manifest is not sealed")
     errors.extend(validate_merged_registry(target))
-    canonical = registry_index()
-    staged = registry_index(target)
+    manifest_ids = {item["id"] for item in manifest["records"]}
+    canonical = registry_index_for_ids(manifest_ids)
+    staged = {
+        record["id"]: record
+        for records in staged_collections(target).values()
+        for record in records
+        if record.get("id") in manifest_ids
+    }
     archive_complete = archive_receipt_is_valid(target, project)
     for item in manifest["records"]:
         canonical_record = canonical.get(item["id"])
@@ -2332,80 +2564,122 @@ def archive_database_deep_map(project_dir: str | Path) -> dict[str, Any]:
     project = read_json(target / PROJECT_FILE); original_project = json.loads(json.dumps(project))
     manifest = read_json(target / STAGING_MANIFEST_FILE); original_manifest = json.loads(json.dumps(manifest))
     package = read_json(target / ARCHIVE_PACKAGE_FILE)
-    prospective = merged_collections(target)
     affected_files = sorted({item["registry_file"] for item in manifest["records"] if item["action"] != "unchanged"})
-    original_contents = {
-        filename: (REGISTRY_ROOT / filename).read_text(encoding="utf-8")
-        for filename in affected_files
-    }
     receipt_path = target / ARCHIVE_RECEIPT_FILE
     original_receipt = receipt_path.read_text(encoding="utf-8") if receipt_path.is_file() else None
-    try:
+    staged = staged_collections(target)
+    changed_ids_by_file = {
+        filename: {
+            item["id"]
+            for item in manifest["records"]
+            if item["registry_file"] == filename and item["action"] != "unchanged"
+        }
+        for filename in affected_files
+    }
+    with tempfile.TemporaryDirectory(prefix=".grdr-registry-transaction-", dir=REGISTRY_ROOT) as temporary:
+        transaction_root = Path(temporary)
+        prepared_root = transaction_root / "prepared"
+        backup_root = transaction_root / "backup"
+        prepared_root.mkdir()
+        backup_root.mkdir()
         for filename in affected_files:
-            write_jsonl(REGISTRY_ROOT / filename, prospective[filename])
-        if affected_files:
-            validation = subprocess.run(
-                [
-                    sys.executable,
-                    str(ROOT / "scripts" / "validate_registry.py"),
-                    "--registry-root",
-                    str(REGISTRY_ROOT),
-                ],
-                cwd=ROOT, capture_output=True, text=True,
+            changed_ids = changed_ids_by_file[filename]
+            changed_records = {
+                record["id"]: record
+                for record in staged.get(filename, [])
+                if record.get("id") in changed_ids
+            }
+            if set(changed_records) != changed_ids:
+                missing = sorted(changed_ids - set(changed_records))
+                raise ValueError(f"missing staged records for {filename}: {', '.join(missing)}")
+            write_streamed_registry_merge(
+                REGISTRY_ROOT / filename,
+                prepared_root / filename,
+                changed_records,
             )
-            if validation.returncode:
-                raise ValueError(validation.stderr or validation.stdout)
-            validation_message = validation.stdout.strip()
-            catalog_message = (
-                "Core remained immutable; the source-specific human catalog is generated "
-                "inside the source repository during Storage."
-            )
-        else:
-            validation_message = "Prospective canonical registry was Schema-valid and byte-identical to the current registry; no post-write validation was required."
-            catalog_message = "Core remained immutable; no external registry catalog rebuild was required."
-        timestamp = now()
-        action_counts = {
-            action: sum(item["action"] == action for item in manifest["records"])
-            for action in ("create", "update", "unchanged")
-        }
-        receipt = {
-            "schema_version": "1.0.0",
-            "project_id": project["id"],
-            "source_id": project["source_id"],
-            "package_fingerprint": package["package_fingerprint"],
-            "registry_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
-            "created_count": action_counts["create"],
-            "updated_count": action_counts["update"],
-            "unchanged_count": action_counts["unchanged"],
-            "collection_counts": package["collection_counts"],
-            "registry_validation": validation_message,
-            "catalog_validation": catalog_message,
-            "archived_at": timestamp,
-        }
-        receipt["receipt_fingerprint"] = fingerprint(receipt)
-        validate_update(receipt, "database_deep_map_archive_receipt.schema.json", ARCHIVE_RECEIPT_FILE)
-        manifest["state"] = "archived"; manifest["updated_at"] = timestamp
-        write_json(target / STAGING_MANIFEST_FILE, manifest)
-        write_json(target / ARCHIVE_RECEIPT_FILE, receipt)
-        project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "The Storage transaction validated the prospective canonical registry, promoted staged records, and rebuilt the human catalog.", project["phase_states"]["boundary"]["evidence"])
-        project["phase_states"]["completion_audit"] = phase_state("in_progress", timestamp)
-        project["workflow_status"] = "ready_for_storage"; project["current_phase"] = "storage"
-        project["next_actions"] = ["prepare-database-storage", "database-storage-status"]
-        append_history(project, "archive-database-deep-map", "Storage sub-transaction promoted the sealed execution package into the canonical GRDR registry and issued its internal archive receipt.")
-        write_json(target / PROJECT_FILE, project)
-        final_audit = audit_database_deep_map(target)
-        if final_audit["errors"] or not final_audit["canonical_archive_complete"]:
-            raise ValueError("canonical Storage sub-transaction failed final audit: " + "; ".join(final_audit["errors"]))
-    except Exception:
-        for filename, content in original_contents.items():
-            atomic_write_text(REGISTRY_ROOT / filename, content)
-        write_json(target / STAGING_MANIFEST_FILE, original_manifest)
-        write_json(target / PROJECT_FILE, original_project)
-        if original_receipt is None:
-            receipt_path.unlink(missing_ok=True)
-        else:
-            atomic_write_text(receipt_path, original_receipt)
-        raise
+        replaced_files: list[str] = []
+        try:
+            for filename in affected_files:
+                canonical_path = REGISTRY_ROOT / filename
+                backup_path = backup_root / filename
+                if canonical_path.is_file():
+                    try:
+                        os.link(canonical_path, backup_path)
+                    except OSError:
+                        shutil.copy2(canonical_path, backup_path)
+                os.replace(prepared_root / filename, canonical_path)
+                replaced_files.append(filename)
+            validation_errors = validate_merged_registry(target)
+            if validation_errors:
+                raise ValueError("; ".join(validation_errors))
+            for filename in affected_files:
+                expected = {
+                    record["id"]: record
+                    for record in staged.get(filename, [])
+                    if record.get("id") in changed_ids_by_file[filename]
+                }
+                actual = read_jsonl_selected(REGISTRY_ROOT / filename, set(expected))
+                if actual != expected:
+                    raise ValueError(f"post-write canonical verification failed for {filename}")
+            if affected_files:
+                validation_message = (
+                    "Incremental schema, duplicate-ID, referential-closure, and post-write "
+                    f"content validation passed for {len(affected_files)} streamed registry files."
+                )
+                catalog_message = (
+                    "Core remained immutable; the source-specific human catalog is generated "
+                    "inside the source repository during Storage."
+                )
+            else:
+                validation_message = "Prospective canonical registry was Schema-valid and byte-identical to the current registry; no post-write validation was required."
+                catalog_message = "Core remained immutable; no external registry catalog rebuild was required."
+            timestamp = now()
+            action_counts = {
+                action: sum(item["action"] == action for item in manifest["records"])
+                for action in ("create", "update", "unchanged")
+            }
+            receipt = {
+                "schema_version": "1.0.0",
+                "project_id": project["id"],
+                "source_id": project["source_id"],
+                "package_fingerprint": package["package_fingerprint"],
+                "registry_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
+                "created_count": action_counts["create"],
+                "updated_count": action_counts["update"],
+                "unchanged_count": action_counts["unchanged"],
+                "collection_counts": package["collection_counts"],
+                "registry_validation": validation_message,
+                "catalog_validation": catalog_message,
+                "archived_at": timestamp,
+            }
+            receipt["receipt_fingerprint"] = fingerprint(receipt)
+            validate_update(receipt, "database_deep_map_archive_receipt.schema.json", ARCHIVE_RECEIPT_FILE)
+            manifest["state"] = "archived"; manifest["updated_at"] = timestamp
+            write_json(target / STAGING_MANIFEST_FILE, manifest)
+            write_json(target / ARCHIVE_RECEIPT_FILE, receipt)
+            project["phase_states"]["validation"] = phase_state("verified_complete", timestamp, "The Storage transaction validated the prospective canonical registry and stream-promoted staged records.", project["phase_states"]["boundary"]["evidence"])
+            project["phase_states"]["completion_audit"] = phase_state("in_progress", timestamp)
+            project["workflow_status"] = "ready_for_storage"; project["current_phase"] = "storage"
+            project["next_actions"] = ["prepare-database-storage", "database-storage-status"]
+            append_history(project, "archive-database-deep-map", "Storage sub-transaction stream-promoted the sealed execution package into the canonical GRDR registry and issued its internal archive receipt.")
+            write_json(target / PROJECT_FILE, project)
+            final_audit = audit_database_deep_map(target)
+            if final_audit["errors"] or not final_audit["canonical_archive_complete"]:
+                raise ValueError("canonical Storage sub-transaction failed final audit: " + "; ".join(final_audit["errors"]))
+        except Exception:
+            for filename in reversed(replaced_files):
+                backup_path = backup_root / filename
+                if backup_path.is_file():
+                    os.replace(backup_path, REGISTRY_ROOT / filename)
+                else:
+                    (REGISTRY_ROOT / filename).unlink(missing_ok=True)
+            write_json(target / STAGING_MANIFEST_FILE, original_manifest)
+            write_json(target / PROJECT_FILE, original_project)
+            if original_receipt is None:
+                receipt_path.unlink(missing_ok=True)
+            else:
+                atomic_write_text(receipt_path, original_receipt)
+            raise
     sync_report(target, project, final_audit)
     return {
         "operation": "archive_database_deep_map",

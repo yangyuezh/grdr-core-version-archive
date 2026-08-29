@@ -26,6 +26,7 @@ from database_deep_map import (  # noqa: E402
     record_database_deep_map_stage,
     stage_database_deep_map_records,
     start_database_deep_map,
+    write_streamed_registry_merge,
 )
 from database_storage import (  # noqa: E402
     assess_storage_capacity,
@@ -45,6 +46,33 @@ from database_storage import (  # noqa: E402
 
 
 class DatabaseStorageTests(unittest.TestCase):
+    def test_streamed_registry_merge_updates_and_appends_without_loading_history(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            canonical = root / "datasets.jsonl"
+            output = root / "prospective" / "datasets.jsonl"
+            canonical.write_text(
+                "".join(json.dumps(item) + "\n" for item in [
+                    {"id": "grdr:dataset:one", "name": "one"},
+                    {"id": "grdr:dataset:two", "name": "two"},
+                ]),
+                encoding="utf-8",
+            )
+            changed = {
+                "grdr:dataset:two": {"id": "grdr:dataset:two", "name": "updated"},
+                "grdr:dataset:three": {"id": "grdr:dataset:three", "name": "three"},
+            }
+            write_streamed_registry_merge(canonical, output, changed)
+            records = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(
+                records,
+                [
+                    {"id": "grdr:dataset:one", "name": "one"},
+                    {"id": "grdr:dataset:two", "name": "updated"},
+                    {"id": "grdr:dataset:three", "name": "three"},
+                ],
+            )
+
     def test_large_record_batch_duplicate_detection_is_linear_and_exact(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "large-candidates.jsonl"
@@ -316,7 +344,11 @@ class DatabaseStorageTests(unittest.TestCase):
             }
             candidate_file = root / "candidate-records.jsonl"
             candidate_file.write_text(json.dumps(dataset) + "\n", encoding="utf-8")
-            stage_database_deep_map_records(project_dir, candidate_file)
+            with patch(
+                "database_deep_map.merged_collections",
+                side_effect=AssertionError("large-source staging must not materialize the historical registry"),
+            ):
+                stage_database_deep_map_records(project_dir, candidate_file)
             locks_before = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))["locks"]
             dataset_stage_update = root / "dataset-stage-update.json"
             dataset_stage_update.write_text(json.dumps({
@@ -346,8 +378,12 @@ class DatabaseStorageTests(unittest.TestCase):
             self._close_execution(project_dir, dataset_id)
             execution_audit = audit_database_deep_map(project_dir)
             self.assertTrue(execution_audit["execution_ready_for_storage"], execution_audit)
-            prepare_database_deep_map_storage(project_dir)
-            archive_database_deep_map(project_dir)
+            with patch(
+                "database_deep_map.merged_collections",
+                side_effect=AssertionError("large-source Storage must not materialize the historical registry"),
+            ):
+                prepare_database_deep_map_storage(project_dir)
+                archive_database_deep_map(project_dir)
 
             observation = project_dir / "raw_observations" / "observations.csv"
             observation.parent.mkdir()
