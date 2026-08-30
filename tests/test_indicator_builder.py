@@ -190,6 +190,19 @@ def make_project(parent: Path, with_evidence: bool = True) -> Path:
     return project_dir
 
 
+def isolated_cli_environment(parent: Path, *, omit_grdr_root: bool = False) -> dict[str, str]:
+    state = parent / "grdr-state"
+    registry = state / "registry"
+    registry.mkdir(parents=True)
+    for filename in ("variables.jsonl", "source_archives.jsonl"):
+        (registry / filename).write_text("", encoding="utf-8")
+    environment = dict(os.environ)
+    environment["GRDR_STATE_ROOT"] = str(state)
+    if omit_grdr_root:
+        environment.pop("GRDR_ROOT", None)
+    return environment
+
+
 class IndicatorBuilderTests(unittest.TestCase):
     def test_matching_uses_distributed_runtime_records(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -306,6 +319,7 @@ class IndicatorBuilderTests(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                env=isolated_cli_environment(Path(temporary)),
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
@@ -320,6 +334,7 @@ class IndicatorBuilderTests(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                env=isolated_cli_environment(Path(temporary)),
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
@@ -336,6 +351,7 @@ class IndicatorBuilderTests(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                env=isolated_cli_environment(Path(temporary)),
             )
             self.assertEqual(completed.returncode, 2)
             payload = json.loads(completed.stdout)
@@ -359,7 +375,9 @@ class IndicatorBuilderTests(unittest.TestCase):
                 cwd=ROOT.parent,
                 capture_output=True,
                 text=True,
-                env={key: value for key, value in os.environ.items() if key != "GRDR_ROOT"},
+                env=isolated_cli_environment(
+                    Path(temporary), omit_grdr_root=True
+                ),
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertTrue(json.loads(completed.stdout)["mapping_ready"])

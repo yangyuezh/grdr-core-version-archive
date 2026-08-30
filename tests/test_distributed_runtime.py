@@ -533,7 +533,10 @@ print(json.dumps({\"operation\": sys.argv[1], \"status\": \"ok\", \"variable_id\
         offline = runtime.observation_route_context(self.snapshot, "offline")
         self.assertEqual(latest["selected_route"], "official_upstream")
         self.assertEqual(reproducible["selected_route"], "github_release_snapshot")
-        self.assertEqual(reproducible["observation_root"], "")
+        self.assertEqual(
+            reproducible["observation_root"],
+            str(self.snapshot / "observations"),
+        )
         self.assertEqual(offline["selected_route"], "elements_mirror")
 
     def test_runtime_falls_back_from_official_to_grdr_release(self) -> None:
@@ -564,6 +567,9 @@ print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}
 """,
             encoding="utf-8",
         )
+        observations = self.snapshot / "observations"
+        observations.mkdir()
+        (observations / "observations.csv").write_text("value\n1\n", encoding="utf-8")
         with patch.object(
             runtime,
             "available_runtimes",
@@ -580,6 +586,75 @@ print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}
         self.assertEqual(
             [item["status"] for item in result["observation_route"]["attempted_routes"]],
             ["failed", "succeeded"],
+        )
+
+    def test_reproducible_fetch_upgrades_agent_cache_to_full_release(self) -> None:
+        access_path = self.snapshot / "agent" / "online_access.json"
+        access = json.loads(access_path.read_text(encoding="utf-8"))
+        access["routes"].append({
+            "route_id": "grdr-release",
+            "access_method": "grdr_release_snapshot",
+            "authority": "grdr",
+            "uri": "https://github.com/example/synthetic/releases/tag/r1",
+            "freshness": "frozen_snapshot",
+            "coverage_claim": "all_registered_variables",
+            "verification": "staged_release_snapshot_test",
+        })
+        access["route_policies"] = {
+            "latest": ["official_online", "github_release_snapshot"],
+            "reproducible": ["github_release_snapshot"],
+            "offline": [],
+        }
+        access_path.write_text(json.dumps(access), encoding="utf-8")
+        entrypoint = self.snapshot / "agent" / "synthetic_runtime.py"
+        entrypoint.write_text(
+            """import json, os, pathlib, sys
+root = pathlib.Path(os.environ.get("GRDR_OBSERVATION_ROOT", ""))
+if not root.is_dir() or not (root / "observations.csv").is_file():
+    print("release observations are not materialized", file=sys.stderr)
+    raise SystemExit(1)
+print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}))
+""",
+            encoding="utf-8",
+        )
+
+        def materialize(_card, _root, *, scope):
+            self.assertEqual(scope, "full")
+            observations = self.snapshot / "observations"
+            observations.mkdir()
+            (observations / "observations.csv").write_text(
+                "value\n1\n", encoding="utf-8"
+            )
+            return {"status": "materialized", "cache_scope": "full"}
+
+        with (
+            patch.object(
+                runtime,
+                "available_runtimes",
+                return_value=[(self.card, self.snapshot)],
+            ),
+            patch.object(
+                runtime,
+                "materialize_source_snapshot",
+                side_effect=materialize,
+            ) as materialized,
+        ):
+            result = runtime.invoke_source_runtime(
+                [self.card],
+                "grdr:variable:synthetic-population",
+                "fetch-variable",
+                self.root,
+                route_policy="reproducible",
+            )
+
+        materialized.assert_called_once()
+        self.assertEqual(
+            result["observation_route"]["selected_route"],
+            "github_release_snapshot",
+        )
+        self.assertEqual(
+            result["observation_route"]["observation_root"],
+            str(self.snapshot / "observations"),
         )
 
     def test_verified_runtime_cache_invalidates_after_file_mutation(self) -> None:
@@ -874,6 +949,11 @@ print(json.dumps({"status": "ok", "route": os.environ["GRDR_OBSERVATION_ROUTE"]}
         registry = self.write_history_registry()
         with (
             patch("semantic_resolver.source_cards", return_value=[self.card]),
+            patch(
+                "semantic_resolver.global_index.cards_match_external_registry",
+                return_value=False,
+            ),
+            patch("indicator_builder.registry_root", return_value=registry),
             patch.object(resolver, "REGISTRY_ROOT", registry),
             patch.object(research, "REGISTRY_ROOT", registry),
         ):

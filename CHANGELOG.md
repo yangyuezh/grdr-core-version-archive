@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.5.8] - 2026-08-30
+
+### Fixed
+
+- Materialize and SHA-256-verify the complete GitHub Release snapshot on the first `reproducible` fetch when only the lightweight Agent cache is present.
+- Bind `github_release_snapshot` routes to the materialized observation directory, so source Runtimes receive the frozen observation files instead of an empty route root.
+- Preserve the lightweight default: `latest` still invokes a healthy official route without downloading knowledge or observation assets, and upgrades to the Release only when that fallback is actually selected.
+
+### Validation
+
+- Add regression coverage for policy ordering, official-to-Release fallback, and automatic Agent-to-full cache upgrade.
+- Isolate semantic-resolution and Indicator Builder fixtures from the workstation's live registry and snapshot cache, preventing database growth from leaking into Core unit tests.
+- Reproduce the defect and verify the repair with the private Epoch AI `2026-08-30-r1` Release: the Core public entry point returns the same 45 filtered model-training-compute rows through both `latest` official access and the frozen `reproducible` Release route; the upgraded cache passes complete knowledge, observation, and logical-parity verification.
+
 ## [4.5.7] - 2026-08-29
 
 ### Fixed

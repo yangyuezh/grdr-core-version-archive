@@ -573,7 +573,11 @@ def observation_route_context(
                         "route_id": route["route_id"],
                         "access_method": route["access_method"],
                         "uri": route["uri"],
-                        "observation_root": "",
+                        "observation_root": (
+                            str(local_observations)
+                            if local_observations.is_dir()
+                            else ""
+                        ),
                     })
             elif route_class == "local_snapshot_cache":
                 if local_observations.is_dir():
@@ -1169,6 +1173,9 @@ def invoke_snapshot_runtime(
     operation: str,
     extra_args: Iterable[str] = (),
     route_policy: str = "latest",
+    *,
+    cache_root: str | Path | None = None,
+    allow_release_materialization: bool = False,
 ) -> dict[str, Any]:
     index = snapshot / card["runtime"]["agent_index"]
     connection = sqlite3.connect(index)
@@ -1191,6 +1198,45 @@ def invoke_snapshot_runtime(
     route_context = observation_route_context(snapshot, route_policy, variable_id)
     attempted_routes = []
     for candidate in route_context["candidate_routes"]:
+        if (
+            operation == "fetch-variable"
+            and candidate["selected_route"] == "github_release_snapshot"
+            and not candidate["observation_root"]
+            and allow_release_materialization
+        ):
+            expected_snapshot = snapshot_path(card, cache_root)
+            if expected_snapshot.resolve() != snapshot.resolve():
+                attempted_routes.append({
+                    "route_id": candidate["route_id"],
+                    "selected_route": candidate["selected_route"],
+                    "attempt": 1,
+                    "status": "failed",
+                    "error": "GitHub Release materialization is allowed only for a managed GRDR cache path",
+                })
+                continue
+            try:
+                materialize_source_snapshot(card, cache_root, scope="full")
+                route_context = observation_route_context(
+                    snapshot, route_policy, variable_id
+                )
+                candidate = next(
+                    item
+                    for item in route_context["candidate_routes"]
+                    if item["route_id"] == candidate["route_id"]
+                )
+                if not candidate["observation_root"]:
+                    raise DistributedRuntimeError(
+                        "full GitHub Release cache has no observation directory"
+                    )
+            except (DistributedRuntimeError, StopIteration) as exc:
+                attempted_routes.append({
+                    "route_id": candidate["route_id"],
+                    "selected_route": candidate["selected_route"],
+                    "attempt": 1,
+                    "status": "failed",
+                    "error": str(exc),
+                })
+                continue
         runtime_environment = {
             **os.environ,
             "GRDR_SOURCE_SNAPSHOT_ROOT": str(snapshot),
@@ -1303,6 +1349,8 @@ def invoke_source_runtime(
             operation,
             extra_args,
             route_policy,
+            cache_root=root,
+            allow_release_materialization=operation == "fetch-variable",
         )
     raise DistributedRuntimeError(f"variable is absent from every locally available source runtime: {variable_id}")
 
