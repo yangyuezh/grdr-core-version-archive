@@ -150,6 +150,8 @@ Self-tests and route coverage are necessary but not sufficient. For every nonemp
 }
 ```
 
+Use `identifier` for entity-indexed sources such as scholarly works, patents, organizations, facilities, or biological accessions. Use `country` and period boundaries for multidimensional statistical sources; selectors may be combined when the official source supports them.
+
 The `latest` probe is always required. If `online_access.route_policies.offline` is nonempty, add a second probe whose expected route is a local or mounted mirror. Storage supplies its own temporary output directory, requires `status=fetched`, verifies Source and Variable identity, checks nonzero rows and files, and seals only the result summary and output fingerprint—not the temporary probe data.
 
 ## Cache policy

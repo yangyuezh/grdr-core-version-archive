@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.5.9] - 2026-08-31
+
+### Added
+
+- Add a generic `--identifier` selector to `fetch-variable` and `fetch-indicator-data`, alongside the existing country and period selectors.
+- Allow Storage acceptance probes and their sealed audit records to use an entity identifier for scholarly works, patents, organizations, facilities, accessions, and other entity-indexed sources.
+
+### Compatibility and validation
+
+- Preserve all existing country/period Runtime arguments and route behavior; this is a backward-compatible protocol extension.
+- Generalize the Storage Skill contract and architecture documentation so every Source is tested with a selector appropriate to its native observation unit.
+- Add regression coverage proving Core forwards a real DOI through the same Storage invocation-acceptance gate used by statistical databases.
+
 ## [4.5.8] - 2026-08-30
 
 ### Fixed

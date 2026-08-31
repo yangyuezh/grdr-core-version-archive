@@ -600,9 +600,9 @@ def run_source_runtime_invocation_acceptance(
     results = []
     for probe in probes:
         parameters = probe["parameters"]
-        if not any(key in parameters for key in ("country", "start_period", "end_period")):
+        if not any(key in parameters for key in ("identifier", "country", "start_period", "end_period")):
             raise ValueError(
-                f"Runtime acceptance probe {probe['probe_id']} is not parameterized by country or period"
+                f"Runtime acceptance probe {probe['probe_id']} is not parameterized by identifier, country, or period"
             )
         if probe["route_policy"] not in declared_policies:
             raise ValueError(
@@ -613,7 +613,7 @@ def run_source_runtime_invocation_acceptance(
                 f"Runtime acceptance probe {probe['probe_id']} selects an unavailable route policy"
             )
         arguments = []
-        for name in ("country", "start_period", "end_period", "timeout"):
+        for name in ("identifier", "country", "start_period", "end_period", "timeout"):
             if name in parameters:
                 arguments.extend([f"--{name.replace('_', '-')}", str(parameters[name])])
         with tempfile.TemporaryDirectory(prefix=f".{probe['probe_id']}.") as temporary:

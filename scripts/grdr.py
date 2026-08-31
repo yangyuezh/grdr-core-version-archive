@@ -984,7 +984,7 @@ def fetch_variable(args: argparse.Namespace) -> None:
         extra_args.append("--dry-run")
     if args.output_dir:
         extra_args.extend(["--output-dir", args.output_dir])
-    for option in ("country", "start_period", "end_period", "timeout"):
+    for option in ("identifier", "country", "start_period", "end_period", "timeout"):
         value = getattr(args, option)
         if value is not None:
             extra_args.extend(["--" + option.replace("_", "-"), str(value)])
@@ -1224,6 +1224,7 @@ def fetch_indicator_data_command(args: argparse.Namespace) -> None:
     extra_args = []
     for option, value in (
         ("--output-dir", None if args.seal_data_snapshot else args.output_dir),
+        ("--identifier", args.identifier),
         ("--country", args.country),
         ("--start-period", args.start_period),
         ("--end-period", args.end_period),
@@ -1996,6 +1997,7 @@ def parser() -> argparse.ArgumentParser:
     fetch_indicator.add_argument("--output-dir")
     fetch_indicator.add_argument("--seal-data-snapshot", action="store_true")
     fetch_indicator.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
+    fetch_indicator.add_argument("--identifier")
     fetch_indicator.add_argument("--country")
     fetch_indicator.add_argument("--start-period")
     fetch_indicator.add_argument("--end-period")
@@ -2097,6 +2099,7 @@ def parser() -> argparse.ArgumentParser:
     fetch.add_argument("--output-dir")
     fetch.add_argument("--research-project-dir")
     fetch.add_argument("--route-policy", choices=["latest", "reproducible", "offline"], default="latest")
+    fetch.add_argument("--identifier")
     fetch.add_argument("--country")
     fetch.add_argument("--start-period")
     fetch.add_argument("--end-period")

@@ -119,7 +119,7 @@ python3 "$GRDR_LAUNCHER" fetch-indicator-data <project> <indicator-id> --route-p
 
 Core first resolves `Variable -> Source -> Snapshot -> route IDs` in the global routing layer, then delegates the exact access plan and execution to that Source Runtime 2.0. This deterministic routing layer is not another semantic decision and does not replace the persisted R-to-B or B-to-A evidence path.
 
-Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add source-supported country, period, output, or timeout arguments when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, requested route policy, attempted routes, selected route, upstream provenance, and snapshot manifest.
+Use `--seal-data-snapshot` for a real fetch that must become a fingerprinted, query-scoped research-project data snapshot. Add a source-supported entity identifier, country, period, output, or timeout argument when needed. For composite mappings, select each mapped `--variable-id` explicitly and retain the approved transformation formula. Refuse to invoke an unapproved contested mapping. Preserve returned source, snapshot, Variable, alignment, path, requested route policy, attempted routes, selected route, upstream provenance, and snapshot manifest.
 
 ## Recover and expand
 

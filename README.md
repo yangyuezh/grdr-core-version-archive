@@ -2,7 +2,7 @@
 
 GRDR Core is the database-independent engine for the Global Research Data Registry: an AI-agent-native, all-discipline infrastructure for data-source registration, deep mapping, research matching, and distributed snapshot storage.
 
-> **Current stable release / 当前稳定版本：[`v4.5.8`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.8)**
+> **Current stable release / 当前稳定版本：[`v4.5.9`](https://github.com/yangyuezh/grdr-core/releases/tag/v4.5.9)**
 > This is the actively maintained Core line. The stable repository name remains `grdr-core`; exact auditable states are identified by immutable version tags, GitHub Releases, commit hashes, and the `VERSION` file. The separately preserved `grdr-core-v4.0` repository is a frozen v4.0.1 product archive, not the current Core.
 
 This repository contains no database snapshot, database-specific adapter, canonical source record, source-archive card, project state, or observation data. Mutable registry and project state lives under external `GRDR_STATE_ROOT`; every selected database is stored in its own private source repository.
@@ -29,7 +29,7 @@ The complete architecture is shown in three linked views so that every element r
 
 ```mermaid
 flowchart TB
-    CORE["GRDR Core v4.5.8<br/><b>database-independent · AI-agent-native</b>"]:::core
+    CORE["GRDR Core v4.5.9<br/><b>database-independent · AI-agent-native</b>"]:::core
     COORD["<b>Skill 1 · grdr</b><br/>coordinate · discover · assess · audit · expand"]:::coreSkill
     SHARED["Shared foundation<br/>ontology · schemas · route contracts · CLI/Runtime<br/>validators · tests · documentation · index-card schema"]:::shared
 
@@ -177,7 +177,7 @@ flowchart TB
             S_PROFILE["Three independent snapshot axes<br/><b>knowledge scope</b> inherited from Plan<br/><b>online access</b> complete for every registered Variable<br/><b>observation replication + placement</b> decided by Storage"]:::storageStrong
             S_CAPACITY["GitHub capacity assessment<br/>measure bytes before copying · optional upstream estimate<br/>5 GiB observation total · each asset strictly below 2 GiB<br/><i>size never reduces knowledge depth</i>"]:::storage
             S_ONLINE["Universal online-callability gate<br/>official API · official bulk download · browser automation<br/>or GRDR Release snapshot fallback<br/><b>100% registered Variables must have an executable route</b>"]:::online
-            S_ACCEPT["Core → Source Runtime invocation acceptance<br/>real Variable + country/period parameters + output artifacts<br/><b>latest required · offline required when available</b>"]:::verify
+            S_ACCEPT["Core → Source Runtime invocation acceptance<br/>real Variable + entity identifier / country / period selectors + output artifacts<br/><b>latest required · offline required when available</b>"]:::verify
             S_PACKAGE["Build one source-scoped callable snapshot<br/>knowledge graph + Execute project + standards/evidence<br/>Agent SQLite index + source Runtime 2.0"]:::storageStrong
             S_MODES["Independent observation replication<br/><b>full mirror</b> · <b>partitioned mirror</b> · <b>no mirror</b><br/>capacity affects copied bytes only"]:::storage
 
@@ -281,11 +281,11 @@ flowchart TB
 
 ##### 在线调用完成规则与路由优先级
 
-在线调用不是观测复制模式。Storage 必须生成 `online_access.json`、`online_runtime_audit.json` 和 `invocation_acceptance_audit.json`。前两份文件记录路线声明、自检结果和每个已登记 Variable 对应的可执行 `route_id`；第三份文件必须通过 Core 的标准 `fetch-variable` 协议，用真实 Variable 和国家／时期参数取回非空观测值及输出文件。`latest` 路线必须验收；存在离线路线时还必须验收 `offline`。只有变量覆盖为零缺口且参数化调用门禁通过，快照才能达到 `callable_complete`。
+在线调用不是观测复制模式。Storage 必须生成 `online_access.json`、`online_runtime_audit.json` 和 `invocation_acceptance_audit.json`。前两份文件记录路线声明、自检结果和每个已登记 Variable 对应的可执行 `route_id`；第三份文件必须通过 Core 的标准 `fetch-variable` 协议，用真实 Variable 和适合该数据库的实体标识符、国家或时期参数取回非空观测值及输出文件。`latest` 路线必须验收；存在离线路线时还必须验收 `offline`。只有变量覆盖为零缺口且参数化调用门禁通过，快照才能达到 `callable_complete`。
 
 | 官方数据库形态 | Runtime 适配方式 | 能否达到在线完成 | 关键验收 |
 |---|---|---|---|
-| 官方 API／查询接口 | 参数化 API 适配器 | 能 | Core 标准国家／时期参数实际请求成功、返回非空观测和可核验产物、全部变量有路线 |
+| 官方 API／查询接口 | 参数化 API 适配器 | 能 | Core 标准实体标识符／国家／时期参数实际请求成功、返回非空观测和可核验产物、全部变量有路线 |
 | 只能下载整表或压缩包 | 下载、校验、解包、筛选适配器 | 能 | 官方文件可取、哈希／版本可证，并通过 Core 参数筛选得到非空结果 |
 | 只能通过网页操作 | 浏览器自动化适配器 | 能，但稳定性要求更高 | 实际流程可重复、选择参数可记录、产物可核验，并通过参数化调用门禁 |
 | 官方在线源暂时不可用 | 经核验的 GRDR GitHub Release 快照路线 | 能作为在线后备 | 官方状态明确记为 `unavailable`，Release 路线覆盖全部变量 |
@@ -503,4 +503,4 @@ See [the database factory workflow](docs/DATABASE_DEEP_MAP_WORKFLOW.md) and [the
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Version `4.5.8` lets a frozen GitHub Release route upgrade an Agent-only cache to a fully verified snapshot at the moment a reproducible fetch actually needs it, while healthy latest-policy official calls remain lightweight. Version `4.5.7` makes the ignored local Release-asset build directory disposable after verified GitHub publication, so GitHub can remain the canonical backup without retaining duplicate local observation archives. Version `4.5.6` makes high-cardinality source registration independent of historical registry size: staging and archive audits load only the incoming records and their transitive reference closure, Schema validators are reused, and canonical promotion streams each affected JSONL collection through an atomic rollback-safe transaction. Version `4.5.5` separates the lightweight Agent cache required for search and online invocation from an explicitly requested full Release expansion, so large observation mirrors never need to occupy local disk merely to keep a Source globally routable. Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.
+Version `4.5.9` extends the Core-to-source Runtime contract with a generic entity `identifier`, so scholarly works, patents, organizations, facilities, accessions, and other entity-indexed databases receive the same real invocation acceptance already enforced for country/period databases. Version `4.5.8` lets a frozen GitHub Release route upgrade an Agent-only cache to a fully verified snapshot at the moment a reproducible fetch actually needs it, while healthy latest-policy official calls remain lightweight. Version `4.5.7` makes the ignored local Release-asset build directory disposable after verified GitHub publication, so GitHub can remain the canonical backup without retaining duplicate local observation archives. Version `4.5.6` makes high-cardinality source registration independent of historical registry size: staging and archive audits load only the incoming records and their transitive reference closure, Schema validators are reused, and canonical promotion streams each affected JSONL collection through an atomic rollback-safe transaction. Version `4.5.5` separates the lightweight Agent cache required for search and online invocation from an explicitly requested full Release expansion, so large observation mirrors never need to occupy local disk merely to keep a Source globally routable. Version `4.5.4` makes high-cardinality spine checkpoints scale with graph topology rather than the full nested payload of every scientific record. Version `4.5.3` makes current-only large databases honest and publishable: `no_mirror` may complete without inventing a frozen source route, but only with full `latest` Variable coverage, enabled on-demand research snapshots, and an explicit `research_snapshot_required` status. Version `4.5.2` made high-cardinality deep maps practical through linear-time validation and bounded staging output. Version `4.5.1` closed the Core-to-source Runtime parameterized acceptance gap; Version `4.5.0` introduced the external Global Index & Routing Layer.

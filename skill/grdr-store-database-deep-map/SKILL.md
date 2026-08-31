@@ -50,7 +50,7 @@ Create a Schema-valid Storage specification with:
 - an on-demand research-project cache policy;
 - source-specific adapter files needed for reproducibility.
 - one Schema-valid `grdr-source-runtime/2.0` descriptor and its source-specific executable files, including `self-test-online` and the route-context protocol.
-- `runtime.acceptance_probes`: at least one real registered Variable queried with Core-standard country and/or period parameters under `latest`; when the snapshot has an offline route, add an `offline` probe too. Every probe must require nonzero rows and explicitly name the acceptable selected route.
+- `runtime.acceptance_probes`: at least one real registered Variable queried under `latest` with a Core-standard selector appropriate to the source: an entity `identifier`, a `country`, and/or a period boundary; when the snapshot has an offline route, add an `offline` probe too. Every probe must require nonzero rows and explicitly name the acceptable selected route.
 
 Configure the GitHub observation threshold outside Core. The default is 5 GiB of observations per database Release and is adjustable without changing the Skill. Every GitHub Release file must remain strictly below 2 GiB. These are the only two default capacity boundaries. Treat the resulting size label as a policy-relative recommendation, never as a database identity or a reason to reduce knowledge scope.
 

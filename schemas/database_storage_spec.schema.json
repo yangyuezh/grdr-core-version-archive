@@ -137,6 +137,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "identifier": {"type": "string", "minLength": 1},
             "country": {"type": "string", "minLength": 1},
             "start_period": {"type": "string", "minLength": 1},
             "end_period": {"type": "string", "minLength": 1},

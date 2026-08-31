@@ -1022,15 +1022,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument("operation")
 parser.add_argument("--index", required=True)
 parser.add_argument("--variable-id", required=True)
-parser.add_argument("--country", required=True)
+parser.add_argument("--identifier")
+parser.add_argument("--country")
 parser.add_argument("--start-period")
 parser.add_argument("--end-period")
 parser.add_argument("--timeout")
 parser.add_argument("--output-dir", required=True)
 args = parser.parse_args()
+if not (args.identifier or args.country):
+    parser.error("identifier or country is required")
 output = Path(args.output_dir)
 raw = output / "observations.json"
-raw.write_text(json.dumps([{"country": args.country, "period": args.start_period, "value": 1}]))
+raw.write_text(json.dumps([{"identifier": args.identifier, "country": args.country, "period": args.start_period, "value": 1}]))
 (output / "provenance.json").write_text(json.dumps({"route": os.environ["GRDR_OBSERVATION_ROUTE"]}))
 print(json.dumps({
     "source_id": "grdr:source:synthetic",
@@ -1061,6 +1064,12 @@ print(json.dumps({
                 "route_policy": "offline",
                 "parameters": {"country": "USA", "start_period": "2023", "end_period": "2024"},
                 "expected": {"minimum_row_count": 1, "selected_routes": ["local_snapshot_cache"]},
+            }, {
+                "probe_id": "work-by-identifier",
+                "variable_id": variable_id,
+                "route_policy": "latest",
+                "parameters": {"identifier": "10.1038/news.2011.490"},
+                "expected": {"minimum_row_count": 1, "selected_routes": ["official_upstream"]},
             }]
             spec = {
                 "source_id": "grdr:source:synthetic",
@@ -1074,10 +1083,10 @@ print(json.dumps({
                 snapshot,
             )
             self.assertEqual(report["status"], "ready")
-            self.assertEqual(report["probe_count"], 2)
+            self.assertEqual(report["probe_count"], 3)
             self.assertEqual(
                 [item["selected_route"] for item in report["probes"]],
-                ["official_upstream", "local_snapshot_cache"],
+                ["official_upstream", "local_snapshot_cache", "official_upstream"],
             )
 
             runtime_script.write_text(
